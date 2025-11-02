@@ -233,7 +233,6 @@ function initializeColumnResizing() {
     ths.forEach((th, index) => {
         const resizer = th.querySelector('.resizer');
         if (!resizer) {
-            console.log(`Column ${index + 1}: No resizer found`);
             return;
         }
 
@@ -268,10 +267,7 @@ function initializeColumnResizing() {
         };
 
         resizer.addEventListener('mousedown', onMouseDown);
-        console.log(`Column ${index + 1}: Resizer initialized`);
     });
-    
-    console.log('Column resizing initialization complete');
 }
 
 // Load project settings from API
