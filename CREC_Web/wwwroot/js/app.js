@@ -4,11 +4,11 @@ Copyright (c) [2025] [S.Yukisita]
 This software is released under the MIT License.
 */
 
-// Global variables
+// グローバル変数
 let currentPage = 1;
 let currentPageSize = 20;
 let currentSearchCriteria = {};
-let currentLanguage = 'ja'; // 'ja' for Japanese, 'en' for English
+let currentLanguage = 'ja'; // 'ja' は日本語、'en' は英語
 let projectSettings = {
     projectName: '',
     uuidName: 'ID',
@@ -17,15 +17,15 @@ let projectSettings = {
     tag1Name: 'タグ 1',
     tag2Name: 'タグ 2',
     tag3Name: 'タグ 3'
-}; // Project settings loaded from .crec file
+}; // .crec ファイルから読み込まれるプロジェクト設定
 
-// WeakMap to store event handlers for panels
+// パネル用イベントハンドラを格納する WeakMap
 const panelEventHandlers = new WeakMap();
 
-// Track if column resizing has been initialized
+// 列リサイズが初期化済みか追跡
 let columnResizingInitialized = false;
 
-// Language translations
+// 言語翻訳
 const translations = {
     ja: {
         'loading': '読み込み中...',
@@ -134,17 +134,17 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeApp();
 });
 
-// Update UI language
+// UI 言語の更新
 function updateUILanguage() {
     const lang = currentLanguage;
-    
-    // Update all elements with data-lang attribute
+
+    // data-lang 属性を持つ全要素を更新
     document.querySelectorAll('[data-lang]').forEach(element => {
         const key = element.getAttribute('data-lang');
         const translation = translations[lang][key];
-        
+
         if (translation) {
-            // Special handling for table headers with resizers
+            // リサイズ用要素を持つテーブルヘッダーの特別処理
             if (element.tagName === 'TH' && element.classList.contains('resizable')) {
                 const thContent = element.querySelector('.th-content');
                 if (thContent) {
@@ -168,7 +168,7 @@ async function initializeApp() {
 
         // UI ラベルの更新（設定値反映）
         updateUILabels();
-        
+
         // 言語適用
         updateUILanguage();
 
@@ -182,7 +182,7 @@ async function initializeApp() {
             });
         }
 
-        // Detail panel close handlers
+        // 詳細パネルのクローズハンドラ
         const detailPanelOverlay = document.getElementById('detailPanelOverlay');
         const detailPanelClose = document.getElementById('detailPanelClose');
         if (detailPanelOverlay) {
@@ -195,21 +195,21 @@ async function initializeApp() {
         // 初回検索
         await searchCollections();
         console.log('App initialized successfully');
-    }catch (error) {
+    } catch (error) {
         console.error('Error initializing app:', error);
         showError('Failed to initialize application: ' + error.message);
     }
 }
 
-// Initialize column resizing functionality
+// 列リサイズ機能の初期化
 function initializeColumnResizing() {
     const table = document.querySelector('.collections-table');
     if (!table) {
         console.log('Table not found for column resizing');
         return;
     }
-    
-    // Skip if already initialized
+
+    // 既に初期化済みならスキップ
     if (columnResizingInitialized) {
         console.log('Column resizing already initialized');
         return;
@@ -218,10 +218,10 @@ function initializeColumnResizing() {
 
     const thead = table.querySelector('thead');
     const ths = thead.querySelectorAll('th.resizable');
-    
+
     console.log(`Initializing column resizing for ${ths.length} columns`);
-    
-    // Update tag column headers with project settings
+
+    // プロジェクト設定でタグ列ヘッダーを更新
     const tagHeaders = Array.from(ths).filter((th, index) => index >= 1 && index <= 7);
     if (tagHeaders.length === 7) {
         const thContents = tagHeaders.map(th => th.querySelector('.th-content'));
@@ -233,16 +233,16 @@ function initializeColumnResizing() {
         if (thContents[5]) thContents[5].textContent = projectSettings.tag2Name || (currentLanguage === 'ja' ? 'タグ 6' : 'Tag 6');
         if (thContents[6]) thContents[6].textContent = projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 7' : 'Tag 7');
     }
-    
+
     ths.forEach((th, index) => {
         const resizer = th.querySelector('.resizer');
         if (!resizer) {
             return;
         }
 
-        // Ensure resizer is visible
+        // リサイズ要素を表示にする
         resizer.style.display = 'block';
-        
+
         let startX, startWidth;
 
         const onMouseDown = (e) => {
@@ -250,9 +250,9 @@ function initializeColumnResizing() {
             e.preventDefault();
             startX = e.pageX;
             startWidth = th.offsetWidth;
-            
+
             th.classList.add('resizing');
-            
+
             document.addEventListener('mousemove', onMouseMove);
             document.addEventListener('mouseup', onMouseUp);
         };
@@ -274,7 +274,7 @@ function initializeColumnResizing() {
     });
 }
 
-// Load project settings from API
+// API からプロジェクト設定を読み込む
 async function loadProjectSettings() {
     try {
         const response = await fetch('/api/ProjectSettings');
@@ -294,86 +294,86 @@ async function loadProjectSettings() {
         }
     } catch (error) {
         console.warn('Could not load project settings, using defaults:', error);
-        // Keep default values already initialized
+        // 既に初期化されたデフォルト値を保持
     }
 }
 
-// Update UI labels with custom values from project settings
+// プロジェクト設定のカスタム値で UI ラベルを更新
 function updateUILabels() {
-    // Update search field dropdown options
+    // 検索フィールドのドロップダウンオプションを更新
     const searchFieldElement = document.getElementById('searchField');
     if (searchFieldElement) {
-        // Remember current selection
+        // 現在の選択を保持
         const currentValue = searchFieldElement.value;
-        
-        // Clear all options
+
+        // 全てのオプションをクリア
         searchFieldElement.innerHTML = '';
-        
-        // Add "All Fields" option - SearchField.All = 0
+
+        // 「全項目」オプションを追加 - SearchField.All = 0
         const allFieldsOption = document.createElement('option');
         allFieldsOption.value = '0';
         allFieldsOption.text = currentLanguage === 'ja' ? 'すべてのフィールド' : 'All Fields';
         searchFieldElement.appendChild(allFieldsOption);
-        
-        // Add ID option - SearchField.ID = 1
+
+        // ID オプションを追加 - SearchField.ID = 1
         const idOption = document.createElement('option');
         idOption.value = '1';
         idOption.text = projectSettings.uuidName;
         searchFieldElement.appendChild(idOption);
-        
-        // Add Name option - SearchField.Name = 2
+
+        // 名称オプションを追加 - SearchField.Name = 2
         const nameOption = document.createElement('option');
         nameOption.value = '2';
         nameOption.text = projectSettings.objectNameLabel || (currentLanguage === 'ja' ? '名称' : 'Name');
         searchFieldElement.appendChild(nameOption);
-        
-        // Add MC option - SearchField.ManagementCode = 3
+
+        // 管理コードオプションを追加 - SearchField.ManagementCode = 3
         const mcOption = document.createElement('option');
         mcOption.value = '3';
         mcOption.text = projectSettings.managementCodeName;
         searchFieldElement.appendChild(mcOption);
-        
-        // Add Category option - SearchField.Category = 4
+
+        // カテゴリオプションを追加 - SearchField.Category = 4
         const categoryOption = document.createElement('option');
         categoryOption.value = '4';
         categoryOption.text = projectSettings.categoryName;
         searchFieldElement.appendChild(categoryOption);
-        
-        // Add Tag (all) option - SearchField.Tag = 5
+
+        // タグ（全て）オプションを追加 - SearchField.Tag = 5
         const tagAllOption = document.createElement('option');
         tagAllOption.value = '5';
         tagAllOption.text = currentLanguage === 'ja' ? 'タグ (全て)' : 'Tags (All)';
         searchFieldElement.appendChild(tagAllOption);
-        
-        // Add individual tag options - SearchField.Tag1/2/3 = 6/7/8
+
+        // 個別タグオプションを追加 - SearchField.Tag1/2/3 = 6/7/8
         const tag1Option = document.createElement('option');
         tag1Option.value = '6';
         tag1Option.text = projectSettings.tag1Name;
         searchFieldElement.appendChild(tag1Option);
-        
+
         const tag2Option = document.createElement('option');
         tag2Option.value = '7';
         tag2Option.text = projectSettings.tag2Name;
         searchFieldElement.appendChild(tag2Option);
-        
+
         const tag3Option = document.createElement('option');
         tag3Option.value = '8';
         tag3Option.text = projectSettings.tag3Name;
         searchFieldElement.appendChild(tag3Option);
-        
-        // Add Location option - SearchField.Location = 9
+
+        // 場所オプションを追加 - SearchField.Location = 9
         const locationOption = document.createElement('option');
         locationOption.value = '9';
         locationOption.text = currentLanguage === 'ja' ? '場所' : 'Location';
         searchFieldElement.appendChild(locationOption);
-        
-        // Restore previous selection if still valid
+
+        // 前の選択を復元（有効な場合）
         if (currentValue && Array.from(searchFieldElement.options).some(opt => opt.value === currentValue)) {
             searchFieldElement.value = currentValue;
         }
     }
-    
-    // Update page title if project name is available
+
+    // プロジェクト名があればページタイトルを更新
     if (projectSettings.projectName) {
         document.title = `${projectSettings.projectName} - CREC Web`;
         const titleElement = document.querySelector('h1');
@@ -383,22 +383,22 @@ function updateUILabels() {
     }
 }
 
-// Search collections
+// コレクション検索
 async function searchCollections(page = 1) {
     try {
         currentPage = page;
-        
-        // Get page size element - use safer approach with default value
+
+        // ページサイズ要素を取得 - デフォルト値を使う安全な方法
         const pageSizeElement = document.getElementById('pageSize');
         currentPageSize = pageSizeElement ? parseInt(pageSizeElement.value) : 20;
-        
-        // Get all search filter elements with defensive approach
+
+        // 検索フィルタ要素を防御的に取得
         const searchTextElement = document.getElementById('searchText');
         const searchFieldElement = document.getElementById('searchField');
         const searchMethodElement = document.getElementById('searchMethod');
         const inventoryStatusElement = document.getElementById('inventoryStatusFilter');
-        
-        // Build criteria object with safe access and default values
+
+        // 安全にアクセス可能なデフォルト値付きで検索条件を構築
         const criteria = {
             searchText: searchTextElement ? searchTextElement.value : '',
             searchField: searchFieldElement ? (parseInt(searchFieldElement.value) || 0) : 0,
@@ -424,11 +424,11 @@ async function searchCollections(page = 1) {
         console.log('Query params:', queryParams.toString());
         const response = await fetch(`/api/collections/search?${queryParams}`);
         console.log('Response status:', response.status);
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const result = await response.json();
         console.log('Search result:', result);
         displaySearchResults(result);
@@ -448,7 +448,7 @@ function displaySearchResults(result) {
     const resultsText = document.getElementById('resultsText');
     const resultsCount = document.getElementById('resultsCount');
 
-    // Clear previous results
+    // 以前の結果をクリア
     tableBody.innerHTML = '';
 
     if (result.collections.length === 0) {
@@ -462,12 +462,12 @@ function displaySearchResults(result) {
         `;
         summary.style.display = 'none';
     } else {
-        // Update summary
+        // サマリを更新
         resultsText.textContent = `${t('search-results')}: ${result.totalCount} ${t('items-found')}`;
         resultsCount.textContent = result.totalCount;
         summary.style.display = 'block';
 
-        // Display collections as table rows
+        // コレクションをテーブル行として表示
         result.collections.forEach(collection => {
             const row = createCollectionRow(collection);
             tableBody.appendChild(row);
@@ -475,8 +475,8 @@ function displaySearchResults(result) {
     }
 
     tableContainer.style.display = 'block';
-    
-    // Initialize column resizing after table is displayed
+
+    // テーブル表示後に列リサイズを初期化
     initializeColumnResizing();
 }
 
@@ -485,8 +485,8 @@ function createCollectionRow(collection) {
     row.addEventListener('click', () => showCollectionDetails(collection.collectionID));
 
     const inventoryStatusText = getInventoryStatusText(
-        collection.collectionInventoryStatus, 
-        collection.collectionCurrentInventory, 
+        collection.collectionInventoryStatus,
+        collection.collectionCurrentInventory,
         collection.collectionOrderPoint,
         collection.collectionMaxStock
     );
@@ -499,12 +499,12 @@ function createCollectionRow(collection) {
     thumbnailImg.src = thumbnailUrl;
     thumbnailImg.className = 'thumbnail-small';
     thumbnailImg.alt = 'Thumbnail';
-    
+
     const thumbnailPlaceholder = document.createElement('div');
     thumbnailPlaceholder.className = 'thumbnail-placeholder-small';
     thumbnailPlaceholder.style.display = 'none';
     thumbnailPlaceholder.innerHTML = '<i class="bi bi-image"></i>';
-    
+
     thumbnailImg.addEventListener('error', () => {
         thumbnailImg.style.display = 'none';
         thumbnailPlaceholder.style.display = 'flex';
@@ -576,7 +576,7 @@ function createCollectionRow(collection) {
 }
 
 function handleThumbnailError(imgElement) {
-    // This function is kept for backward compatibility if needed elsewhere
+    // この関数は後方互換性のために残しています（他で必要な場合）
     imgElement.style.display = 'none';
     imgElement.nextElementSibling.style.display = 'flex';
 }
@@ -589,22 +589,22 @@ function getInventoryStatusText(status, currentInventory, collectionOrderPoint, 
         3: t('over-stocked'),
         4: t('not-set')
     };
-    
+
     let statusText = statusMap[status] || t('not-set');
-    
-    // Add shortage/excess quantity for relevant statuses
+
+    // 該当ステータスの不足/過剰数を追加
     if (status !== 4 && currentInventory !== null && collectionOrderPoint !== null) {
         if (status === 0 || status === 1) {
-            // Stock out or under stocked - show shortage
+            // 在庫切れ/不足 - 不足数を表示
             const diff = currentInventory - collectionOrderPoint;
             statusText += `: ${diff}`;
         } else if (status === 3) {
-            // Over stocked - show excess
-            const diff = collectionMaxStock - currentInventory; 
+            // 過剰在庫 - 余剰数を表示
+            const diff = collectionMaxStock - currentInventory;
             statusText += `: +${diff}`;
         }
     }
-    
+
     return statusText;
 }
 
@@ -625,7 +625,7 @@ async function showCollectionDetails(collectionId) {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const collection = await response.json();
         displayCollectionPanel(collection);
     } catch (error) {
@@ -640,7 +640,7 @@ function displayCollectionPanel(collection) {
     const panelTitle = document.getElementById('detailPanelTitle');
     const panelBody = document.getElementById('detailPanelBody');
 
-    // Clean up any existing event listeners before setting up new ones
+    // 新しいリスナを設定する前に既存のイベントリスナをクリーンアップ
     cleanupPanelEventListeners(panel);
 
     panelTitle.textContent = collection.collectionName;
@@ -655,14 +655,14 @@ function displayCollectionPanel(collection) {
 
     const images = collection.imageFiles || [];
     let currentImageIndex = 0;
-    
-    const imagesHtml = images.length > 0 
+
+    const imagesHtml = images.length > 0
         ? `
             <div class="image-carousel">
                 <img id="carouselImage" src="/api/File/${encodeURIComponent(collection.collectionID)}/${encodeURIComponent(images[0])}" 
-                     class="detail-image" 
-                     alt="${escapeHtml(images[0])}"
-                     onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\'%3E%3Crect width=\'200\' height=\'200\' fill=\'%23ddd\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-family=\'sans-serif\' font-size=\'16\' fill=\'%23999\'%3EImage not found%3C/text%3E%3C/svg%3E';">
+                        class="detail-image" 
+                        alt="${escapeHtml(images[0])}"
+                        onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\'%3E%3Crect width=\'200\' height=\'200\' fill=\'%23ddd\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-family=\'sans-serif\' font-size=\'16\' fill=\'%23999\'%3EImage not found%3C/text%3E%3C/svg%3E';">
                 <div class="text-center mt-3" style="display: flex; justify-content: center; align-items: center; gap: 15px;">
                     <button id="prevImage" class="btn btn-outline-secondary btn-sm">◀</button>
                     <span id="imageCounter" style="font-size: 14px; min-width: 60px;">${currentImageIndex + 1} / ${images.length}</span>
@@ -670,7 +670,7 @@ function displayCollectionPanel(collection) {
                 </div>
                 <p id="imageName" class="small text-muted text-center mt-2">${escapeHtml(images[0])}</p>
             </div>
-          `
+            `
         : `<p class="text-muted">${t('no-images')}</p>`;
 
     const filesHtml = collection.otherFiles.length > 0
@@ -678,11 +678,11 @@ function displayCollectionPanel(collection) {
             <li class="list-group-item d-flex justify-content-between align-items-center">
                 ${escapeHtml(file)}
                 <a href="/api/File/data/${encodeURIComponent(collection.collectionID)}/${encodeURIComponent(file)}" 
-                   class="btn btn-sm btn-outline-primary" target="_blank">
+                    class="btn btn-sm btn-outline-primary" target="_blank">
                     <i class="bi bi-download"></i>
                 </a>
             </li>
-          `).join('')
+            `).join('')
         : `<p class="text-muted">No files</p>`;
 
     panelBody.innerHTML = `
@@ -690,61 +690,61 @@ function displayCollectionPanel(collection) {
             <h6>${projectSettings.uuidName}</h6>
             <p>${escapeHtml(collection.collectionID)}</p>
         </div>
-        
+
         <div class="detail-section">
             <h6>${projectSettings.managementCodeName}</h6>
             <p>${escapeHtml(collection.collectionMC)}</p>
         </div>
-        
+            
         <div class="detail-section">
             <h6>${projectSettings.categoryName}</h6>
             <p>${escapeHtml(collection.collectionCategory)}</p>
         </div>
-        
+            
         <div class="detail-section">
             <h6>${t('registration-date')}</h6>
             <p>${escapeHtml(collection.collectionRegistrationDate)}</p>
         </div>
-        
+            
         <div class="detail-section">
             <h6>${t('location')}</h6>
             <p>${escapeHtml(collection.collectionRealLocation)}</p>
         </div>
-        
+            
         <div class="detail-section">
             <h6>${t('inventory')}</h6>
             <p>${collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : t('not-set')}</p>
         </div>
-        
+            
         <div class="detail-section">
             <h6>${t('inventory-status')}</h6>
             <p><span class="badge ${inventoryBadgeClass}">${inventoryStatusText}</span></p>
         </div>
-        
+            
         <div class="detail-section">
             <h6>${t('tags')}</h6>
             <div>
                 ${collection.collectionTag1 && collection.collectionTag1 !== ' - ' ? `<p>${projectSettings.tag1Name || (currentLanguage === 'ja' ? 'タグ 1' : 'Tag 1')}: ${escapeHtml(collection.collectionTag1)}</p>` : ''}
                 ${collection.collectionTag2 && collection.collectionTag2 !== ' - ' ? `<p>${projectSettings.tag2Name || (currentLanguage === 'ja' ? 'タグ 2' : 'Tag 2')}: ${escapeHtml(collection.collectionTag2)}</p>` : ''}
                 ${collection.collectionTag3 && collection.collectionTag3 !== ' - ' ? `<p>${projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3')}: ${escapeHtml(collection.collectionTag3)}</p>` : ''}
-                ${(!collection.collectionTag1 || collection.collectionTag1 === ' - ') && 
-                  (!collection.collectionTag2 || collection.collectionTag2 === ' - ') && 
-                  (!collection.collectionTag3 || collection.collectionTag3 === ' - ') ? `<p>${t('not-set')}</p>` : ''}
+                ${(!collection.collectionTag1 || collection.collectionTag1 === ' - ') &&
+            (!collection.collectionTag2 || collection.collectionTag2 === ' - ') &&
+            (!collection.collectionTag3 || collection.collectionTag3 === ' - ') ? `<p>${t('not-set')}</p>` : ''}
             </div>
         </div>
-        
+            
         ${collection.comment ? `
             <div class="detail-section">
                 <h6>${t('comment')}</h6>
                 <div class="border rounded p-3" style="white-space: pre-wrap; background-color: #f8f9fa;">${escapeHtml(collection.comment)}</div>
             </div>
         ` : ''}
-        
+            
         <div class="detail-section">
             <h6>${t('images')}</h6>
             ${imagesHtml}
         </div>
-        
+            
         <div class="detail-section">
             <h6>${t('files')}</h6>
             <ul class="list-group">
@@ -753,13 +753,13 @@ function displayCollectionPanel(collection) {
         </div>
     `;
 
-    // Show panel and overlay
+    // パネルとオーバーレイを表示
     overlay.classList.add('show');
     setTimeout(() => {
         panel.classList.add('open');
     }, 10);
-    
-    // Set up carousel controls if images exist
+
+    // 画像がある場合はカルーセル制御を設定
     if (images.length > 0) {
         setTimeout(() => {
             const carouselImage = document.getElementById('carouselImage');
@@ -767,32 +767,32 @@ function displayCollectionPanel(collection) {
             const imageName = document.getElementById('imageName');
             const prevBtn = document.getElementById('prevImage');
             const nextBtn = document.getElementById('nextImage');
-            
+
             if (!carouselImage || !imageCounter || !imageName || !prevBtn || !nextBtn) {
                 return;
             }
-            
+
             function updateImage() {
                 carouselImage.src = `/api/File/${encodeURIComponent(collection.collectionID)}/${encodeURIComponent(images[currentImageIndex])}`;
                 carouselImage.alt = images[currentImageIndex];
                 imageCounter.textContent = `${currentImageIndex + 1} / ${images.length}`;
                 imageName.textContent = images[currentImageIndex];
             }
-            
+
             const prevHandler = () => {
                 currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
                 updateImage();
             };
-            
+
             const nextHandler = () => {
                 currentImageIndex = (currentImageIndex + 1) % images.length;
                 updateImage();
             };
-            
+
             prevBtn.addEventListener('click', prevHandler);
             nextBtn.addEventListener('click', nextHandler);
-            
-            // Store handlers for cleanup using WeakMap
+
+            // WeakMap を使ってクリーンアップ用のハンドラを保存
             panelEventHandlers.set(panel, {
                 prevBtn: prevBtn,
                 nextBtn: nextBtn,
@@ -804,7 +804,7 @@ function displayCollectionPanel(collection) {
 }
 
 function cleanupPanelEventListeners(panel) {
-    // Remove carousel event listeners if they exist
+    // カルーセルのイベントリスナがあれば削除
     const handlers = panelEventHandlers.get(panel);
     if (handlers) {
         const { prevBtn, nextBtn, prevHandler, nextHandler } = handlers;
@@ -817,10 +817,10 @@ function cleanupPanelEventListeners(panel) {
 function closeDetailPanel() {
     const panel = document.getElementById('detailPanel');
     const overlay = document.getElementById('detailPanelOverlay');
-    
-    // Clean up event listeners
+
+    // イベントリスナをクリーンアップ
     cleanupPanelEventListeners(panel);
-    
+
     panel.classList.remove('open');
     overlay.classList.remove('show');
 }
@@ -835,7 +835,7 @@ function updatePagination(result) {
 
     let paginationHtml = '<nav><ul class="pagination">';
 
-    // Previous button
+    // 「前へ」ボタン
     if (result.page > 1) {
         paginationHtml += `
             <li class="page-item">
@@ -844,7 +844,7 @@ function updatePagination(result) {
         `;
     }
 
-    // Page numbers
+    // ページ番号
     const startPage = Math.max(1, result.page - 2);
     const endPage = Math.min(result.totalPages, result.page + 2);
 
@@ -856,7 +856,7 @@ function updatePagination(result) {
         `;
     }
 
-    // Next button
+    // 「次へ」ボタン
     if (result.page < result.totalPages) {
         paginationHtml += `
             <li class="page-item">
@@ -868,7 +868,7 @@ function updatePagination(result) {
     paginationHtml += '</ul></nav>';
     pagination.innerHTML = paginationHtml;
 
-    // Add event listeners to pagination links
+    // ページネーションリンクにイベントリスナを追加
     const paginationLinks = pagination.querySelectorAll('a.page-link[data-page]');
     paginationLinks.forEach(link => {
         link.addEventListener('click', (e) => {
@@ -884,12 +884,12 @@ function clearFilters() {
     const searchFieldElement = document.getElementById('searchField');
     const searchMethodElement = document.getElementById('searchMethod');
     const inventoryStatusElement = document.getElementById('inventoryStatusFilter');
-    
+
     if (searchTextElement) searchTextElement.value = '';
     if (searchFieldElement) searchFieldElement.value = '0';
     if (searchMethodElement) searchMethodElement.value = '0';
     if (inventoryStatusElement) inventoryStatusElement.value = '';
-    
+
     searchCollections();
 }
 
@@ -913,7 +913,7 @@ function toggleLanguage() {
 }
 
 function updateLanguageDisplay() {
-    // This is a simplified implementation - in a real app you might want more sophisticated i18n
+    // 簡易実装 - 実際のアプリではより高度な i18n が必要かもしれません
     const elements = document.querySelectorAll('[data-lang]');
     elements.forEach(element => {
         const key = element.getAttribute('data-lang');
@@ -921,13 +921,13 @@ function updateLanguageDisplay() {
             const tagName = element.tagName.toLowerCase();
 
             if (tagName === 'input' && element.type === 'text') {
-                // Update placeholder for text inputs
+                // テキスト入力のプレースホルダーを更新
                 element.placeholder = translations[currentLanguage][key];
             } else if (tagName === 'option') {
-                // Update text content for option elements (remove bilingual format)
+                // option 要素のテキストを更新（バイリンガル形式を削除）
                 element.textContent = translations[currentLanguage][key];
             } else if (tagName === 'th' && element.classList.contains('resizable')) {
-                // Special handling for table headers with resizers
+                // リサイズ用要素を持つテーブルヘッダーの特別処理
                 const thContent = element.querySelector('.th-content');
                 if (thContent) {
                     thContent.textContent = translations[currentLanguage][key];
@@ -935,13 +935,13 @@ function updateLanguageDisplay() {
                     element.textContent = translations[currentLanguage][key];
                 }
             } else {
-                // Update text content for other elements
+                // その他要素のテキストを更新
                 element.textContent = translations[currentLanguage][key];
             }
         }
     });
 
-    // Re-render current results with new language
+    // 現在の結果を新しい言語で再描画
     if (currentSearchCriteria && Object.keys(currentSearchCriteria).length > 0) {
         searchCollections(currentPage);
     }
