@@ -406,26 +406,49 @@ function createCollectionRow(collection) {
     const collectionId = collection.collectionID || 'unknown';
     const thumbnailUrl = `/api/Files/thumbnail/${encodeURIComponent(collectionId)}`;
 
-    row.innerHTML = `
-        <td class="thumbnail-cell">
-            <img src="${thumbnailUrl}" 
-                 class="thumbnail-small"
-                 alt="Thumbnail"
-                 onerror="handleThumbnailError(this)">
-            <div class="thumbnail-placeholder-small" style="display: none;">
-                <i class="bi bi-image"></i>
-            </div>
-        </td>
-        <td><strong>${escapeHtml(collection.collectionName)}</strong></td>
-        <td><small class="text-muted">${escapeHtml(collection.collectionID)}</small></td>
-        <td>${escapeHtml(collection.collectionCategory)}</td>
-        <td><span class="badge ${inventoryBadgeClass}">${inventoryStatusText}</span></td>
-    `;
+    const thumbnailImg = document.createElement('img');
+    thumbnailImg.src = thumbnailUrl;
+    thumbnailImg.className = 'thumbnail-small';
+    thumbnailImg.alt = 'Thumbnail';
+    
+    const thumbnailPlaceholder = document.createElement('div');
+    thumbnailPlaceholder.className = 'thumbnail-placeholder-small';
+    thumbnailPlaceholder.style.display = 'none';
+    thumbnailPlaceholder.innerHTML = '<i class="bi bi-image"></i>';
+    
+    thumbnailImg.addEventListener('error', () => {
+        thumbnailImg.style.display = 'none';
+        thumbnailPlaceholder.style.display = 'flex';
+    });
+
+    const thumbnailCell = document.createElement('td');
+    thumbnailCell.className = 'thumbnail-cell';
+    thumbnailCell.appendChild(thumbnailImg);
+    thumbnailCell.appendChild(thumbnailPlaceholder);
+
+    const nameCell = document.createElement('td');
+    nameCell.innerHTML = `<strong>${escapeHtml(collection.collectionName)}</strong>`;
+
+    const idCell = document.createElement('td');
+    idCell.innerHTML = `<small class="text-muted">${escapeHtml(collection.collectionID)}</small>`;
+
+    const categoryCell = document.createElement('td');
+    categoryCell.textContent = escapeHtml(collection.collectionCategory);
+
+    const statusCell = document.createElement('td');
+    statusCell.innerHTML = `<span class="badge ${inventoryBadgeClass}">${inventoryStatusText}</span>`;
+
+    row.appendChild(thumbnailCell);
+    row.appendChild(nameCell);
+    row.appendChild(idCell);
+    row.appendChild(categoryCell);
+    row.appendChild(statusCell);
 
     return row;
 }
 
 function handleThumbnailError(imgElement) {
+    // This function is kept for backward compatibility if needed elsewhere
     imgElement.style.display = 'none';
     imgElement.nextElementSibling.style.display = 'flex';
 }
