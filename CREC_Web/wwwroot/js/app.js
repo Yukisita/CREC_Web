@@ -22,6 +22,9 @@ let projectSettings = {
 // WeakMap to store event handlers for panels
 const panelEventHandlers = new WeakMap();
 
+// Track if column resizing has been initialized
+let columnResizingInitialized = false;
+
 // Language translations
 const translations = {
     ja: {
@@ -179,9 +182,6 @@ async function initializeApp() {
             detailPanelClose.addEventListener('click', closeDetailPanel);
         }
 
-        // Initialize column resizing
-        initializeColumnResizing();
-
         // 初回検索
         await searchCollections();
         console.log('App initialized successfully');
@@ -195,6 +195,10 @@ async function initializeApp() {
 function initializeColumnResizing() {
     const table = document.querySelector('.collections-table');
     if (!table) return;
+    
+    // Skip if already initialized
+    if (columnResizingInitialized) return;
+    columnResizingInitialized = true;
 
     const thead = table.querySelector('thead');
     const ths = thead.querySelectorAll('th.resizable');
@@ -216,6 +220,7 @@ function initializeColumnResizing() {
 
         const onMouseDown = (e) => {
             e.stopPropagation();
+            e.preventDefault();
             startX = e.pageX;
             startWidth = th.offsetWidth;
             
@@ -226,6 +231,7 @@ function initializeColumnResizing() {
         };
 
         const onMouseMove = (e) => {
+            e.preventDefault();
             const diff = e.pageX - startX;
             const newWidth = Math.max(50, startWidth + diff);
             th.style.width = newWidth + 'px';
@@ -421,7 +427,7 @@ function displaySearchResults(result) {
     if (result.collections.length === 0) {
         tableBody.innerHTML = `
             <tr>
-                <td colspan="5" class="text-center py-5">
+                <td colspan="12" class="text-center py-5">
                     <i class="bi bi-search display-1 text-muted"></i>
                     <h4 class="mt-3 text-muted">${t('no-results')}</h4>
                 </td>
@@ -442,6 +448,9 @@ function displaySearchResults(result) {
     }
 
     tableContainer.style.display = 'block';
+    
+    // Initialize column resizing after table is displayed
+    initializeColumnResizing();
 }
 
 function createCollectionRow(collection) {
