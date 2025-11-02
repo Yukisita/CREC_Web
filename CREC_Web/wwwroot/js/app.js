@@ -19,6 +19,9 @@ let projectSettings = {
     tag3Name: 'タグ 3'
 }; // Project settings loaded from .crec file
 
+// WeakMap to store event handlers for panels
+const panelEventHandlers = new WeakMap();
+
 // Language translations
 const translations = {
     ja: {
@@ -164,6 +167,16 @@ async function initializeApp() {
                     searchCollections();
                 }
             });
+        }
+
+        // Detail panel close handlers
+        const detailPanelOverlay = document.getElementById('detailPanelOverlay');
+        const detailPanelClose = document.getElementById('detailPanelClose');
+        if (detailPanelOverlay) {
+            detailPanelOverlay.addEventListener('click', closeDetailPanel);
+        }
+        if (detailPanelClose) {
+            detailPanelClose.addEventListener('click', closeDetailPanel);
         }
 
         // 初回検索
@@ -501,7 +514,7 @@ function displayCollectionPanel(collection) {
                      onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\'%3E%3Crect width=\'200\' height=\'200\' fill=\'%23ddd\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-family=\'sans-serif\' font-size=\'16\' fill=\'%23999\'%3EImage not found%3C/text%3E%3C/svg%3E';">
                 <div class="text-center mt-3" style="display: flex; justify-content: center; align-items: center; gap: 15px;">
                     <button id="prevImage" class="btn btn-outline-secondary btn-sm">◀</button>
-                    <span id="imageCounter" style="font-size: 14px; min-width: 60px;">${1} / ${images.length}</span>
+                    <span id="imageCounter" style="font-size: 14px; min-width: 60px;">${currentImageIndex + 1} / ${images.length}</span>
                     <button id="nextImage" class="btn btn-outline-secondary btn-sm">▶</button>
                 </div>
                 <p id="imageName" class="small text-muted text-center mt-2">${escapeHtml(images[0])}</p>
@@ -628,24 +641,25 @@ function displayCollectionPanel(collection) {
             prevBtn.addEventListener('click', prevHandler);
             nextBtn.addEventListener('click', nextHandler);
             
-            // Store handlers for cleanup
-            panel._carouselHandlers = {
+            // Store handlers for cleanup using WeakMap
+            panelEventHandlers.set(panel, {
                 prevBtn: prevBtn,
                 nextBtn: nextBtn,
                 prevHandler: prevHandler,
                 nextHandler: nextHandler
-            };
+            });
         }, 100);
     }
 }
 
 function cleanupPanelEventListeners(panel) {
     // Remove carousel event listeners if they exist
-    if (panel._carouselHandlers) {
-        const { prevBtn, nextBtn, prevHandler, nextHandler } = panel._carouselHandlers;
+    const handlers = panelEventHandlers.get(panel);
+    if (handlers) {
+        const { prevBtn, nextBtn, prevHandler, nextHandler } = handlers;
         if (prevBtn) prevBtn.removeEventListener('click', prevHandler);
         if (nextBtn) nextBtn.removeEventListener('click', nextHandler);
-        delete panel._carouselHandlers;
+        panelEventHandlers.delete(panel);
     }
 }
 
