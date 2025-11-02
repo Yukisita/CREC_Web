@@ -194,14 +194,22 @@ async function initializeApp() {
 // Initialize column resizing functionality
 function initializeColumnResizing() {
     const table = document.querySelector('.collections-table');
-    if (!table) return;
+    if (!table) {
+        console.log('Table not found for column resizing');
+        return;
+    }
     
     // Skip if already initialized
-    if (columnResizingInitialized) return;
+    if (columnResizingInitialized) {
+        console.log('Column resizing already initialized');
+        return;
+    }
     columnResizingInitialized = true;
 
     const thead = table.querySelector('thead');
     const ths = thead.querySelectorAll('th.resizable');
+    
+    console.log(`Initializing column resizing for ${ths.length} columns`);
     
     // Update tag column headers with project settings
     const tagHeaders = Array.from(ths).filter((th, index) => index >= 5 && index <= 7);
@@ -212,10 +220,16 @@ function initializeColumnResizing() {
         if (thContents[2]) thContents[2].textContent = projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3');
     }
     
-    ths.forEach((th) => {
+    ths.forEach((th, index) => {
         const resizer = th.querySelector('.resizer');
-        if (!resizer) return;
+        if (!resizer) {
+            console.log(`Column ${index + 1}: No resizer found`);
+            return;
+        }
 
+        // Ensure resizer is visible
+        resizer.style.display = 'block';
+        
         let startX, startWidth;
 
         const onMouseDown = (e) => {
@@ -244,7 +258,10 @@ function initializeColumnResizing() {
         };
 
         resizer.addEventListener('mousedown', onMouseDown);
+        console.log(`Column ${index + 1}: Resizer initialized`);
     });
+    
+    console.log('Column resizing initialization complete');
 }
 
 // Load project settings from API
