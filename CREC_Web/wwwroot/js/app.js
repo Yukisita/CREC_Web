@@ -179,6 +179,9 @@ async function initializeApp() {
             detailPanelClose.addEventListener('click', closeDetailPanel);
         }
 
+        // Initialize column resizing
+        initializeColumnResizing();
+
         // 初回検索
         await searchCollections();
         console.log('App initialized successfully');
@@ -186,6 +189,56 @@ async function initializeApp() {
         console.error('Error initializing app:', error);
         showError('Failed to initialize application: ' + error.message);
     }
+}
+
+// Initialize column resizing functionality
+function initializeColumnResizing() {
+    const table = document.querySelector('.collections-table');
+    if (!table) return;
+
+    const thead = table.querySelector('thead');
+    const ths = thead.querySelectorAll('th.resizable');
+    
+    // Update tag column headers with project settings
+    const tagHeaders = Array.from(ths).filter((th, index) => index >= 5 && index <= 7);
+    if (tagHeaders.length === 3) {
+        const thContents = tagHeaders.map(th => th.querySelector('.th-content'));
+        if (thContents[0]) thContents[0].textContent = projectSettings.tag1Name || (currentLanguage === 'ja' ? 'タグ 1' : 'Tag 1');
+        if (thContents[1]) thContents[1].textContent = projectSettings.tag2Name || (currentLanguage === 'ja' ? 'タグ 2' : 'Tag 2');
+        if (thContents[2]) thContents[2].textContent = projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3');
+    }
+    
+    ths.forEach((th) => {
+        const resizer = th.querySelector('.resizer');
+        if (!resizer) return;
+
+        let startX, startWidth;
+
+        const onMouseDown = (e) => {
+            e.stopPropagation();
+            startX = e.pageX;
+            startWidth = th.offsetWidth;
+            
+            th.classList.add('resizing');
+            
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        };
+
+        const onMouseMove = (e) => {
+            const diff = e.pageX - startX;
+            const newWidth = Math.max(50, startWidth + diff);
+            th.style.width = newWidth + 'px';
+        };
+
+        const onMouseUp = () => {
+            th.classList.remove('resizing');
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+
+        resizer.addEventListener('mousedown', onMouseDown);
+    });
 }
 
 // Load project settings from API
@@ -428,20 +481,59 @@ function createCollectionRow(collection) {
 
     const nameCell = document.createElement('td');
     nameCell.innerHTML = `<strong>${escapeHtml(collection.collectionName)}</strong>`;
+    nameCell.title = collection.collectionName;
 
     const idCell = document.createElement('td');
     idCell.innerHTML = `<small class="text-muted">${escapeHtml(collection.collectionID)}</small>`;
+    idCell.title = collection.collectionID;
+
+    const mcCell = document.createElement('td');
+    mcCell.textContent = collection.collectionMC || '-';
+    mcCell.title = collection.collectionMC || '-';
 
     const categoryCell = document.createElement('td');
-    categoryCell.textContent = escapeHtml(collection.collectionCategory);
+    categoryCell.textContent = collection.collectionCategory || '-';
+    categoryCell.title = collection.collectionCategory || '-';
+
+    const tag1Cell = document.createElement('td');
+    tag1Cell.textContent = (collection.collectionTag1 && collection.collectionTag1 !== ' - ') ? collection.collectionTag1 : '-';
+    tag1Cell.title = tag1Cell.textContent;
+
+    const tag2Cell = document.createElement('td');
+    tag2Cell.textContent = (collection.collectionTag2 && collection.collectionTag2 !== ' - ') ? collection.collectionTag2 : '-';
+    tag2Cell.title = tag2Cell.textContent;
+
+    const tag3Cell = document.createElement('td');
+    tag3Cell.textContent = (collection.collectionTag3 && collection.collectionTag3 !== ' - ') ? collection.collectionTag3 : '-';
+    tag3Cell.title = tag3Cell.textContent;
+
+    const locationCell = document.createElement('td');
+    locationCell.textContent = collection.collectionRealLocation || '-';
+    locationCell.title = collection.collectionRealLocation || '-';
+
+    const dateCell = document.createElement('td');
+    dateCell.textContent = collection.collectionRegistrationDate || '-';
+    dateCell.title = collection.collectionRegistrationDate || '-';
+
+    const inventoryCell = document.createElement('td');
+    inventoryCell.textContent = collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : '-';
+    inventoryCell.title = inventoryCell.textContent;
 
     const statusCell = document.createElement('td');
     statusCell.innerHTML = `<span class="badge ${inventoryBadgeClass}">${inventoryStatusText}</span>`;
+    statusCell.title = inventoryStatusText;
 
     row.appendChild(thumbnailCell);
     row.appendChild(nameCell);
     row.appendChild(idCell);
+    row.appendChild(mcCell);
     row.appendChild(categoryCell);
+    row.appendChild(tag1Cell);
+    row.appendChild(tag2Cell);
+    row.appendChild(tag3Cell);
+    row.appendChild(locationCell);
+    row.appendChild(dateCell);
+    row.appendChild(inventoryCell);
     row.appendChild(statusCell);
 
     return row;
