@@ -380,7 +380,7 @@ function displaySearchResults(result) {
 
 function createCollectionRow(collection) {
     const row = document.createElement('tr');
-    row.onclick = () => showCollectionDetails(collection.collectionID);
+    row.addEventListener('click', () => showCollectionDetails(collection.collectionID));
 
     const inventoryStatusText = getInventoryStatusText(
         collection.collectionInventoryStatus, 
@@ -476,6 +476,9 @@ function displayCollectionPanel(collection) {
     const panelTitle = document.getElementById('detailPanelTitle');
     const panelBody = document.getElementById('detailPanelBody');
 
+    // Clean up any existing event listeners before setting up new ones
+    cleanupPanelEventListeners(panel);
+
     panelTitle.textContent = collection.collectionName;
 
     const inventoryStatusText = getInventoryStatusText(
@@ -486,8 +489,8 @@ function displayCollectionPanel(collection) {
     );
     const inventoryBadgeClass = getInventoryStatusBadgeClass(collection.collectionInventoryStatus);
 
-    let currentImageIndex = 0;
     const images = collection.imageFiles || [];
+    let currentImageIndex = 0;
     
     const imagesHtml = images.length > 0 
         ? `
@@ -626,14 +629,32 @@ function displayCollectionPanel(collection) {
             nextBtn.addEventListener('click', nextHandler);
             
             // Store handlers for cleanup
-            panel.dataset.carouselInitialized = 'true';
+            panel._carouselHandlers = {
+                prevBtn: prevBtn,
+                nextBtn: nextBtn,
+                prevHandler: prevHandler,
+                nextHandler: nextHandler
+            };
         }, 100);
+    }
+}
+
+function cleanupPanelEventListeners(panel) {
+    // Remove carousel event listeners if they exist
+    if (panel._carouselHandlers) {
+        const { prevBtn, nextBtn, prevHandler, nextHandler } = panel._carouselHandlers;
+        if (prevBtn) prevBtn.removeEventListener('click', prevHandler);
+        if (nextBtn) nextBtn.removeEventListener('click', nextHandler);
+        delete panel._carouselHandlers;
     }
 }
 
 function closeDetailPanel() {
     const panel = document.getElementById('detailPanel');
     const overlay = document.getElementById('detailPanelOverlay');
+    
+    // Clean up event listeners
+    cleanupPanelEventListeners(panel);
     
     panel.classList.remove('open');
     overlay.classList.remove('show');
