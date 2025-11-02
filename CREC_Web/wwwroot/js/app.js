@@ -144,7 +144,17 @@ function updateUILanguage() {
         const translation = translations[lang][key];
         
         if (translation) {
-            element.textContent = translation;
+            // Special handling for table headers with resizers
+            if (element.tagName === 'TH' && element.classList.contains('resizable')) {
+                const thContent = element.querySelector('.th-content');
+                if (thContent) {
+                    thContent.textContent = translation;
+                } else {
+                    element.textContent = translation;
+                }
+            } else {
+                element.textContent = translation;
+            }
         }
     });
 }
@@ -916,6 +926,14 @@ function updateLanguageDisplay() {
             } else if (tagName === 'option') {
                 // Update text content for option elements (remove bilingual format)
                 element.textContent = translations[currentLanguage][key];
+            } else if (tagName === 'th' && element.classList.contains('resizable')) {
+                // Special handling for table headers with resizers
+                const thContent = element.querySelector('.th-content');
+                if (thContent) {
+                    thContent.textContent = translations[currentLanguage][key];
+                } else {
+                    element.textContent = translations[currentLanguage][key];
+                }
             } else {
                 // Update text content for other elements
                 element.textContent = translations[currentLanguage][key];
