@@ -688,7 +688,7 @@ function updatePagination(result) {
     if (result.page > 1) {
         paginationHtml += `
             <li class="page-item">
-                <a class="page-link" href="#" onclick="searchCollections(${result.page - 1})">${t('previous')}</a>
+                <a class="page-link" href="#" data-page="${result.page - 1}">${t('previous')}</a>
             </li>
         `;
     }
@@ -700,7 +700,7 @@ function updatePagination(result) {
     for (let i = startPage; i <= endPage; i++) {
         paginationHtml += `
             <li class="page-item ${i === result.page ? 'active' : ''}">
-                <a class="page-link" href="#" onclick="searchCollections(${i})">${i}</a>
+                <a class="page-link" href="#" data-page="${i}">${i}</a>
             </li>
         `;
     }
@@ -709,13 +709,23 @@ function updatePagination(result) {
     if (result.page < result.totalPages) {
         paginationHtml += `
             <li class="page-item">
-                <a class="page-link" href="#" onclick="searchCollections(${result.page + 1})">${t('next')}</a>
+                <a class="page-link" href="#" data-page="${result.page + 1}">${t('next')}</a>
             </li>
         `;
     }
 
     paginationHtml += '</ul></nav>';
     pagination.innerHTML = paginationHtml;
+
+    // Add event listeners to pagination links
+    const paginationLinks = pagination.querySelectorAll('a.page-link[data-page]');
+    paginationLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const page = parseInt(link.getAttribute('data-page'));
+            searchCollections(page);
+        });
+    });
 }
 
 function clearFilters() {
