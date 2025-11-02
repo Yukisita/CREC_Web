@@ -343,23 +343,26 @@ async function searchCollections(page = 1) {
 }
 
 function displaySearchResults(result) {
-    const grid = document.getElementById('collectionsGrid');
+    const tableContainer = document.getElementById('collectionsTableContainer');
+    const tableBody = document.getElementById('collectionsTable');
     const summary = document.getElementById('resultsSummary');
     const resultsText = document.getElementById('resultsText');
     const resultsCount = document.getElementById('resultsCount');
 
     // Clear previous results
-    grid.innerHTML = '';
+    tableBody.innerHTML = '';
 
     if (result.collections.length === 0) {
-        grid.innerHTML = `
-            <div class="col-12">
-                <div class="text-center py-5">
+        tableContainer.style.display = 'none';
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center py-5">
                     <i class="bi bi-search display-1 text-muted"></i>
                     <h4 class="mt-3 text-muted">${t('no-results')}</h4>
-                </div>
-            </div>
+                </td>
+            </tr>
         `;
+        tableContainer.style.display = 'block';
         summary.style.display = 'none';
         return;
     }
@@ -369,20 +372,18 @@ function displaySearchResults(result) {
     resultsCount.textContent = result.totalCount;
     summary.style.display = 'block';
 
-    // Display collections
+    // Display collections as table rows
     result.collections.forEach(collection => {
-        const card = createCollectionCard(collection);
-        grid.appendChild(card);
+        const row = createCollectionRow(collection);
+        tableBody.appendChild(row);
     });
+
+    tableContainer.style.display = 'block';
 }
 
-function createCollectionCard(collection) {
-    const colDiv = document.createElement('div');
-    colDiv.className = 'col-lg-3 col-md-4 col-sm-6';
-
-    // Debug: log the collection object to see what properties it has
-    console.log('Collection object:', collection);
-    console.log('Collection ID:', collection.collectionID);
+function createCollectionRow(collection) {
+    const row = document.createElement('tr');
+    row.onclick = () => showCollectionDetails(collection.collectionID);
 
     const inventoryStatusText = getInventoryStatusText(
         collection.collectionInventoryStatus, 
@@ -392,76 +393,32 @@ function createCollectionCard(collection) {
     );
     const inventoryBadgeClass = getInventoryStatusBadgeClass(collection.collectionInventoryStatus);
 
-    // Build tag HTML - display each tag on a separate line like category
-    let tagsHtml = '';
-    if (collection.collectionTag1 && collection.collectionTag1 !== ' - ') {
-        const tag1Label = projectSettings.tag1Name || (currentLanguage === 'ja' ? 'タグ 1' : 'Tag 1');
-        tagsHtml += `<small class="text-muted">${tag1Label}: ${escapeHtml(collection.collectionTag1)}</small><br>`;
-    }
-    if (collection.collectionTag2 && collection.collectionTag2 !== ' - ') {
-        const tag2Label = projectSettings.tag2Name || (currentLanguage === 'ja' ? 'タグ 2' : 'Tag 2');
-        tagsHtml += `<small class="text-muted">${tag2Label}: ${escapeHtml(collection.collectionTag2)}</small><br>`;
-    }
-    if (collection.collectionTag3 && collection.collectionTag3 !== ' - ') {
-        const tag3Label = projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3');
-        tagsHtml += `<small class="text-muted">${tag3Label}: ${escapeHtml(collection.collectionTag3)}</small><br>`;
-    }
-
-    // Use the collection ID (which is the folder name) for the thumbnail URL
     const collectionId = collection.collectionID || 'unknown';
     const thumbnailUrl = `/api/Files/thumbnail/${encodeURIComponent(collectionId)}`;
-    console.log('Loading thumbnail from:', thumbnailUrl, 'for collection ID:', collectionId);
     
     const thumbnailHtml = `
-        <div style="position: relative;">
-            <img src="${thumbnailUrl}" 
-                 class="card-img-top thumbnail-image"
-                 alt="Thumbnail"
-                 data-collection-id="${escapeHtml(collectionId)}"
-                 style="display: block;"
-                 onerror="console.error('Failed to load thumbnail for collection ID: ${escapeHtml(collectionId)}'); console.error('Thumbnail URL was: ${thumbnailUrl}'); this.style.display='none'; this.nextElementSibling.style.display='flex';">
-            <div class="thumbnail-placeholder" style="display: none;">
-                <i class="bi bi-image display-4"></i>
-                <br><small>${t('no-thumbnail')}</small>
-            </div>
+        <img src="${thumbnailUrl}" 
+             class="thumbnail-small"
+             alt="Thumbnail"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="thumbnail-placeholder-small" style="display: none;">
+            <i class="bi bi-image"></i>
         </div>
     `;
 
-    colDiv.innerHTML = `
-        <div class="card h-100 collection-card">
-            ${thumbnailHtml}
-            <div class="card-body">
-                <h6 class="card-title">${escapeHtml(collection.collectionName)}</h6>
-                <p class="card-text">
-                    <small class="text-muted">${projectSettings.uuidName}: ${escapeHtml(collection.collectionID)}</small><br>
-                    <small class="text-muted">${projectSettings.categoryName}: ${escapeHtml(collection.collectionCategory)}</small><br>
-                    ${tagsHtml}
-                    ${collection.collectionCurrentInventory !== null ? 
-                        `<small class="text-muted">${t('inventory')}: ${collection.collectionCurrentInventory}</small><br>` : ''}
-                    <span class="badge ${inventoryBadgeClass}">${inventoryStatusText}</span>
-                </p>
+    row.innerHTML = `
+        <td>
+            <div style="position: relative;">
+                ${thumbnailHtml}
             </div>
-            <div class="card-footer">
-                <button class="btn btn-primary btn-sm w-100" onclick="showCollectionDetails('${escapeHtml(collection.collectionID)}')">
-                    <i class="bi bi-eye"></i> ${t('view-details')}
-                </button>
-            </div>
-        </div>
+        </td>
+        <td><strong>${escapeHtml(collection.collectionName)}</strong></td>
+        <td><small class="text-muted">${escapeHtml(collection.collectionID)}</small></td>
+        <td>${escapeHtml(collection.collectionCategory)}</td>
+        <td><span class="badge ${inventoryBadgeClass}">${inventoryStatusText}</span></td>
     `;
-    
-    // Attach the error handler after the element is created
-    const img = colDiv.querySelector('.thumbnail-image');
-    if (img) {
-        const collectionId = img.getAttribute('data-collection-id');
-        img.onerror = function() {
-            console.error('Failed to load thumbnail for collection ID:', collectionId);
-            console.error('Thumbnail URL was:', this.src);
-            this.style.display='none';
-            this.nextElementSibling.style.display='flex';
-        };
-    }
 
-    return colDiv;
+    return row;
 }
 
 function getInventoryStatusText(status, currentInventory, collectionOrderPoint, collectionMaxStock) {
@@ -510,19 +467,20 @@ async function showCollectionDetails(collectionId) {
         }
         
         const collection = await response.json();
-        displayCollectionModal(collection);
+        displayCollectionPanel(collection);
     } catch (error) {
         console.error('Error loading collection details:', error);
         alert(t('error-loading') + ': ' + error.message);
     }
 }
 
-function displayCollectionModal(collection) {
-    const modal = new bootstrap.Modal(document.getElementById('collectionModal'));
-    const modalTitle = document.getElementById('modalTitle');
-    const modalBody = document.getElementById('modalBody');
+function displayCollectionPanel(collection) {
+    const panel = document.getElementById('detailPanel');
+    const overlay = document.getElementById('detailPanelOverlay');
+    const panelTitle = document.getElementById('detailPanelTitle');
+    const panelBody = document.getElementById('detailPanelBody');
 
-    modalTitle.textContent = collection.collectionName;
+    panelTitle.textContent = collection.collectionName;
 
     const inventoryStatusText = getInventoryStatusText(
         collection.collectionInventoryStatus,
@@ -539,14 +497,13 @@ function displayCollectionModal(collection) {
         ? `
             <div class="image-carousel">
                 <img id="carouselImage" src="/api/File/${encodeURIComponent(collection.collectionID)}/${encodeURIComponent(images[0])}" 
-                     class="img-fluid rounded" 
-                     alt="${escapeHtml(images[0])}" 
-                     style="max-height: 400px; max-width: 100%; object-fit: contain; display: block; margin: 0 auto;"
+                     class="detail-image" 
+                     alt="${escapeHtml(images[0])}"
                      onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\'%3E%3Crect width=\'200\' height=\'200\' fill=\'%23ddd\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-family=\'sans-serif\' font-size=\'16\' fill=\'%23999\'%3EImage not found%3C/text%3E%3C/svg%3E';">
-                <div class="carousel-controls text-center mt-3" style="display: flex; justify-content: center; align-items: center; gap: 20px;">
-                    <button id="prevImage" class="btn btn-outline-secondary" style="font-size: 20px; padding: 8px 20px;">◀</button>
-                    <span id="imageCounter" style="font-size: 16px; min-width: 60px;">1 / ${images.length}</span>
-                    <button id="nextImage" class="btn btn-outline-secondary" style="font-size: 20px; padding: 8px 20px;">▶</button>
+                <div class="text-center mt-3" style="display: flex; justify-content: center; align-items: center; gap: 15px;">
+                    <button id="prevImage" class="btn btn-outline-secondary btn-sm">◀</button>
+                    <span id="imageCounter" style="font-size: 14px; min-width: 60px;">${1} / ${images.length}</span>
+                    <button id="nextImage" class="btn btn-outline-secondary btn-sm">▶</button>
                 </div>
                 <p id="imageName" class="small text-muted text-center mt-2">${escapeHtml(images[0])}</p>
             </div>
@@ -565,85 +522,89 @@ function displayCollectionModal(collection) {
           `).join('')
         : `<p class="text-muted">No files</p>`;
 
-    modalBody.innerHTML = `
-        <div class="row">
-            <div class="col-md-6">
-                <h6>${projectSettings.uuidName}</h6>
-                <p>${escapeHtml(collection.collectionID)}</p>
-                
-                <h6>${projectSettings.managementCodeName}</h6>
-                <p>${escapeHtml(collection.collectionMC)}</p>
-                
-                <h6>${projectSettings.categoryName}</h6>
-                <p>${escapeHtml(collection.collectionCategory)}</p>
-                
-                <h6>${t('registration-date')}</h6>
-                <p>${escapeHtml(collection.collectionRegistrationDate)}</p>
-            </div>
-            <div class="col-md-6">
-                <h6>${t('location')}</h6>
-                <p>${escapeHtml(collection.collectionRealLocation)}</p>
-                
-                <h6>${t('inventory')}</h6>
-                <p>${collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : t('not-set')}</p>
-                
-                <h6>${t('inventory-status')}</h6>
-                <p><span class="badge ${inventoryBadgeClass}">${inventoryStatusText}</span></p>
-                
-                <h6>${t('tags')}</h6>
-                <div>
-                    ${collection.collectionTag1 && collection.collectionTag1 !== ' - ' ? `<p>${projectSettings.tag1Name || (currentLanguage === 'ja' ? 'タグ 1' : 'Tag 1')}: ${escapeHtml(collection.collectionTag1)}</p>` : ''}
-                    ${collection.collectionTag2 && collection.collectionTag2 !== ' - ' ? `<p>${projectSettings.tag2Name || (currentLanguage === 'ja' ? 'タグ 2' : 'Tag 2')}: ${escapeHtml(collection.collectionTag2)}</p>` : ''}
-                    ${collection.collectionTag3 && collection.collectionTag3 !== ' - ' ? `<p>${projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3')}: ${escapeHtml(collection.collectionTag3)}</p>` : ''}
-                    ${(!collection.collectionTag1 || collection.collectionTag1 === ' - ') && 
-                      (!collection.collectionTag2 || collection.collectionTag2 === ' - ') && 
-                      (!collection.collectionTag3 || collection.collectionTag3 === ' - ') ? `<p>${t('not-set')}</p>` : ''}
-                </div>
+    panelBody.innerHTML = `
+        <div class="detail-section">
+            <h6>${projectSettings.uuidName}</h6>
+            <p>${escapeHtml(collection.collectionID)}</p>
+        </div>
+        
+        <div class="detail-section">
+            <h6>${projectSettings.managementCodeName}</h6>
+            <p>${escapeHtml(collection.collectionMC)}</p>
+        </div>
+        
+        <div class="detail-section">
+            <h6>${projectSettings.categoryName}</h6>
+            <p>${escapeHtml(collection.collectionCategory)}</p>
+        </div>
+        
+        <div class="detail-section">
+            <h6>${t('registration-date')}</h6>
+            <p>${escapeHtml(collection.collectionRegistrationDate)}</p>
+        </div>
+        
+        <div class="detail-section">
+            <h6>${t('location')}</h6>
+            <p>${escapeHtml(collection.collectionRealLocation)}</p>
+        </div>
+        
+        <div class="detail-section">
+            <h6>${t('inventory')}</h6>
+            <p>${collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : t('not-set')}</p>
+        </div>
+        
+        <div class="detail-section">
+            <h6>${t('inventory-status')}</h6>
+            <p><span class="badge ${inventoryBadgeClass}">${inventoryStatusText}</span></p>
+        </div>
+        
+        <div class="detail-section">
+            <h6>${t('tags')}</h6>
+            <div>
+                ${collection.collectionTag1 && collection.collectionTag1 !== ' - ' ? `<p>${projectSettings.tag1Name || (currentLanguage === 'ja' ? 'タグ 1' : 'Tag 1')}: ${escapeHtml(collection.collectionTag1)}</p>` : ''}
+                ${collection.collectionTag2 && collection.collectionTag2 !== ' - ' ? `<p>${projectSettings.tag2Name || (currentLanguage === 'ja' ? 'タグ 2' : 'Tag 2')}: ${escapeHtml(collection.collectionTag2)}</p>` : ''}
+                ${collection.collectionTag3 && collection.collectionTag3 !== ' - ' ? `<p>${projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3')}: ${escapeHtml(collection.collectionTag3)}</p>` : ''}
+                ${(!collection.collectionTag1 || collection.collectionTag1 === ' - ') && 
+                  (!collection.collectionTag2 || collection.collectionTag2 === ' - ') && 
+                  (!collection.collectionTag3 || collection.collectionTag3 === ' - ') ? `<p>${t('not-set')}</p>` : ''}
             </div>
         </div>
         
         ${collection.comment ? `
-            <div class="row mt-3">
-                <div class="col-12">
-                    <h6>${t('comment')}</h6>
-                    <div class="border rounded p-3" style="white-space: pre-wrap;">${escapeHtml(collection.comment)}</div>
-                </div>
+            <div class="detail-section">
+                <h6>${t('comment')}</h6>
+                <div class="border rounded p-3" style="white-space: pre-wrap; background-color: #f8f9fa;">${escapeHtml(collection.comment)}</div>
             </div>
         ` : ''}
         
-        <div class="row mt-3">
-            <div class="col-12">
-                <h6>${t('images')}</h6>
-                <div class="row">
-                    ${imagesHtml}
-                </div>
-            </div>
+        <div class="detail-section">
+            <h6>${t('images')}</h6>
+            ${imagesHtml}
         </div>
         
-        <div class="row mt-3">
-            <div class="col-12">
-                <h6>${t('files')}</h6>
-                <ul class="list-group">
-                    ${filesHtml}
-                </ul>
-            </div>
+        <div class="detail-section">
+            <h6>${t('files')}</h6>
+            <ul class="list-group">
+                ${filesHtml}
+            </ul>
         </div>
     `;
 
-    modal.show();
+    // Show panel and overlay
+    overlay.classList.add('show');
+    setTimeout(() => {
+        panel.classList.add('open');
+    }, 10);
     
     // Set up carousel controls if images exist
     if (images.length > 0) {
-        // Wait for modal to be shown before setting up carousel
-        const modalElement = document.getElementById('collectionModal');
-        modalElement.addEventListener('shown.bs.modal', () => {
+        setTimeout(() => {
             const carouselImage = document.getElementById('carouselImage');
             const imageCounter = document.getElementById('imageCounter');
             const imageName = document.getElementById('imageName');
             const prevBtn = document.getElementById('prevImage');
             const nextBtn = document.getElementById('nextImage');
             
-            // Check if all elements exist before proceeding
             if (!carouselImage || !imageCounter || !imageName || !prevBtn || !nextBtn) {
                 return;
             }
@@ -655,35 +616,25 @@ function displayCollectionModal(collection) {
                 imageName.textContent = images[currentImageIndex];
             }
             
-            prevBtn.addEventListener('click', () => {
+            prevBtn.onclick = () => {
                 currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
                 updateImage();
-            });
-            
-            nextBtn.addEventListener('click', () => {
-                currentImageIndex = (currentImageIndex + 1) % images.length;
-                updateImage();
-            });
-            
-            // Keyboard navigation
-            const keyHandler = (e) => {
-                if (e.key === 'ArrowLeft') {
-                    currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
-                    updateImage();
-                } else if (e.key === 'ArrowRight') {
-                    currentImageIndex = (currentImageIndex + 1) % images.length;
-                    updateImage();
-                }
             };
             
-            document.addEventListener('keydown', keyHandler);
-            
-            // Clean up event listener when modal is closed
-            modalElement.addEventListener('hidden.bs.modal', () => {
-                document.removeEventListener('keydown', keyHandler);
-            }, { once: true });
-        }, { once: true });
+            nextBtn.onclick = () => {
+                currentImageIndex = (currentImageIndex + 1) % images.length;
+                updateImage();
+            };
+        }, 100);
     }
+}
+
+function closeDetailPanel() {
+    const panel = document.getElementById('detailPanel');
+    const overlay = document.getElementById('detailPanelOverlay');
+    
+    panel.classList.remove('open');
+    overlay.classList.remove('show');
 }
 
 function updatePagination(result) {
