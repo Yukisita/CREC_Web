@@ -222,12 +222,16 @@ function initializeColumnResizing() {
     console.log(`Initializing column resizing for ${ths.length} columns`);
     
     // Update tag column headers with project settings
-    const tagHeaders = Array.from(ths).filter((th, index) => index >= 5 && index <= 7);
-    if (tagHeaders.length === 3) {
+    const tagHeaders = Array.from(ths).filter((th, index) => index >= 1 && index <= 7);
+    if (tagHeaders.length === 7) {
         const thContents = tagHeaders.map(th => th.querySelector('.th-content'));
-        if (thContents[0]) thContents[0].textContent = projectSettings.tag1Name || (currentLanguage === 'ja' ? 'タグ 1' : 'Tag 1');
-        if (thContents[1]) thContents[1].textContent = projectSettings.tag2Name || (currentLanguage === 'ja' ? 'タグ 2' : 'Tag 2');
-        if (thContents[2]) thContents[2].textContent = projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3');
+        if (thContents[0]) thContents[0].textContent = projectSettings.objectNameLabel || (currentLanguage === 'ja' ? 'タグ 1' : 'Tag 1');
+        if (thContents[1]) thContents[1].textContent = projectSettings.uuidName || (currentLanguage === 'ja' ? 'タグ 2' : 'Tag 2');
+        if (thContents[2]) thContents[2].textContent = projectSettings.managementCodeName || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3');
+        if (thContents[3]) thContents[3].textContent = projectSettings.categoryName || (currentLanguage === 'ja' ? 'タグ 4' : 'Tag 4');
+        if (thContents[4]) thContents[4].textContent = projectSettings.tag1Name || (currentLanguage === 'ja' ? 'タグ 5' : 'Tag 5');
+        if (thContents[5]) thContents[5].textContent = projectSettings.tag2Name || (currentLanguage === 'ja' ? 'タグ 6' : 'Tag 6');
+        if (thContents[6]) thContents[6].textContent = projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 7' : 'Tag 7');
     }
     
     ths.forEach((th, index) => {
