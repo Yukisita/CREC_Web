@@ -353,7 +353,6 @@ function displaySearchResults(result) {
     tableBody.innerHTML = '';
 
     if (result.collections.length === 0) {
-        tableContainer.style.display = 'none';
         tableBody.innerHTML = `
             <tr>
                 <td colspan="5" class="text-center py-5">
@@ -362,21 +361,19 @@ function displaySearchResults(result) {
                 </td>
             </tr>
         `;
-        tableContainer.style.display = 'block';
         summary.style.display = 'none';
-        return;
+    } else {
+        // Update summary
+        resultsText.textContent = `${t('search-results')}: ${result.totalCount} ${t('items-found')}`;
+        resultsCount.textContent = result.totalCount;
+        summary.style.display = 'block';
+
+        // Display collections as table rows
+        result.collections.forEach(collection => {
+            const row = createCollectionRow(collection);
+            tableBody.appendChild(row);
+        });
     }
-
-    // Update summary
-    resultsText.textContent = `${t('search-results')}: ${result.totalCount} ${t('items-found')}`;
-    resultsCount.textContent = result.totalCount;
-    summary.style.display = 'block';
-
-    // Display collections as table rows
-    result.collections.forEach(collection => {
-        const row = createCollectionRow(collection);
-        tableBody.appendChild(row);
-    });
 
     tableContainer.style.display = 'block';
 }
@@ -395,21 +392,15 @@ function createCollectionRow(collection) {
 
     const collectionId = collection.collectionID || 'unknown';
     const thumbnailUrl = `/api/Files/thumbnail/${encodeURIComponent(collectionId)}`;
-    
-    const thumbnailHtml = `
-        <img src="${thumbnailUrl}" 
-             class="thumbnail-small"
-             alt="Thumbnail"
-             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-        <div class="thumbnail-placeholder-small" style="display: none;">
-            <i class="bi bi-image"></i>
-        </div>
-    `;
 
     row.innerHTML = `
-        <td>
-            <div style="position: relative;">
-                ${thumbnailHtml}
+        <td class="thumbnail-cell">
+            <img src="${thumbnailUrl}" 
+                 class="thumbnail-small"
+                 alt="Thumbnail"
+                 onerror="handleThumbnailError(this)">
+            <div class="thumbnail-placeholder-small" style="display: none;">
+                <i class="bi bi-image"></i>
             </div>
         </td>
         <td><strong>${escapeHtml(collection.collectionName)}</strong></td>
@@ -419,6 +410,11 @@ function createCollectionRow(collection) {
     `;
 
     return row;
+}
+
+function handleThumbnailError(imgElement) {
+    imgElement.style.display = 'none';
+    imgElement.nextElementSibling.style.display = 'flex';
 }
 
 function getInventoryStatusText(status, currentInventory, collectionOrderPoint, collectionMaxStock) {
@@ -616,15 +612,21 @@ function displayCollectionPanel(collection) {
                 imageName.textContent = images[currentImageIndex];
             }
             
-            prevBtn.onclick = () => {
+            const prevHandler = () => {
                 currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
                 updateImage();
             };
             
-            nextBtn.onclick = () => {
+            const nextHandler = () => {
                 currentImageIndex = (currentImageIndex + 1) % images.length;
                 updateImage();
             };
+            
+            prevBtn.addEventListener('click', prevHandler);
+            nextBtn.addEventListener('click', nextHandler);
+            
+            // Store handlers for cleanup
+            panel.dataset.carouselInitialized = 'true';
         }, 100);
     }
 }
