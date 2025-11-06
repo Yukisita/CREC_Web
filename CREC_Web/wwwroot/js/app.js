@@ -11,7 +11,8 @@ let currentSearchCriteria = {};
 let currentLanguage = 'ja'; // 'ja' は日本語、'en' は英語
 let projectSettings = {
     projectName: '',
-    uuidName: 'ID',
+    objectNameLabel:'Collection Name',
+    uuidName: 'UUID',
     managementCodeName: 'MC',
     categoryName: 'カテゴリ',
     tag1Name: 'タグ 1',
@@ -33,9 +34,6 @@ const translations = {
         'items-found': '件見つかりました',
         'no-results': '検索結果がありません',
         'error-loading': 'データの読み込みでエラーが発生しました',
-        'collection-name': 'コレクション名',
-        'collection-id': 'ID',
-        'category': 'カテゴリ',
         'registration-date': '登録日',
         'management-code': '管理コード',
         'location': '場所',
@@ -83,9 +81,6 @@ const translations = {
         'items-found': 'items found',
         'no-results': 'No results found',
         'error-loading': 'Error loading data',
-        'collection-name': 'Collection Name',
-        'collection-id': 'ID',
-        'category': 'Category',
         'registration-date': 'Registration Date',
         'management-code': 'Management Code',
         'location': 'Location',
@@ -142,20 +137,7 @@ function updateUILanguage() {
     document.querySelectorAll('[data-lang]').forEach(element => {
         const key = element.getAttribute('data-lang');
         const translation = translations[lang][key];
-
-        if (translation) {
-            // リサイズ用要素を持つテーブルヘッダーの特別処理
-            if (element.tagName === 'TH' && element.classList.contains('resizable')) {
-                const thContent = element.querySelector('.th-content');
-                if (thContent) {
-                    thContent.textContent = translation;
-                } else {
-                    element.textContent = translation;
-                }
-            } else {
-                element.textContent = translation;
-            }
-        }
+        element.textContent = translation;
     });
 }
 
@@ -225,13 +207,13 @@ function initializeColumnResizing() {
     const tagHeaders = Array.from(ths).filter((th, index) => index >= 1 && index <= 7);
     if (tagHeaders.length === 7) {
         const thContents = tagHeaders.map(th => th.querySelector('.th-content'));
-        if (thContents[0]) thContents[0].textContent = projectSettings.objectNameLabel || (currentLanguage === 'ja' ? 'タグ 1' : 'Tag 1');
-        if (thContents[1]) thContents[1].textContent = projectSettings.uuidName || (currentLanguage === 'ja' ? 'タグ 2' : 'Tag 2');
-        if (thContents[2]) thContents[2].textContent = projectSettings.managementCodeName || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3');
-        if (thContents[3]) thContents[3].textContent = projectSettings.categoryName || (currentLanguage === 'ja' ? 'タグ 4' : 'Tag 4');
-        if (thContents[4]) thContents[4].textContent = projectSettings.tag1Name || (currentLanguage === 'ja' ? 'タグ 5' : 'Tag 5');
-        if (thContents[5]) thContents[5].textContent = projectSettings.tag2Name || (currentLanguage === 'ja' ? 'タグ 6' : 'Tag 6');
-        if (thContents[6]) thContents[6].textContent = projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 7' : 'Tag 7');
+        if (thContents[0]) thContents[0].textContent = projectSettings.objectNameLabel || (currentLanguage === 'ja' ? '名称' : 'Name');
+        if (thContents[1]) thContents[1].textContent = projectSettings.uuidName || 'ID';
+        if (thContents[2]) thContents[2].textContent = projectSettings.managementCodeName || (currentLanguage === 'ja' ? '管理コード' : 'Management Code');
+        if (thContents[3]) thContents[3].textContent = projectSettings.categoryName || (currentLanguage === 'ja' ? 'カテゴリ' : 'Category');
+        if (thContents[4]) thContents[4].textContent = projectSettings.tag1Name || (currentLanguage === 'ja' ? 'タグ 1' : 'Tag 1');
+        if (thContents[5]) thContents[5].textContent = projectSettings.tag2Name || (currentLanguage === 'ja' ? 'タグ 2' : 'Tag 2');
+        if (thContents[6]) thContents[6].textContent = projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3');
     }
 
     ths.forEach((th, index) => {
@@ -291,6 +273,19 @@ async function loadProjectSettings() {
                 tag3Name: settings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3')
             };
             console.log('Project settings loaded:', projectSettings);
+            // translationsの内容をプロジェクト設定値と合うようにを更新
+            // field-name
+            translations.ja['field-name'] = projectSettings.objectNameLabel;
+            translations.en['field-name'] = projectSettings.objectNameLabel;
+            // field-id
+            translations.ja['field-id'] = projectSettings.uuidName;
+            translations.en['field-id'] = projectSettings.uuidName;
+            // field-mc
+            translations.ja['field-mc'] = projectSettings.managementCodeName;
+            translations.en['field-mc'] = projectSettings.managementCodeName;
+            // field-category
+            translations.ja['field-category'] = projectSettings.categoryName;
+            translations.en['field-category'] = projectSettings.categoryName;
         }
     } catch (error) {
         console.warn('Could not load project settings, using defaults:', error);
@@ -909,42 +904,7 @@ function showError(message) {
 
 function toggleLanguage() {
     currentLanguage = currentLanguage === 'ja' ? 'en' : 'ja';
-    updateLanguageDisplay();
-}
-
-function updateLanguageDisplay() {
-    // 簡易実装 - 実際のアプリではより高度な i18n が必要かもしれません
-    const elements = document.querySelectorAll('[data-lang]');
-    elements.forEach(element => {
-        const key = element.getAttribute('data-lang');
-        if (translations[currentLanguage][key]) {
-            const tagName = element.tagName.toLowerCase();
-
-            if (tagName === 'input' && element.type === 'text') {
-                // テキスト入力のプレースホルダーを更新
-                element.placeholder = translations[currentLanguage][key];
-            } else if (tagName === 'option') {
-                // option 要素のテキストを更新（バイリンガル形式を削除）
-                element.textContent = translations[currentLanguage][key];
-            } else if (tagName === 'th' && element.classList.contains('resizable')) {
-                // リサイズ用要素を持つテーブルヘッダーの特別処理
-                const thContent = element.querySelector('.th-content');
-                if (thContent) {
-                    thContent.textContent = translations[currentLanguage][key];
-                } else {
-                    element.textContent = translations[currentLanguage][key];
-                }
-            } else {
-                // その他要素のテキストを更新
-                element.textContent = translations[currentLanguage][key];
-            }
-        }
-    });
-
-    // 現在の結果を新しい言語で再描画
-    if (currentSearchCriteria && Object.keys(currentSearchCriteria).length > 0) {
-        searchCollections(currentPage);
-    }
+    updateUILanguage();
 }
 
 function t(key) {
