@@ -911,6 +911,10 @@ function showError(message) {
 function toggleLanguage() {
     currentLanguage = currentLanguage === 'ja' ? 'en' : 'ja';
     updateUILanguage();
+    // 現在の結果を新しい言語で再描画
+    if (currentSearchCriteria && Object.keys(currentSearchCriteria).length > 0) {
+        searchCollections(currentPage);
+    }
 }
 
 function t(key) {
