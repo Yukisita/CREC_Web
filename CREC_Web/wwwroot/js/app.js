@@ -25,7 +25,6 @@ const panelEventHandlers = new WeakMap();
 
 // 列リサイズが初期化済みか追跡
 let columnResizingInitialized = false;
-
 // 言語翻訳
 const translations = {
     ja: {
@@ -35,16 +34,12 @@ const translations = {
         'no-results': '検索結果がありません',
         'error-loading': 'データの読み込みでエラーが発生しました',
         'registration-date': '登録日',
-        'management-code': '管理コード',
         'location': '場所',
         'inventory': '在庫数',
         'inventory-status': '在庫状況',
-        'tags': 'タグ',
         'comment': 'コメント',
         'images': '画像',
         'files': 'ファイル',
-        'no-thumbnail': 'サムネイルなし',
-        'view-details': '詳細表示',
         'stock-out': '在庫切れ',
         'under-stocked': '在庫不足',
         'appropriate': '在庫適正',
@@ -63,6 +58,9 @@ const translations = {
         'field-mc': '管理コード',
         'field-category': 'カテゴリー',
         'field-tags': 'タグ',
+        'field-firstTag': 'タグ 1',
+        'field-secondTag': 'タグ 2',
+        'field-thirdTag': 'タグ 3',
         'field-location': '場所',
         'search-method': '検索方式',
         'method-partial': '部分一致',
@@ -82,16 +80,12 @@ const translations = {
         'no-results': 'No results found',
         'error-loading': 'Error loading data',
         'registration-date': 'Registration Date',
-        'management-code': 'Management Code',
         'location': 'Location',
         'inventory': 'Inventory',
         'inventory-status': 'Inventory Status',
-        'tags': 'Tags',
         'comment': 'Comment',
         'images': 'Images',
         'files': 'Files',
-        'no-thumbnail': 'No thumbnail',
-        'view-details': 'View Details',
         'stock-out': 'Stock Out',
         'under-stocked': 'Under Stocked',
         'appropriate': 'Appropriate',
@@ -109,7 +103,10 @@ const translations = {
         'field-name': 'Name',
         'field-mc': 'Management Code',
         'field-category': 'Category',
-        'field-tags': 'Tag',
+        'field-tags': 'Tags',
+        'field-firstTag': 'Tag 1',
+        'field-secondTag': 'Tag 2',
+        'field-thirdTag': 'Tag 3',
         'field-location': 'Location',
         'search-method': 'Search Method',
         'method-partial': 'Partial',
@@ -286,6 +283,15 @@ async function loadProjectSettings() {
             // field-category
             translations.ja['field-category'] = projectSettings.categoryName;
             translations.en['field-category'] = projectSettings.categoryName;
+            // field-firstTag
+            translations.ja['field-firstTag'] = projectSettings.tag1Name;
+            translations.en['field-firstTag'] = projectSettings.tag1Name;
+            // field-secondTag
+            translations.ja['field-secondTag'] = projectSettings.tag2Name;
+            translations.en['field-secondTag'] = projectSettings.tag2Name;
+            // field-thirdTag
+            translations.ja['field-thirdTag'] = projectSettings.tag3Name;
+            translations.en['field-thirdTag'] = projectSettings.tag3Name;
         }
     } catch (error) {
         console.warn('Could not load project settings, using defaults:', error);
