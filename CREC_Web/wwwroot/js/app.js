@@ -134,6 +134,14 @@ function updateUILanguage() {
     document.querySelectorAll('[data-lang]').forEach(element => {
         const key = element.getAttribute('data-lang');
         const translation = translations[lang][key];
+        // th の場合は .th-content だけを書き換えて子要素(.resizer)を保持
+        if (element.tagName === 'TH') {
+            const thContent = element.querySelector('.th-content');
+            if (thContent) {
+                thContent.textContent = translation;
+                return;
+            }
+        }
         element.textContent = translation;
     });
 }
