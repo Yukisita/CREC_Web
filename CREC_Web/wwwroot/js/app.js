@@ -806,12 +806,6 @@ function createCollectionCard(collection) {
     return colDiv;
 }
 
-function handleThumbnailError(imgElement) {
-    // この関数は後方互換性のために残しています（他で必要な場合）
-    imgElement.style.display = 'none';
-    imgElement.nextElementSibling.style.display = 'flex';
-}
-
 function getInventoryStatusText(status, currentInventory, collectionOrderPoint, collectionMaxStock) {
     const statusMap = {
         0: t('stock-out'),
