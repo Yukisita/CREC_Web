@@ -214,10 +214,62 @@
             margin-bottom: 0.5rem;
         }
 
+        /* Grid/Card view styles */
+        .collection-card {
+            transition: transform 0.2s;
+            height: 100%;
+        }
+
+        .collection-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-img-top {
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .thumbnail-placeholder {
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            background-color: #e9ecef;
+            color: #6c757d;
+        }
+
+        .tag-badge {
+            margin: 0.1rem;
+        }
+
+        .view-toggle-buttons {
+            min-width: 200px;
+        }
+
+        .view-toggle-buttons .btn {
+            min-width: 100px;
+        }
+
+        /* Mobile responsive - auto-switch to grid view */
         @media (max-width: 768px) {
             .detail-panel {
                 width: 100%;
                 right: -100%;
+            }
+
+            /* Hide table view on mobile, show grid view */
+            #collectionsTableContainer {
+                display: none !important;
+            }
+
+            #collectionsGridContainer {
+                display: flex !important;
+            }
+
+            /* Hide view toggle on mobile */
+            .view-toggle-buttons {
+                display: none !important;
             }
         }
     </style>
@@ -307,11 +359,23 @@
             </div>
         </div>
 
-        <!-- Results Summary -->
+        <!-- Results Summary and View Toggle -->
         <div id="resultsSummary" class="mb-3" style="display: none;">
             <div class="d-flex justify-content-between align-items-center">
-                <span id="resultsText"></span>
-                <span id="resultsCount" class="badge bg-primary"></span>
+                <div>
+                    <span id="resultsText"></span>
+                    <span id="resultsCount" class="badge bg-primary"></span>
+                </div>
+                <div class="btn-group view-toggle-buttons" role="group" aria-label="View mode toggle">
+                    <button type="button" class="btn btn-outline-primary" id="gridViewBtn" title="Grid View / グリッド表示">
+                        <i class="bi bi-grid-3x3-gap"></i>
+                        <span class="d-none d-sm-inline ms-1" data-lang="grid-view"></span>
+                    </button>
+                    <button type="button" class="btn btn-outline-primary active" id="tableViewBtn" title="Table View / テーブル表示">
+                        <i class="bi bi-table"></i>
+                        <span class="d-none d-sm-inline ms-1" data-lang="table-view"></span>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -325,6 +389,11 @@
 
         <!-- Error -->
         <div id="error" class="error" style="display: none;"></div>
+
+        <!-- Collections Grid View -->
+        <div id="collectionsGridContainer" class="row" style="display: none;">
+            <!-- Collection cards will be loaded here -->
+        </div>
 
         <!-- Collections Table -->
         <div id="collectionsTableContainer" style="display: none; overflow-x: auto;">

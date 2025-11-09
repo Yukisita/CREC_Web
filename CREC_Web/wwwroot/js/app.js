@@ -9,6 +9,7 @@ let currentPage = 1;
 let currentPageSize = 20;
 let currentSearchCriteria = {};
 let currentLanguage = 'ja'; // 'ja' は日本語、'en' は英語
+let currentViewMode = 'table'; // 'table' or 'grid'
 let projectSettings = {
     projectName: '',
     objectNameLabel:'Collection Name',
@@ -71,7 +72,11 @@ const translations = {
         'page-size': '表示件数',
         'search-button': '検索',
         'clear-button': 'クリア',
-        'close': '閉じる'
+        'close': '閉じる',
+        'view-details': '詳細を見る',
+        'no-thumbnail': 'サムネイルなし',
+        'grid-view': 'グリッド',
+        'table-view': 'テーブル'
     },
     en: {
         'loading': 'Loading...',
@@ -117,7 +122,11 @@ const translations = {
         'page-size': 'Page Size',
         'search-button': 'Search',
         'clear-button': 'Clear',
-        'close': 'Close'
+        'close': 'Close',
+        'view-details': 'View Details',
+        'no-thumbnail': 'No Thumbnail',
+        'grid-view': 'Grid',
+        'table-view': 'Table'
     }
 };
 
@@ -178,6 +187,25 @@ async function initializeApp() {
         if (detailPanelClose) {
             detailPanelClose.addEventListener('click', closeDetailPanel);
         }
+
+        // ビュー切り替えボタン
+        const gridViewBtn = document.getElementById('gridViewBtn');
+        const tableViewBtn = document.getElementById('tableViewBtn');
+        if (gridViewBtn) {
+            gridViewBtn.addEventListener('click', switchToGridView);
+        }
+        if (tableViewBtn) {
+            tableViewBtn.addEventListener('click', switchToTableView);
+        }
+
+        // Load saved view preference
+        const savedViewMode = localStorage.getItem('crec_view_mode');
+        if (savedViewMode === 'grid' || savedViewMode === 'table') {
+            currentViewMode = savedViewMode;
+        }
+
+        // Handle window resize to force grid on mobile
+        window.addEventListener('resize', handleWindowResize);
 
         // 初回検索
         await searchCollections();
@@ -440,6 +468,10 @@ async function searchCollections(page = 1) {
 
         const result = await response.json();
         console.log('Search result:', result);
+        
+        // Store results for view switching
+        window.lastSearchResult = result;
+        
         displaySearchResults(result);
         updatePagination(result);
     } catch (error) {
@@ -452,6 +484,7 @@ async function searchCollections(page = 1) {
 
 function displaySearchResults(result) {
     const tableContainer = document.getElementById('collectionsTableContainer');
+    const gridContainer = document.getElementById('collectionsGridContainer');
     const tableBody = document.getElementById('collectionsTable');
     const summary = document.getElementById('resultsSummary');
     const resultsText = document.getElementById('resultsText');
@@ -459,16 +492,34 @@ function displaySearchResults(result) {
 
     // 以前の結果をクリア
     tableBody.innerHTML = '';
+    gridContainer.innerHTML = '';
+
+    // Check if mobile (screen width < 768px)
+    const isMobile = window.innerWidth < 768;
+    
+    // On mobile, force grid view
+    if (isMobile) {
+        currentViewMode = 'grid';
+    }
 
     if (result.collections.length === 0) {
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="12" class="text-center py-5">
+        if (currentViewMode === 'table') {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="12" class="text-center py-5">
+                        <i class="bi bi-search display-1 text-muted"></i>
+                        <h4 class="mt-3 text-muted">${t('no-results')}</h4>
+                    </td>
+                </tr>
+            `;
+        } else {
+            gridContainer.innerHTML = `
+                <div class="col-12 text-center py-5">
                     <i class="bi bi-search display-1 text-muted"></i>
                     <h4 class="mt-3 text-muted">${t('no-results')}</h4>
-                </td>
-            </tr>
-        `;
+                </div>
+            `;
+        }
         summary.style.display = 'none';
     } else {
         // サマリを更新
@@ -476,17 +527,103 @@ function displaySearchResults(result) {
         resultsCount.textContent = result.totalCount;
         summary.style.display = 'block';
 
-        // コレクションをテーブル行として表示
-        result.collections.forEach(collection => {
-            const row = createCollectionRow(collection);
-            tableBody.appendChild(row);
-        });
+        // コレクションを表示
+        if (currentViewMode === 'table') {
+            result.collections.forEach(collection => {
+                const row = createCollectionRow(collection);
+                tableBody.appendChild(row);
+            });
+        } else {
+            result.collections.forEach(collection => {
+                const card = createCollectionCard(collection);
+                gridContainer.appendChild(card);
+            });
+        }
     }
 
-    tableContainer.style.display = 'block';
+    // Show appropriate container
+    if (currentViewMode === 'table') {
+        tableContainer.style.display = 'block';
+        gridContainer.style.display = 'none';
+        // テーブル表示後に列リサイズを初期化
+        initializeColumnResizing();
+    } else {
+        tableContainer.style.display = 'none';
+        gridContainer.style.display = 'flex';
+    }
 
-    // テーブル表示後に列リサイズを初期化
-    initializeColumnResizing();
+    // Update view toggle buttons
+    updateViewToggleButtons();
+}
+
+function updateViewToggleButtons() {
+    const gridBtn = document.getElementById('gridViewBtn');
+    const tableBtn = document.getElementById('tableViewBtn');
+    
+    if (!gridBtn || !tableBtn) return;
+
+    // Update active state
+    if (currentViewMode === 'grid') {
+        gridBtn.classList.add('active');
+        tableBtn.classList.remove('active');
+    } else {
+        gridBtn.classList.remove('active');
+        tableBtn.classList.add('active');
+    }
+}
+
+function switchToGridView() {
+    // Don't allow switching on mobile (it's forced to grid)
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) return;
+
+    currentViewMode = 'grid';
+    localStorage.setItem('crec_view_mode', 'grid');
+    
+    // Re-render current results
+    if (window.lastSearchResult) {
+        displaySearchResults(window.lastSearchResult);
+    }
+}
+
+function switchToTableView() {
+    // Don't allow switching on mobile (it's forced to grid)
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) return;
+
+    currentViewMode = 'table';
+    localStorage.setItem('crec_view_mode', 'table');
+    
+    // Re-render current results
+    if (window.lastSearchResult) {
+        displaySearchResults(window.lastSearchResult);
+    }
+}
+
+function handleWindowResize() {
+    const isMobile = window.innerWidth < 768;
+    
+    // Force grid view on mobile
+    if (isMobile && currentViewMode === 'table') {
+        const savedMode = currentViewMode;
+        currentViewMode = 'grid';
+        
+        // Re-render if we have results
+        if (window.lastSearchResult) {
+            displaySearchResults(window.lastSearchResult);
+        }
+        
+        // Restore the preference (will be used when window is resized back)
+        currentViewMode = savedMode;
+    }
+    // When resizing back to desktop, restore saved preference
+    else if (!isMobile && window.lastSearchResult) {
+        const savedViewMode = localStorage.getItem('crec_view_mode');
+        if (savedViewMode) {
+            currentViewMode = savedViewMode;
+            displaySearchResults(window.lastSearchResult);
+        }
+    }
 }
 
 function createCollectionRow(collection) {
@@ -582,6 +719,91 @@ function createCollectionRow(collection) {
     row.appendChild(statusCell);
 
     return row;
+}
+
+function createCollectionCard(collection) {
+    const colDiv = document.createElement('div');
+    colDiv.className = 'col-lg-3 col-md-4 col-sm-6 mb-4';
+
+    const inventoryStatusText = getInventoryStatusText(
+        collection.collectionInventoryStatus, 
+        collection.collectionCurrentInventory, 
+        collection.collectionOrderPoint,
+        collection.collectionMaxStock
+    );
+    const inventoryBadgeClass = getInventoryStatusBadgeClass(collection.collectionInventoryStatus);
+
+    // Build tag HTML - display each tag on a separate line like category
+    let tagsHtml = '';
+    if (collection.collectionTag1 && collection.collectionTag1 !== ' - ') {
+        const tag1Label = projectSettings.tag1Name || (currentLanguage === 'ja' ? 'タグ 1' : 'Tag 1');
+        tagsHtml += `<small class="text-muted">${tag1Label}: ${escapeHtml(collection.collectionTag1)}</small><br>`;
+    }
+    if (collection.collectionTag2 && collection.collectionTag2 !== ' - ') {
+        const tag2Label = projectSettings.tag2Name || (currentLanguage === 'ja' ? 'タグ 2' : 'Tag 2');
+        tagsHtml += `<small class="text-muted">${tag2Label}: ${escapeHtml(collection.collectionTag2)}</small><br>`;
+    }
+    if (collection.collectionTag3 && collection.collectionTag3 !== ' - ') {
+        const tag3Label = projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3');
+        tagsHtml += `<small class="text-muted">${tag3Label}: ${escapeHtml(collection.collectionTag3)}</small><br>`;
+    }
+
+    // Use the collection ID (which is the folder name) for the thumbnail URL
+    const collectionId = collection.collectionID || 'unknown';
+    const thumbnailUrl = `/api/Files/thumbnail/${encodeURIComponent(collectionId)}`;
+    
+    const thumbnailImg = document.createElement('img');
+    thumbnailImg.src = thumbnailUrl;
+    thumbnailImg.className = 'card-img-top';
+    thumbnailImg.alt = 'Thumbnail';
+    thumbnailImg.style.display = 'block';
+
+    const thumbnailPlaceholder = document.createElement('div');
+    thumbnailPlaceholder.className = 'thumbnail-placeholder';
+    thumbnailPlaceholder.style.display = 'none';
+    thumbnailPlaceholder.innerHTML = `<i class="bi bi-image display-4"></i><br><small>${t('no-thumbnail')}</small>`;
+
+    thumbnailImg.addEventListener('error', () => {
+        thumbnailImg.style.display = 'none';
+        thumbnailPlaceholder.style.display = 'flex';
+    });
+
+    const thumbnailContainer = document.createElement('div');
+    thumbnailContainer.style.position = 'relative';
+    thumbnailContainer.appendChild(thumbnailImg);
+    thumbnailContainer.appendChild(thumbnailPlaceholder);
+
+    const cardBody = document.createElement('div');
+    cardBody.className = 'card-body';
+    cardBody.innerHTML = `
+        <h6 class="card-title">${escapeHtml(collection.collectionName)}</h6>
+        <p class="card-text">
+            <small class="text-muted">${projectSettings.uuidName}: ${escapeHtml(collection.collectionID)}</small><br>
+            <small class="text-muted">${projectSettings.categoryName}: ${escapeHtml(collection.collectionCategory)}</small><br>
+            ${tagsHtml}
+            ${collection.collectionCurrentInventory !== null ? 
+                `<small class="text-muted">${t('inventory')}: ${collection.collectionCurrentInventory}</small><br>` : ''}
+            <span class="badge ${inventoryBadgeClass}">${inventoryStatusText}</span>
+        </p>
+    `;
+
+    const detailsBtn = document.createElement('button');
+    detailsBtn.className = 'btn btn-primary btn-sm w-100';
+    detailsBtn.innerHTML = `<i class="bi bi-eye"></i> ${t('view-details')}`;
+    detailsBtn.addEventListener('click', () => showCollectionDetails(collection.collectionID));
+
+    const cardFooter = document.createElement('div');
+    cardFooter.className = 'card-footer';
+    cardFooter.appendChild(detailsBtn);
+
+    const card = document.createElement('div');
+    card.className = 'card h-100 collection-card';
+    card.appendChild(thumbnailContainer);
+    card.appendChild(cardBody);
+    card.appendChild(cardFooter);
+
+    colDiv.appendChild(card);
+    return colDiv;
 }
 
 function handleThumbnailError(imgElement) {
