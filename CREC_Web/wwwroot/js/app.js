@@ -155,6 +155,7 @@ function updateUILanguage() {
     });
 }
 
+// アプリケーションの初期化
 async function initializeApp() {
     try {
         console.log('Initializing app...');
@@ -198,13 +199,30 @@ async function initializeApp() {
             tableViewBtn.addEventListener('click', switchToTableView);
         }
 
-        // Load saved view preference
-        const savedViewMode = localStorage.getItem('crec_view_mode');
-        if (savedViewMode === 'grid' || savedViewMode === 'table') {
-            currentViewMode = savedViewMode;
+        // 保存された表示モードの読み込み
+        try {
+            const savedViewMode = localStorage.getItem('crec_view_mode');
+            if (savedViewMode === 'grid' || savedViewMode === 'table') {
+                currentViewMode = savedViewMode;
+            }
+            else {
+                // 当てはまらない場合は例外をスローして catch ブロックで処理
+                throw new Error('No valid saved view mode');
+            }
+        } catch {
+            const isMobile = window.innerWidth < 768;
+
+            // 画面幅が閾値未満となった倍はグリッド表示に変更
+            if (isMobile && currentViewMode === 'table') {
+                currentViewMode = 'grid';
+            }
+            // 画面幅が閾値以上となった場合はテーブル表示に変更
+            else if (!isMobile && currentViewMode === 'grid') {
+                currentViewMode = 'table';
+            }
         }
 
-        // Handle window resize to force grid on mobile
+        // ウィンドウリサイズイベントハンドラ登録
         window.addEventListener('resize', handleWindowResize);
 
         // 初回検索
@@ -494,14 +512,6 @@ function displaySearchResults(result) {
     tableBody.innerHTML = '';
     gridContainer.innerHTML = '';
 
-    // Check if mobile (screen width < 768px)
-    const isMobile = window.innerWidth < 768;
-    
-    // On mobile, force grid view
-    if (isMobile) {
-        currentViewMode = 'grid';
-    }
-
     if (result.collections.length === 0) {
         if (currentViewMode === 'table') {
             tableBody.innerHTML = `
@@ -573,10 +583,6 @@ function updateViewToggleButtons() {
 }
 
 function switchToGridView() {
-    // Don't allow switching on mobile (it's forced to grid)
-    const isMobile = window.innerWidth < 768;
-    if (isMobile) return;
-
     currentViewMode = 'grid';
     localStorage.setItem('crec_view_mode', 'grid');
     
@@ -587,10 +593,6 @@ function switchToGridView() {
 }
 
 function switchToTableView() {
-    // Don't allow switching on mobile (it's forced to grid)
-    const isMobile = window.innerWidth < 768;
-    if (isMobile) return;
-
     currentViewMode = 'table';
     localStorage.setItem('crec_view_mode', 'table');
     
@@ -600,29 +602,26 @@ function switchToTableView() {
     }
 }
 
+// ウィンドウリサイズ時の処理
 function handleWindowResize() {
     const isMobile = window.innerWidth < 768;
-    
-    // Force grid view on mobile
+
+    // 画面幅が閾値未満となった倍はグリッド表示に変更
     if (isMobile && currentViewMode === 'table') {
-        const savedMode = currentViewMode;
         currentViewMode = 'grid';
-        
-        // Re-render if we have results
-        if (window.lastSearchResult) {
-            displaySearchResults(window.lastSearchResult);
-        }
-        
-        // Restore the preference (will be used when window is resized back)
-        currentViewMode = savedMode;
     }
-    // When resizing back to desktop, restore saved preference
-    else if (!isMobile && window.lastSearchResult) {
-        const savedViewMode = localStorage.getItem('crec_view_mode');
-        if (savedViewMode) {
-            currentViewMode = savedViewMode;
-            displaySearchResults(window.lastSearchResult);
-        }
+    // 画面幅が閾値以上となった場合はテーブル表示に変更
+    else if (!isMobile && currentViewMode === 'grid') {
+        currentViewMode = 'table';
+    }
+    else {
+        // 更新不要
+        return;
+    }
+
+    // 描画更新
+    if (window.lastSearchResult) {
+        displaySearchResults(window.lastSearchResult);
     }
 }
 
