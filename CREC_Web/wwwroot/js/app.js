@@ -506,7 +506,6 @@ function displaySearchResults(result) {
     const tableBody = document.getElementById('collectionsTable');
     const summary = document.getElementById('resultsSummary');
     const resultsText = document.getElementById('resultsText');
-    const resultsCount = document.getElementById('resultsCount');
 
     // 以前の結果をクリア
     tableBody.innerHTML = '';
@@ -534,7 +533,6 @@ function displaySearchResults(result) {
     } else {
         // サマリを更新
         resultsText.textContent = `${t('search-results')}: ${result.totalCount} ${t('items-found')}`;
-        resultsCount.textContent = result.totalCount;
         summary.style.display = 'block';
 
         // コレクションを表示
