@@ -1143,6 +1143,7 @@ function t(key) {
 }
 
 function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
     const map = {
         '&': '&amp;',
         '<': '&lt;',
@@ -1150,5 +1151,5 @@ function escapeHtml(text) {
         '"': '&quot;',
         "'": '&#039;'
     };
-    return text.toString().replace(/[&<>"']/g, function (m) { return map[m]; });
+    return String(text).replace(/[&<>"']/g, ch => map[ch]);
 }
