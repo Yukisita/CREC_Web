@@ -9,37 +9,11 @@
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
     <style>
-        .card-img-top {
-            height: 200px;
-            object-fit: cover;
-        }
-
         .search-filters {
             background-color: #f8f9fa;
             border-radius: 0.5rem;
             padding: 1rem;
             margin-bottom: 1rem;
-        }
-
-        .collection-card {
-            transition: transform 0.2s;
-        }
-
-        .collection-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .thumbnail-placeholder {
-            height: 200px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #e9ecef;
-            color: #6c757d;
-        }
-
-        .tag-badge {
-            margin: 0.1rem;
         }
 
         .navbar-brand {
@@ -66,6 +40,224 @@
         .language-toggle {
             cursor: pointer;
         }
+
+        /* Table styles */
+        .collections-table {
+            width: 100%;
+            background: white;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+            table-layout: fixed;
+        }
+
+        .collections-table thead {
+            background-color: #e9ecef;
+        }
+
+        .collections-table tbody tr {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .collections-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .collections-table tbody tr.selected {
+            background-color: #e7f3ff;
+        }
+
+        .collections-table th,
+        .collections-table td {
+            padding: 0.75rem;
+            vertical-align: middle;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .collections-table th {
+            position: relative;
+            user-select: none;
+        }
+
+        .collections-table th.resizable {
+            min-width: 80px;
+        }
+
+        .collections-table th .th-content {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding-right: 15px;
+        }
+
+        .collections-table th .resizer {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 2px;
+            cursor: col-resize;
+            user-select: none;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .collections-table th .resizer:hover {
+            background-color: #0d6efd;
+        }
+
+        .collections-table th.resizing {
+            border-right: 2px solid #0d6efd;
+        }
+
+        .thumbnail-small {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 0.25rem;
+        }
+
+        .thumbnail-placeholder-small {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #e9ecef;
+            color: #6c757d;
+            border-radius: 0.25rem;
+            font-size: 1.5rem;
+        }
+
+        .thumbnail-cell {
+            width: 80px;
+            min-width: 80px;
+        }
+
+        /* Side panel styles */
+        .detail-panel {
+            position: fixed;
+            top: 0;
+            right: -600px;
+            width: 600px;
+            height: 100vh;
+            background: white;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+            transition: right 0.3s ease-in-out;
+            z-index: 1050;
+            overflow-y: auto;
+        }
+
+        .detail-panel.open {
+            right: 0;
+        }
+
+        .detail-panel-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(0,0,0,0.5);
+            z-index: 1040;
+            display: none;
+        }
+
+        .detail-panel-overlay.show {
+            display: block;
+        }
+
+        .detail-panel-header {
+            padding: 1.5rem;
+            background-color: #0d6efd;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .detail-panel-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            float: right;
+            line-height: 1;
+        }
+
+        .detail-panel-body {
+            padding: 1.5rem;
+        }
+
+        .detail-image {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            border-radius: 0.5rem;
+        }
+
+        .detail-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .detail-section h6 {
+            color: #6c757d;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .detail-section p {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Grid/Card view styles */
+        .collection-card {
+            transition: transform 0.2s;
+            height: 100%;
+        }
+
+        .collection-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-img-top {
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .thumbnail-placeholder {
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            background-color: #e9ecef;
+            color: #6c757d;
+        }
+
+        .tag-badge {
+            margin: 0.1rem;
+        }
+
+        .view-toggle-buttons {
+            min-width: 200px;
+        }
+
+        .view-toggle-buttons .btn {
+            min-width: 100px;
+        }
+
+        /* Mobile responsive - auto-switch to grid view */
+        @media (max-width: 768px) {
+            .detail-panel {
+                width: 100%;
+                right: -100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -85,7 +277,7 @@
         </div>
     </nav>
 
-    <div class="container mt-4">
+    <div class="container-fluid mt-4" style="padding-left: 1rem; padding-right: 1rem;">
         <!-- Search Filters -->
         <div class="search-filters">
             <h5 class="mb-3" data-lang="search-title"></h5>
@@ -102,7 +294,7 @@
                         <option value="2" data-lang="field-name"></option>
                         <option value="3" data-lang="field-mc"></option>
                         <option value="4" data-lang="field-category"></option>
-                        <option value="5" data-lang="field-tag"></option>
+                        <option value="5" data-lang="field-tags"></option>
                         <option value="6" data-lang="field-location"></option>
                     </select>
                 </div>
@@ -153,11 +345,22 @@
             </div>
         </div>
 
-        <!-- Results Summary -->
+        <!-- Results Summary and View Toggle -->
         <div id="resultsSummary" class="mb-3" style="display: none;">
             <div class="d-flex justify-content-between align-items-center">
-                <span id="resultsText"></span>
-                <span id="resultsCount" class="badge bg-primary"></span>
+                <div>
+                    <span id="resultsText"></span>
+                </div>
+                <div class="btn-group view-toggle-buttons" role="group" aria-label="View mode toggle">
+                    <button type="button" class="btn btn-outline-primary" id="gridViewBtn" title="Grid View / グリッド表示">
+                        <i class="bi bi-grid-3x3-gap"></i>
+                        <span class="d-none d-sm-inline ms-1" data-lang="grid-view"></span>
+                    </button>
+                    <button type="button" class="btn btn-outline-primary active" id="tableViewBtn" title="Table View / テーブル表示">
+                        <i class="bi bi-table"></i>
+                        <span class="d-none d-sm-inline ms-1" data-lang="table-view"></span>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -172,9 +375,34 @@
         <!-- Error -->
         <div id="error" class="error" style="display: none;"></div>
 
-        <!-- Collections Grid -->
-        <div id="collectionsGrid" class="row g-4">
-            <!-- Collections will be loaded here -->
+        <!-- Collections Grid View -->
+        <div id="collectionsGridContainer" class="row" style="display: none;">
+            <!-- Collection cards will be loaded here -->
+        </div>
+
+        <!-- Collections Table -->
+        <div id="collectionsTableContainer" style="display: none; overflow-x: auto;">
+            <table class="collections-table table table-hover">
+                <thead>
+                    <tr>
+                        <th class="resizable thumbnail-cell"><div class="th-content"></div><div class="resizer"></div></th>
+                        <th class="resizable"><div class="th-content" data-lang="field-name"></div><div class="resizer"></div></th>
+                        <th class="resizable"><div class="th-content" data-lang="field-id"></div><div class="resizer"></div></th>
+                        <th class="resizable"><div class="th-content" data-lang="field-mc"></div><div class="resizer"></div></th>
+                        <th class="resizable"><div class="th-content" data-lang="field-category"></div><div class="resizer"></div></th>
+                        <th class="resizable"><div class="th-content" data-lang="field-firstTag"></div><div class="resizer"></div></th>
+                        <th class="resizable"><div class="th-content" data-lang="field-secondTag"></div><div class="resizer"></div></th>
+                        <th class="resizable"><div class="th-content" data-lang="field-thirdTag"></div><div class="resizer"></div></th>
+                        <th class="resizable"><div class="th-content" data-lang="field-location"></div><div class="resizer"></div></th>
+                        <th class="resizable"><div class="th-content" data-lang="registration-date"></div><div class="resizer"></div></th>
+                        <th class="resizable"><div class="th-content" data-lang="inventory"></div><div class="resizer"></div></th>
+                        <th class="resizable"><div class="th-content" data-lang="inventory-status"></div><div class="resizer"></div></th>
+                    </tr>
+                </thead>
+                <tbody id="collectionsTable">
+                    <!-- Collections will be loaded here -->
+                </tbody>
+            </table>
         </div>
 
         <!-- Pagination -->
@@ -183,21 +411,17 @@
         </div>
     </div>
 
-    <!-- Collection Detail Modal -->
-    <div class="modal fade" id="collectionModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle"></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" id="modalBody">
-                    <!-- Detail content will be loaded here -->
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-lang="close">閉じる / Close</button>
-                </div>
-            </div>
+    <!-- Detail Panel Overlay -->
+    <div class="detail-panel-overlay" id="detailPanelOverlay"></div>
+
+    <!-- Detail Panel -->
+    <div class="detail-panel" id="detailPanel">
+        <div class="detail-panel-header">
+            <button class="detail-panel-close" id="detailPanelClose">&times;</button>
+            <h5 id="detailPanelTitle"></h5>
+        </div>
+        <div class="detail-panel-body" id="detailPanelBody">
+            <!-- Detail content will be loaded here -->
         </div>
     </div>
 
