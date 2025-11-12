@@ -10,6 +10,7 @@ let currentPageSize = 20;
 let currentSearchCriteria = {};
 let currentLanguage = 'ja'; // 'ja' は日本語、'en' は英語
 let currentViewMode = 'table'; // 'table' or 'grid'
+let lastIsMobile; // 画面サイズ変更前のMobile検知
 let projectSettings = {
     projectName: '',
     objectNameLabel:'Collection Name',
@@ -221,6 +222,9 @@ async function initializeApp() {
                 currentViewMode = 'table';
             }
         }
+
+        // 初回の画面サイズからモバイルフラグを設定
+        lastIsMobile = window.innerWidth < 768;
 
         // ウィンドウリサイズイベントハンドラ登録
         window.addEventListener('resize', handleWindowResize);
@@ -604,16 +608,26 @@ function switchToTableView() {
 function handleWindowResize() {
     const isMobile = window.innerWidth < 768;
 
-    // 画面幅が閾値未満となった倍はグリッド表示に変更
+    // lastIsMobile が未初期化なら基準を合わせて終了（意図しない切替を防止）
+    if (typeof lastIsMobile === 'undefined') {
+        lastIsMobile = isMobile;
+        return;
+    }
+
+    // 閾値(768px)を跨いでいない場合は何もしない
+    if (isMobile === lastIsMobile) {
+        return;
+    }
+
+    // 状態更新（閾値を跨いだ）
+    lastIsMobile = isMobile;
+
+    // 自動切替
     if (isMobile && currentViewMode === 'table') {
         currentViewMode = 'grid';
-    }
-    // 画面幅が閾値以上となった場合はテーブル表示に変更
-    else if (!isMobile && currentViewMode === 'grid') {
+    } else if (!isMobile && currentViewMode === 'grid') {
         currentViewMode = 'table';
-    }
-    else {
-        // 更新不要
+    } else {
         return;
     }
 
