@@ -43,7 +43,7 @@ namespace CREC_Web.Controllers
                     fileName.Contains("\\") ||
                     fileName.Length > 255)
                 {
-                    _logger.LogWarning($"Invalid file name: {fileName}");
+                    _logger.LogWarning("Invalid file name: {fileName}", Path.GetFileName(fileName).SanitizeForLog());
                     return BadRequest("Invalid file name");
                 }
 
