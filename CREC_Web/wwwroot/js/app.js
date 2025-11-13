@@ -213,7 +213,7 @@ async function initializeApp() {
         } catch {
             const isMobile = window.innerWidth < 768;
 
-            // 画面幅が閾値未満となった倍はグリッド表示に変更
+            // 画面幅が閾値未満となった場合はグリッド表示に変更
             if (isMobile && currentViewMode === 'table') {
                 currentViewMode = 'grid';
             }
