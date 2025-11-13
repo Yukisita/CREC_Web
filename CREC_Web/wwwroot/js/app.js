@@ -201,16 +201,12 @@ async function initializeApp() {
         }
 
         // 保存された表示モードの読み込み
-        try {
-            const savedViewMode = localStorage.getItem('crec_view_mode');
-            if (savedViewMode === 'grid' || savedViewMode === 'table') {
-                currentViewMode = savedViewMode;
-            }
-            else {
-                // 当てはまらない場合は例外をスローして catch ブロックで処理
-                throw new Error('No valid saved view mode');
-            }
-        } catch {
+        const savedViewMode = localStorage.getItem('crec_view_mode');
+        if (savedViewMode === 'grid' || savedViewMode === 'table') {
+            currentViewMode = savedViewMode;
+        }
+        else {
+            // 保存された表示モードが無効または存在しない場合、画面幅に基づいて決定
             const isMobile = window.innerWidth < 768;
 
             // 画面幅が閾値未満となった場合はグリッド表示に変更
