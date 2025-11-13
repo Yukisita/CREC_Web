@@ -118,7 +118,7 @@ namespace CREC_Web.Controllers
 
                 if (!System.IO.File.Exists(filePath))
                 {
-                    _logger.LogWarning($"Data file not found: {filePath}");
+                    _logger.LogWarning("Data file not found: {filePath}", filePath.SanitizeForLog());
                     return NotFound();
                 }
 
