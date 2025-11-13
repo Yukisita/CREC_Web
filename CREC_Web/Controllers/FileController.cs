@@ -32,7 +32,7 @@ namespace CREC_Web.Controllers
                     !System.Text.RegularExpressions.Regex.IsMatch(collectionId, @"^[a-zA-Z0-9_-]+$") ||
                     collectionId.Length > 255)
                 {
-                    _logger.LogWarning($"Invalid collection ID: {collectionId}");
+                    _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
                     return BadRequest("Invalid collection ID");
                 }
 
