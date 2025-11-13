@@ -35,7 +35,7 @@ namespace CREC_Web.Controllers
                 _logger.LogInformation("Search request: Text={SearchText}, Field={SearchField}, Method={SearchMethod}",
                     criteria.SearchText.SanitizeForLog(), criteria.SearchField, criteria.SearchMethod);
                 var result = await _crecDataService.SearchCollectionsAsync(criteria);
-                _logger.LogInformation($"Search returned {result.Collections.Count} collections out of {result.TotalCount} total");
+                _logger.LogInformation("Search returned {Count} collections out of {TotalCount} total", result.Collections.Count, result.TotalCount);
                 return Ok(result);
             }
             catch (Exception ex)
