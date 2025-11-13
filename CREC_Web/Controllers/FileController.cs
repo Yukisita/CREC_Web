@@ -59,7 +59,7 @@ namespace CREC_Web.Controllers
 
                 if (!fullPath.StartsWith(allowedPath, StringComparison.OrdinalIgnoreCase))
                 {
-                    _logger.LogWarning($"Path traversal attempt detected: {fullPath}");
+                    _logger.LogWarning("Path traversal attempt detected: {fullPath}", fullPath.SanitizeForLog());
                     return BadRequest("Invalid file path");
                 }
 
