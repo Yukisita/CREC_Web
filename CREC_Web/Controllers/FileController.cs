@@ -149,7 +149,8 @@ namespace CREC_Web.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error serving data file {collectionId}/{fileName}");
+                _logger.LogError(ex, "Error serving data file {collectionId}/{fileName}",
+                    collectionId.SanitizeForLog(), Path.GetFileName(fileName).SanitizeForLog());
                 return StatusCode(500, "Error retrieving data file");
             }
         }
