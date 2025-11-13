@@ -63,11 +63,11 @@ namespace CREC_Web.Controllers
                     return BadRequest("Invalid file path");
                 }
 
-                _logger.LogInformation("Attempting to serve file: {filePath}", fullPath.SanitizeForLog());
+                _logger.LogInformation("Attempting to serve file: {filePath}", filePath.SanitizeForLog());
 
                 if (!System.IO.File.Exists(filePath))
                 {
-                    _logger.LogWarning($"File not found: {filePath}");
+                    _logger.LogWarning("File not found: {filePath}", filePath.SanitizeForLog());
                     return NotFound();
                 }
 
