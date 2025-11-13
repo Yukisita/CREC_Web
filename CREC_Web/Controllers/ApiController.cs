@@ -245,7 +245,8 @@ namespace CREC_Web.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error getting file {fileName} from collection {collectionId}");
+                _logger.LogError(ex, "Error getting file {fileName} from collection {collectionId}",
+                    Path.GetFileName(fileName).SanitizeForLog(), collectionId.SanitizeForLog());
                 return StatusCode(500, "Internal server error");
             }
         }
