@@ -258,7 +258,7 @@ function initializeColumnResizing() {
 
     console.log(`Initializing column resizing for ${ths.length} columns`);
 
-    // プロジェクト設定でタグ列ヘッダーを更新
+    // プロジェクト設定でテーブルヘッダーを更新
     const tagHeaders = Array.from(ths).filter((th, index) => index >= 1 && index <= 7);
     if (tagHeaders.length === 7) {
         const thContents = tagHeaders.map(th => th.querySelector('.th-content'));
