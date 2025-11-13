@@ -20,7 +20,9 @@ namespace CREC_Web.Extensions
         public static string SanitizeForLog(this string? input, int maxLength = 200)
         {
             if (string.IsNullOrEmpty(input)) return string.Empty;
-            var cleaned = new string(input.Where(c => !char.IsControl(c)).ToArray());
+            // Remove new line characters to prevent log forging
+            var noNewLines = input.Replace("\r", "").Replace("\n", "");
+            var cleaned = new string(noNewLines.Where(c => !char.IsControl(c)).ToArray());
             return cleaned.Length <= maxLength ? cleaned : cleaned.Substring(0, maxLength);
         }
     }
