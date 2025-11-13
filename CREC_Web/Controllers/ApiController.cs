@@ -4,9 +4,10 @@ Copyright (c) [2025] [S.Yukisita]
 This software is released under the MIT License.
 */
 
-using Microsoft.AspNetCore.Mvc;
+using CREC_Web.Extensions;
 using CREC_Web.Models;
 using CREC_Web.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CREC_Web.Controllers
 {
@@ -31,7 +32,8 @@ namespace CREC_Web.Controllers
         {
             try
             {
-                _logger.LogInformation($"Search request: Text={criteria.SearchText}, Field={criteria.SearchField}, Method={criteria.SearchMethod}");
+                _logger.LogInformation("Search request: Text={SearchText}, Field={SearchField}, Method={SearchMethod}",
+                    criteria.SearchText.SanitizeForLog(), criteria.SearchField, criteria.SearchMethod);
                 var result = await _crecDataService.SearchCollectionsAsync(criteria);
                 _logger.LogInformation($"Search returned {result.Collections.Count} collections out of {result.TotalCount} total");
                 return Ok(result);
