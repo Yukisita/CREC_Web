@@ -82,7 +82,7 @@ namespace CREC_Web.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error getting collection with ID {id}");
+                _logger.LogError(ex, "Error getting collection with ID {id}", id.SanitizeForLog());
                 return StatusCode(500, "Internal server error");
             }
         }
