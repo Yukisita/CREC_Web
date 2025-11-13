@@ -5,6 +5,7 @@ This software is released under the MIT License.
 */
 
 using System.Text;
+using CREC_Web.Extensions;
 using CREC_Web.Models;
 
 namespace CREC_Web.Services
@@ -377,7 +378,8 @@ namespace CREC_Web.Services
             // テキスト検索
             if (!string.IsNullOrWhiteSpace(criteria.SearchText))
             {
-                _logger.LogInformation($"Filtering by search text: '{criteria.SearchText}', Field: {criteria.SearchField}, Method: {criteria.SearchMethod}");
+                _logger.LogInformation("Filtering by search text: '{SearchText}', Field: {SearchField}, Method: {SearchMethod}",
+                    criteria.SearchText.SanitizeForLog(), criteria.SearchField, criteria.SearchMethod);
                 filteredCollections = filteredCollections.Where(c =>
                     MatchesSearchCriteria(c, criteria.SearchText, criteria.SearchField, criteria.SearchMethod));
                 _logger.LogInformation($"After text search: {filteredCollections.Count()} collections match");
