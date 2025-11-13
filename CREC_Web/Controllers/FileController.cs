@@ -114,7 +114,7 @@ namespace CREC_Web.Controllers
                 // data フォルダーへのパスを構築: dataPath\collectionId\data\fileName
                 var filePath = Path.Combine(dataPath, collectionId, "data", fileName);
 
-                _logger.LogInformation($"Attempting to serve data file: {filePath}");
+                _logger.LogInformation("Attempting to serve data file: {filePath}", filePath.SanitizeForLog());
 
                 if (!System.IO.File.Exists(filePath))
                 {
