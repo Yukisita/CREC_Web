@@ -4,6 +4,7 @@ Copyright (c) [2025] [S.Yukisita]
 This software is released under the MIT License.
 */
 
+using CREC_Web.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CREC_Web.Controllers
@@ -95,7 +96,9 @@ namespace CREC_Web.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error serving file {collectionId}/{fileName}");
+                _logger.LogError(ex, "Error serving file {CollectionId}/{FileName}",
+                    collectionId.SanitizeForLog(), Path.GetFileName(fileName).SanitizeForLog());
+
                 return StatusCode(500, "Error retrieving file");
             }
         }
