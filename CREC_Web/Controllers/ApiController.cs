@@ -4,9 +4,10 @@ Copyright (c) [2025] [S.Yukisita]
 This software is released under the MIT License.
 */
 
-using Microsoft.AspNetCore.Mvc;
+using CREC_Web.Extensions;
 using CREC_Web.Models;
 using CREC_Web.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CREC_Web.Controllers
 {
@@ -31,9 +32,10 @@ namespace CREC_Web.Controllers
         {
             try
             {
-                _logger.LogInformation($"Search request: Text={criteria.SearchText}, Field={criteria.SearchField}, Method={criteria.SearchMethod}");
+                _logger.LogInformation("Search request: Text={SearchText}, Field={SearchField}, Method={SearchMethod}",
+                    criteria.SearchText.SanitizeForLog(), criteria.SearchField, criteria.SearchMethod);
                 var result = await _crecDataService.SearchCollectionsAsync(criteria);
-                _logger.LogInformation($"Search returned {result.Collections.Count} collections out of {result.TotalCount} total");
+                _logger.LogInformation("Search returned {Count} collections out of {TotalCount} total", result.Collections.Count, result.TotalCount);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -80,7 +82,7 @@ namespace CREC_Web.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error getting collection with ID {id}");
+                _logger.LogError(ex, "Error getting collection with ID {id}", id.SanitizeForLog());
                 return StatusCode(500, "Internal server error");
             }
         }
@@ -172,7 +174,7 @@ namespace CREC_Web.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error getting thumbnail for collection {collectionId}");
+                _logger.LogError(ex, "Error getting thumbnail for collection {collectionId}", collectionId.SanitizeForLog());
                 return StatusCode(500, "Internal server error");
             }
         }
@@ -243,7 +245,8 @@ namespace CREC_Web.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error getting file {fileName} from collection {collectionId}");
+                _logger.LogError(ex, "Error getting file {fileName} from collection {collectionId}",
+                    Path.GetFileName(fileName).SanitizeForLog(), collectionId.SanitizeForLog());
                 return StatusCode(500, "Internal server error");
             }
         }

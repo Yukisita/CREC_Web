@@ -4,6 +4,7 @@ Copyright (c) [2025] [S.Yukisita]
 This software is released under the MIT License.
 */
 
+using CREC_Web.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CREC_Web.Controllers
@@ -31,7 +32,7 @@ namespace CREC_Web.Controllers
                     !System.Text.RegularExpressions.Regex.IsMatch(collectionId, @"^[a-zA-Z0-9_-]+$") ||
                     collectionId.Length > 255)
                 {
-                    _logger.LogWarning($"Invalid collection ID: {collectionId}");
+                    _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
                     return BadRequest("Invalid collection ID");
                 }
 
@@ -42,7 +43,7 @@ namespace CREC_Web.Controllers
                     fileName.Contains("\\") ||
                     fileName.Length > 255)
                 {
-                    _logger.LogWarning($"Invalid file name: {fileName}");
+                    _logger.LogWarning("Invalid file name: {fileName}", Path.GetFileName(fileName).SanitizeForLog());
                     return BadRequest("Invalid file name");
                 }
 
@@ -58,15 +59,15 @@ namespace CREC_Web.Controllers
 
                 if (!fullPath.StartsWith(allowedPath, StringComparison.OrdinalIgnoreCase))
                 {
-                    _logger.LogWarning($"Path traversal attempt detected: {fullPath}");
+                    _logger.LogWarning("Path traversal attempt detected: {fullPath}", fullPath.SanitizeForLog());
                     return BadRequest("Invalid file path");
                 }
 
-                _logger.LogInformation($"Attempting to serve file: {filePath}");
+                _logger.LogInformation("Attempting to serve file: {filePath}", filePath.SanitizeForLog());
 
                 if (!System.IO.File.Exists(filePath))
                 {
-                    _logger.LogWarning($"File not found: {filePath}");
+                    _logger.LogWarning("File not found: {filePath}", filePath.SanitizeForLog());
                     return NotFound();
                 }
 
@@ -95,7 +96,9 @@ namespace CREC_Web.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error serving file {collectionId}/{fileName}");
+                _logger.LogError(ex, "Error serving file {CollectionId}/{FileName}",
+                    collectionId.SanitizeForLog(), Path.GetFileName(fileName).SanitizeForLog());
+
                 return StatusCode(500, "Error retrieving file");
             }
         }
@@ -111,11 +114,11 @@ namespace CREC_Web.Controllers
                 // data フォルダーへのパスを構築: dataPath\collectionId\data\fileName
                 var filePath = Path.Combine(dataPath, collectionId, "data", fileName);
 
-                _logger.LogInformation($"Attempting to serve data file: {filePath}");
+                _logger.LogInformation("Attempting to serve data file: {filePath}", filePath.SanitizeForLog());
 
                 if (!System.IO.File.Exists(filePath))
                 {
-                    _logger.LogWarning($"Data file not found: {filePath}");
+                    _logger.LogWarning("Data file not found: {filePath}", filePath.SanitizeForLog());
                     return NotFound();
                 }
 
@@ -146,7 +149,8 @@ namespace CREC_Web.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error serving data file {collectionId}/{fileName}");
+                _logger.LogError(ex, "Error serving data file {collectionId}/{fileName}",
+                    collectionId.SanitizeForLog(), Path.GetFileName(fileName).SanitizeForLog());
                 return StatusCode(500, "Error retrieving data file");
             }
         }
