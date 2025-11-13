@@ -328,7 +328,7 @@ async function loadProjectSettings() {
                 tag3Name: settings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3')
             };
             console.log('Project settings loaded:', projectSettings);
-            // translationsの内容をプロジェクト設定値と合うようにを更新
+            // translationsの内容をプロジェクト設定値に合うように更新
             // field-name
             translations.ja['field-name'] = projectSettings.objectNameLabel;
             translations.en['field-name'] = projectSettings.objectNameLabel;
