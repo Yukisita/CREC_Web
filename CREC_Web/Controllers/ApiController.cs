@@ -174,7 +174,7 @@ namespace CREC_Web.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error getting thumbnail for collection {collectionId}");
+                _logger.LogError(ex, "Error getting thumbnail for collection {collectionId}", collectionId.SanitizeForLog());
                 return StatusCode(500, "Internal server error");
             }
         }
