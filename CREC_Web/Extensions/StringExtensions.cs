@@ -1,4 +1,4 @@
-/*
+ï»¿/*
 CREC Web - Extensions
 Copyright (c) [2025] [S.Yukisita]
 This software is released under the MIT License.
@@ -12,10 +12,10 @@ namespace CREC_Web.Extensions
     public static class StringExtensions
     {
         /// <summary>
-        /// ƒƒOo—Í—p‚É§Œä•¶š‚ğœ‹‚µA’·‚³‚ğ§ŒÀ‚·‚éƒƒ\ƒbƒh
+        /// ãƒ­ã‚°å‡ºåŠ›ç”¨ã«åˆ¶å¾¡æ–‡å­—ã‚’é™¤å»ã—ã€é•·ã•ã‚’åˆ¶é™ã™ã‚‹ãƒ¡ã‚½ãƒƒãƒ‰
         /// </summary>
-        /// <param name="input">“ü—Í•¶š—ñ</param>
-        /// <param name="maxLength">’·‚³§ŒÀ’l</param>
+        /// <param name="input">å…¥åŠ›æ–‡å­—åˆ—</param>
+        /// <param name="maxLength">é•·ã•åˆ¶é™å€¤</param>
         /// <returns></returns>
         public static string SanitizeForLog(this string? input, int maxLength = 200)
         {
