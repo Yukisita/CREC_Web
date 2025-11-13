@@ -382,7 +382,7 @@ namespace CREC_Web.Services
                     criteria.SearchText.SanitizeForLog(), criteria.SearchField, criteria.SearchMethod);
                 filteredCollections = filteredCollections.Where(c =>
                     MatchesSearchCriteria(c, criteria.SearchText, criteria.SearchField, criteria.SearchMethod));
-                _logger.LogInformation($"After text search: {filteredCollections.Count()} collections match");
+                _logger.LogInformation("After text search: {Count} collections match", filteredCollections.Count());
             }
             else
             {
