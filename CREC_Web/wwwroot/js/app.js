@@ -31,8 +31,6 @@ const MIN_COLUMN_WIDTH = 50
 // パネル用イベントハンドラを格納する WeakMap
 const panelEventHandlers = new WeakMap();
 
-// 列リサイズが初期化済みか追跡
-let columnResizingInitialized = false;
 // 言語翻訳
 const translations = {
     ja: {
@@ -231,6 +229,12 @@ async function initializeApp() {
         // ウィンドウリサイズイベントハンドラ登録
         window.addEventListener('resize', handleWindowResize);
 
+        // 列リサイズ機能のセットアップ
+        setupColumnResizers();
+
+        // テーブルヘッダーのテキストを更新
+        updateTableHeaders();
+
         // 初回検索
         await searchCollections();
         console.log('App initialized successfully');
@@ -240,25 +244,15 @@ async function initializeApp() {
     }
 }
 
-// 列リサイズ機能の初期化
-function initializeColumnResizing() {
+// テーブルヘッダーのテキストを更新
+function updateTableHeaders() {
     const table = document.querySelector('.collections-table');
     if (!table) {
-        console.log('Table not found for column resizing');
         return;
     }
-
-    // 既に初期化済みならスキップ
-    if (columnResizingInitialized) {
-        console.log('Column resizing already initialized');
-        return;
-    }
-    columnResizingInitialized = true;
 
     const thead = table.querySelector('thead');
     const ths = thead.querySelectorAll('th.resizable');
-
-    console.log(`Initializing column resizing for ${ths.length} columns`);
 
     // プロジェクト設定でテーブルヘッダーを更新
     const tagHeaders = Array.from(ths).filter((th, index) => index >= 1 && index <= 7);
@@ -272,6 +266,20 @@ function initializeColumnResizing() {
         if (thContents[5]) thContents[5].textContent = projectSettings.tag2Name || (currentLanguage === 'ja' ? 'タグ 2' : 'Tag 2');
         if (thContents[6]) thContents[6].textContent = projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3');
     }
+}
+
+// 列リサイズ機能のセットアップ（初回のみ実行）
+function setupColumnResizers() {
+    const table = document.querySelector('.collections-table');
+    if (!table) {
+        console.log('Table not found for column resizing');
+        return;
+    }
+
+    const thead = table.querySelector('thead');
+    const ths = thead.querySelectorAll('th.resizable');
+
+    console.log(`Setting up column resizers for ${ths.length} columns`);
 
     ths.forEach((th, index) => {
         const resizer = th.querySelector('.resizer');
@@ -559,8 +567,6 @@ function displaySearchResults(result) {
     if (currentViewMode === 'table') {
         tableContainer.style.display = 'block';
         gridContainer.style.display = 'none';
-        // テーブル表示後に列リサイズを初期化
-        initializeColumnResizing();
     } else {
         tableContainer.style.display = 'none';
         gridContainer.style.display = 'flex';
@@ -1148,6 +1154,7 @@ function showError(message) {
 function toggleLanguage() {
     currentLanguage = currentLanguage === 'ja' ? 'en' : 'ja';
     updateUILanguage();
+    updateTableHeaders();
     // 現在の結果を新しい言語で再描画
     if (currentSearchCriteria && Object.keys(currentSearchCriteria).length > 0) {
         searchCollections(currentPage);
