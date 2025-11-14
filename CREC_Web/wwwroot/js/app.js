@@ -232,6 +232,9 @@ async function initializeApp() {
         // 列リサイズ機能のセットアップ
         setupColumnResizers();
 
+        // テーブルヘッダーのテキストを更新
+        updateTableHeaders();
+
         // 初回検索
         await searchCollections();
         console.log('App initialized successfully');
@@ -447,9 +450,6 @@ function updateUILabels() {
             titleElement.textContent = projectSettings.projectName;
         }
     }
-
-    // テーブルヘッダーのテキストを更新
-    updateTableHeaders();
 }
 
 // コレクション検索
@@ -1154,6 +1154,7 @@ function showError(message) {
 function toggleLanguage() {
     currentLanguage = currentLanguage === 'ja' ? 'en' : 'ja';
     updateUILanguage();
+    updateTableHeaders();
     // 現在の結果を新しい言語で再描画
     if (currentSearchCriteria && Object.keys(currentSearchCriteria).length > 0) {
         searchCollections(currentPage);
