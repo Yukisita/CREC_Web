@@ -22,8 +22,8 @@ let projectSettings = {
     tag3Name: 'タグ 3'
 }; // .crec ファイルから読み込まれるプロジェクト設定
 
-// panel のアニメーション遅延時間（ミリ秒）
-const PANEL_ANIMATION_DELAY = 10
+// アニメーション遅延時間（ミリ秒）
+const ANIMATION_DELAY = 10
 
 // パネル用イベントハンドラを格納する WeakMap
 const panelEventHandlers = new WeakMap();
@@ -992,7 +992,7 @@ function displayCollectionPanel(collection) {
     overlay.classList.add('show');
     setTimeout(() => {
         panel.classList.add('open');
-    }, PANEL_ANIMATION_DELAY);
+    }, ANIMATION_DELAY);
 
     // 画像がある場合はカルーセル制御を設定
     if (images.length > 0) {
@@ -1034,7 +1034,7 @@ function displayCollectionPanel(collection) {
                 prevHandler: prevHandler,
                 nextHandler: nextHandler
             });
-        }, 100);
+        }, ANIMATION_DELAY);
     }
 }
 
