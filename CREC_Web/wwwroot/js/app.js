@@ -25,6 +25,9 @@ let projectSettings = {
 // アニメーション遅延時間（ミリ秒）
 const ANIMATION_DELAY = 10
 
+// 最小列幅（ピクセル）
+const MIN_COLUMN_WIDTH = 50
+
 // パネル用イベントハンドラを格納する WeakMap
 const panelEventHandlers = new WeakMap();
 
@@ -296,7 +299,7 @@ function initializeColumnResizing() {
         const onMouseMove = (e) => {
             e.preventDefault();
             const diff = e.pageX - startX;
-            const newWidth = Math.max(50, startWidth + diff);
+            const newWidth = Math.max(MIN_COLUMN_WIDTH, startWidth + diff);
             th.style.width = newWidth + 'px';
         };
 
