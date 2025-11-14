@@ -590,7 +590,7 @@ function switchToGridView() {
     currentViewMode = 'grid';
     localStorage.setItem('crec_view_mode', 'grid');
     
-    // Reset column resizing flag when leaving table view
+    // 列リサイズフラグをリセット
     columnResizingInitialized = false;
     
     // Re-render current results
@@ -630,7 +630,7 @@ function handleWindowResize() {
     // 自動切替
     if (isMobile && currentViewMode === 'table') {
         currentViewMode = 'grid';
-        // Reset column resizing flag when leaving table view
+        // 列リサイズフラグをリセット
         columnResizingInitialized = false;
     } else if (!isMobile && currentViewMode === 'grid') {
         currentViewMode = 'table';
