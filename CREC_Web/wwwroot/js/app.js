@@ -184,6 +184,22 @@ async function initializeApp() {
             });
         }
 
+        // 検索とフィルタクリアボタンのイベントリスナ
+        const searchButton = document.getElementById('searchButton');
+        const clearFiltersButton = document.getElementById('clearFiltersButton');
+        if (searchButton) {
+            searchButton.addEventListener('click', () => searchCollections());
+        }
+        if (clearFiltersButton) {
+            clearFiltersButton.addEventListener('click', clearFilters);
+        }
+
+        // 言語切り替えボタンのイベントリスナ
+        const languageToggle = document.getElementById('languageToggle');
+        if (languageToggle) {
+            languageToggle.addEventListener('click', toggleLanguage);
+        }
+
         // 詳細パネルのクローズハンドラ
         const detailPanelOverlay = document.getElementById('detailPanelOverlay');
         const detailPanelClose = document.getElementById('detailPanelClose');
@@ -1069,6 +1085,17 @@ function closeDetailPanel() {
     overlay.classList.remove('show');
 }
 
+/**
+ * ページネーションの更新
+ * 
+ * イベントハンドラのベストプラクティス:
+ * - HTML要素にインラインのonclick属性を使用しない
+ * - 代わりにdata属性（例: data-page）を使用して必要な情報を保存
+ * - addEventListener()を使用してイベントリスナを登録
+ * - これにより、Content Security Policyのサポート、メモリ管理の改善、コードの保守性向上が実現される
+ * 
+ * このパターンは、ページネーション、ボタン、その他のインタラクティブ要素に一貫して適用すること。
+ */
 function updatePagination(result) {
     const pagination = document.getElementById('pagination');
 
