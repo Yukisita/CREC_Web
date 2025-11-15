@@ -164,7 +164,10 @@ function updateUILanguage() {
                 return;
             }
         }
-        element.textContent = translation;
+
+        if (translation) {
+            element.textContent = translation;
+        }
     });
 }
 
