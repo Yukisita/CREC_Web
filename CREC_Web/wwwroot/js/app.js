@@ -177,7 +177,10 @@ function updateUILanguage() {
  *   - event: イベント名（例: 'click', 'keypress'）
  *   - handler: イベントハンドラ関数
  * 
- * 要素が存在しない場合は安全にスキップされる
+ *  イベントリスナのベストプラクティス:
+ * - HTML要素にインラインのonclick属性を使用しない
+ * - 代わりにdata属性（例: data-page）を使用して必要な情報を保存
+ * - addEventListener()を使用してイベントリスナを登録
  */
 function setupEventListeners(listeners) {
     listeners.forEach(({ id, event, handler }) => {
@@ -1088,17 +1091,6 @@ function closeDetailPanel() {
     overlay.classList.remove('show');
 }
 
-/**
- * ページネーションの更新
- * 
- * イベントハンドラのベストプラクティス:
- * - HTML要素にインラインのonclick属性を使用しない
- * - 代わりにdata属性（例: data-page）を使用して必要な情報を保存
- * - addEventListener()を使用してイベントリスナを登録
- * - これにより、Content Security Policyのサポート、メモリ管理の改善、コードの保守性向上が実現される
- * 
- * このパターンは、ページネーション、ボタン、その他のインタラクティブ要素に一貫して適用すること。
- */
 function updatePagination(result) {
     const pagination = document.getElementById('pagination');
 
