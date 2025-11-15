@@ -184,12 +184,14 @@ async function initializeApp() {
             });
         }
 
-        // 検索とフィルタクリアボタンのイベントリスナ
+        // 検索のイベントリスナ
         const searchButton = document.getElementById('searchButton');
-        const clearFiltersButton = document.getElementById('clearFiltersButton');
         if (searchButton) {
             searchButton.addEventListener('click', () => searchCollections());
         }
+
+        // フィルタクリアボタンのイベントリスナ
+        const clearFiltersButton = document.getElementById('clearFiltersButton');
         if (clearFiltersButton) {
             clearFiltersButton.addEventListener('click', clearFilters);
         }
