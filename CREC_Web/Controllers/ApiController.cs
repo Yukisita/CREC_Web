@@ -141,6 +141,7 @@ namespace CREC_Web.Controllers
         /// サムネイル画像取得
         /// </summary>
         [HttpGet("thumbnail/{collectionId}")]
+        // 呼び出し例: /api/Files/thumbnail/{collectionId}
         public IActionResult GetThumbnail(string collectionId)
         {
             try
