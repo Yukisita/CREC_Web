@@ -273,7 +273,7 @@
                 CREC Web
             </a>
             <div class="navbar-nav ms-auto">
-                <span class="navbar-text language-toggle" onclick="toggleLanguage()">
+                <span class="navbar-text language-toggle" id="languageToggle">
                     <i class="bi bi-translate"></i>
                     <span id="languageLabel">日本語 / English</span>
                 </span>
@@ -336,11 +336,11 @@
                 <div class="col-md-7">
                     <label class="form-label">&nbsp;</label>
                     <div>
-                        <button class="btn btn-primary me-2" onclick="searchCollections()">
+                        <button class="btn btn-primary me-2" id="searchButton">
                             <i class="bi bi-search"></i>
                             <span data-lang="search-button"></span>
                         </button>
-                        <button class="btn btn-outline-secondary" onclick="clearFilters()">
+                        <button class="btn btn-outline-secondary" id="clearFiltersButton">
                             <i class="bi bi-x-circle"></i>
                             <span data-lang="clear-button"></span>
                         </button>
