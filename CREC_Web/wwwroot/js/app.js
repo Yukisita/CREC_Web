@@ -214,13 +214,13 @@ async function initializeApp() {
 
         // イベントリスナの一括設定
         setupEventListeners([
-            { id: 'searchButton', event: 'click', handler: () => searchCollections() },
-            { id: 'clearFiltersButton', event: 'click', handler: clearFilters },
-            { id: 'languageToggle', event: 'click', handler: toggleLanguage },
-            { id: 'detailPanelOverlay', event: 'click', handler: closeDetailPanel },
-            { id: 'detailPanelClose', event: 'click', handler: closeDetailPanel },
-            { id: 'gridViewBtn', event: 'click', handler: switchToGridView },
-            { id: 'tableViewBtn', event: 'click', handler: switchToTableView }
+            { id: 'searchButton', event: 'click', handler: () => searchCollections() },// 検索ボタンのイベントリスナ
+            { id: 'clearFiltersButton', event: 'click', handler: clearFilters },// フィルタクリアボタンのイベントリスナ
+            { id: 'languageToggle', event: 'click', handler: toggleLanguage },// 言語切り替えボタンのイベントリスナ
+            { id: 'detailPanelOverlay', event: 'click', handler: closeDetailPanel },// 詳細パネルオープンのイベントリスナ
+            { id: 'detailPanelClose', event: 'click', handler: closeDetailPanel },// 詳細パネルクローズのイベントリスナ
+            { id: 'gridViewBtn', event: 'click', handler: switchToGridView },// グリッド表示ボタンのイベントリスナ
+            { id: 'tableViewBtn', event: 'click', handler: switchToTableView }// テーブル表示ボタンのイベントリスナ
         ]);
 
         // 保存された表示モードの読み込み
