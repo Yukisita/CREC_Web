@@ -22,6 +22,13 @@ namespace CREC_Web.Controllers
             _logger = logger;
         }
 
+        /// <summary>
+        /// 画像ファイル取得
+        /// </summary>
+        /// <param name="collectionId">コレクションID</param>
+        /// <param name="fileName">画像ファイル名</param>
+        /// <returns>画像ファイル</returns>
+        // 呼び出し例: /api/File/{collectionId}/{fileName}
         [HttpGet("{collectionId}/{fileName}")]
         public IActionResult GetFile(string collectionId, string fileName)
         {
@@ -103,6 +110,13 @@ namespace CREC_Web.Controllers
             }
         }
 
+        /// <summary>
+        /// 汎用データファイル取得（画像以外のファイル用）
+        /// </summary>
+        /// <param name="collectionId">コレクションID</param>
+        /// <param name="fileName">ファイル名</param>
+        /// <returns>ファイル（配信用）</returns>
+        // 呼び出し例: /api/File/data/{collectionId}/{pictureFileName}
         [HttpGet("data/{collectionId}/{fileName}")]
         public IActionResult GetDataFile(string collectionId, string fileName)
         {
