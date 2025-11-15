@@ -162,6 +162,15 @@ namespace CREC_Web.Controllers
 
                 // 直接ファイルを配信するために PhysicalFile を使用
                 return PhysicalFile(fullFilePath, contentType);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error serving data file {collectionId}/{fileName}",
+                    collectionId.SanitizeForLog(), Path.GetFileName(fileName).SanitizeForLog());
+                return StatusCode(500, "Error retrieving data file");
+            }
+        }
+
         // path セーフ判定用ヘルパー
         private static bool IsSafePathComponent(string component)
         {
@@ -173,14 +182,6 @@ namespace CREC_Web.Controllers
                 !component.Contains(Path.DirectorySeparatorChar) &&
                 !component.Contains(Path.AltDirectorySeparatorChar) &&
                 component == Path.GetFileName(component); // さらに単一要素か厳格判定
-        }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error serving data file {collectionId}/{fileName}",
-                    collectionId.SanitizeForLog(), Path.GetFileName(fileName).SanitizeForLog());
-                return StatusCode(500, "Error retrieving data file");
-            }
         }
     }
 }
