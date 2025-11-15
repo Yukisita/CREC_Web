@@ -168,6 +168,26 @@ function updateUILanguage() {
     });
 }
 
+/**
+ * 複数の要素にイベントリスナを安全に追加するヘルパー関数
+ * 
+ * @param {Array<{id: string, event: string, handler: Function}>} listeners - イベントリスナの設定配列
+ * 各要素は以下のプロパティを持つ:
+ *   - id: 要素のID
+ *   - event: イベント名（例: 'click', 'keypress'）
+ *   - handler: イベントハンドラ関数
+ * 
+ * 要素が存在しない場合は安全にスキップされる
+ */
+function setupEventListeners(listeners) {
+    listeners.forEach(({ id, event, handler }) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener(event, handler);
+        }
+    });
+}
+
 // アプリケーションの初期化
 async function initializeApp() {
     try {
@@ -192,43 +212,16 @@ async function initializeApp() {
             });
         }
 
-        // 検索のイベントリスナ
-        const searchButton = document.getElementById('searchButton');
-        if (searchButton) {
-            searchButton.addEventListener('click', () => searchCollections());
-        }
-
-        // フィルタクリアボタンのイベントリスナ
-        const clearFiltersButton = document.getElementById('clearFiltersButton');
-        if (clearFiltersButton) {
-            clearFiltersButton.addEventListener('click', clearFilters);
-        }
-
-        // 言語切り替えボタンのイベントリスナ
-        const languageToggle = document.getElementById('languageToggle');
-        if (languageToggle) {
-            languageToggle.addEventListener('click', toggleLanguage);
-        }
-
-        // 詳細パネルのクローズハンドラ
-        const detailPanelOverlay = document.getElementById('detailPanelOverlay');
-        const detailPanelClose = document.getElementById('detailPanelClose');
-        if (detailPanelOverlay) {
-            detailPanelOverlay.addEventListener('click', closeDetailPanel);
-        }
-        if (detailPanelClose) {
-            detailPanelClose.addEventListener('click', closeDetailPanel);
-        }
-
-        // ビュー切り替えボタン
-        const gridViewBtn = document.getElementById('gridViewBtn');
-        const tableViewBtn = document.getElementById('tableViewBtn');
-        if (gridViewBtn) {
-            gridViewBtn.addEventListener('click', switchToGridView);
-        }
-        if (tableViewBtn) {
-            tableViewBtn.addEventListener('click', switchToTableView);
-        }
+        // イベントリスナの一括設定
+        setupEventListeners([
+            { id: 'searchButton', event: 'click', handler: () => searchCollections() },
+            { id: 'clearFiltersButton', event: 'click', handler: clearFilters },
+            { id: 'languageToggle', event: 'click', handler: toggleLanguage },
+            { id: 'detailPanelOverlay', event: 'click', handler: closeDetailPanel },
+            { id: 'detailPanelClose', event: 'click', handler: closeDetailPanel },
+            { id: 'gridViewBtn', event: 'click', handler: switchToGridView },
+            { id: 'tableViewBtn', event: 'click', handler: switchToTableView }
+        ]);
 
         // 保存された表示モードの読み込み
         const savedViewMode = localStorage.getItem('crec_view_mode');
