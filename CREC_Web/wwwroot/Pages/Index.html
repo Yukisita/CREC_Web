@@ -9,6 +9,10 @@
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
     <style>
+        :root {
+            --mobile-breakpoint: 768px;
+        }
+
         .search-filters {
             background-color: #f8f9fa;
             border-radius: 0.5rem;
@@ -252,7 +256,7 @@
         }
 
         /* Mobile responsive - auto-switch to grid view */
-        @media (max-width: 768px) {
+        @media (max-width: var(--mobile-breakpoint)) {
             .detail-panel {
                 width: 100%;
                 right: -100%;

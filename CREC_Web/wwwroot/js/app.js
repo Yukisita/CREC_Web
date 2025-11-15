@@ -28,6 +28,14 @@ const ANIMATION_DELAY = 10
 // 最小列幅（ピクセル）
 const MIN_COLUMN_WIDTH = 50
 
+// モバイルブレークポイントをCSSから取得
+function getMobileBreakpoint() {
+    const breakpoint = getComputedStyle(document.documentElement)
+        .getPropertyValue('--mobile-breakpoint')
+        .trim();
+    return parseInt(breakpoint) || 768; // フォールバック値
+}
+
 // パネル用イベントハンドラを格納する WeakMap
 const panelEventHandlers = new WeakMap();
 
@@ -229,7 +237,7 @@ async function initializeApp() {
         }
         else {
             // 保存された表示モードが無効または存在しない場合、画面幅に基づいて決定
-            const isMobile = window.innerWidth < 768;
+            const isMobile = window.innerWidth < getMobileBreakpoint();
 
             // 画面幅が閾値未満となった場合はグリッド表示に変更
             if (isMobile && currentViewMode === 'table') {
@@ -242,7 +250,7 @@ async function initializeApp() {
         }
 
         // 初回の画面サイズからモバイルフラグを設定
-        lastIsMobile = window.innerWidth < 768;
+        lastIsMobile = window.innerWidth < getMobileBreakpoint();
 
         // ウィンドウリサイズイベントハンドラ登録
         window.addEventListener('resize', handleWindowResize);
@@ -632,7 +640,7 @@ function switchToTableView() {
 
 // ウィンドウリサイズ時の処理
 function handleWindowResize() {
-    const isMobile = window.innerWidth < 768;
+    const isMobile = window.innerWidth < getMobileBreakpoint();
 
     // lastIsMobile が未初期化なら基準を合わせて終了（意図しない切替を防止）
     if (typeof lastIsMobile === 'undefined') {
@@ -640,7 +648,7 @@ function handleWindowResize() {
         return;
     }
 
-    // 閾値(768px)を跨いでいない場合は何もしない
+    // 閾値を跨いでいない場合は何もしない
     if (isMobile === lastIsMobile) {
         return;
     }
