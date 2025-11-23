@@ -60,6 +60,8 @@ const translations = {
         'appropriate': '在庫適正',
         'over-stocked': '在庫過剰',
         'not-set': '未設定',
+        'order-quantity': '発注数',
+        'excess-quantity': '超過数',
         'page': 'ページ',
         'of': '/',
         'previous': '前へ',
@@ -111,6 +113,8 @@ const translations = {
         'appropriate': 'Appropriate',
         'over-stocked': 'Over Stocked',
         'not-set': 'Not Set',
+        'order-quantity': 'Order Quantity',
+        'excess-quantity': 'Excess Quantity',
         'page': 'Page',
         'of': 'of',
         'previous': 'Previous',
@@ -872,11 +876,11 @@ function getInventoryStatusText(status, currentInventory, collectionSafetyStock,
             // 必要な発注数を表示
             const orderPoint = collectionOrderPoint ?? collectionSafetyStock;
             const diff = Number(orderPoint ?? 0) - Number(currentInventory ?? 0);
-            statusText += `: ${diff}`;
+            statusText += `: ${t('order-quantity')} = ${diff}`;
         } else if (status === 4) {
             // 過剰在庫 - 余剰数を表示
             const diff = currentInventory - collectionMaxStock;
-            statusText += `: ${diff}`;
+            statusText += `: ${t('excess-quantity')} = ${diff}`;
         }
     }
 
