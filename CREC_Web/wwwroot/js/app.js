@@ -56,6 +56,7 @@ const translations = {
         'files': 'ファイル',
         'stock-out': '在庫切れ',
         'under-stocked': '在庫不足',
+        'appropriate-need-reorder': '在庫適正（発注必要）',
         'appropriate': '在庫適正',
         'over-stocked': '在庫過剰',
         'not-set': '未設定',
@@ -106,6 +107,7 @@ const translations = {
         'files': 'Files',
         'stock-out': 'Stock Out',
         'under-stocked': 'Under Stocked',
+        'appropriate-need-reorder': 'Appropriate (Need Reorder)',
         'appropriate': 'Appropriate',
         'over-stocked': 'Over Stocked',
         'not-set': 'Not Set',
@@ -677,6 +679,7 @@ function createCollectionRow(collection) {
     const inventoryStatusText = getInventoryStatusText(
         collection.collectionInventoryStatus,
         collection.collectionCurrentInventory,
+        collection.collectionSafetyStock,
         collection.collectionOrderPoint,
         collection.collectionMaxStock
     );
@@ -772,6 +775,7 @@ function createCollectionCard(collection) {
     const inventoryStatusText = getInventoryStatusText(
         collection.collectionInventoryStatus,
         collection.collectionCurrentInventory,
+        collection.collectionSafetyStock,
         collection.collectionOrderPoint,
         collection.collectionMaxStock
     );
@@ -850,24 +854,26 @@ function createCollectionCard(collection) {
     return colDiv;
 }
 
-function getInventoryStatusText(status, currentInventory, collectionOrderPoint, collectionMaxStock) {
+function getInventoryStatusText(status, currentInventory, collectionSafetyStock, collectionOrderPoint, collectionMaxStock) {
     const statusMap = {
         0: t('stock-out'),
         1: t('under-stocked'),
-        2: t('appropriate'),
-        3: t('over-stocked'),
-        4: t('not-set')
+        2: t('appropriate-need-reorder'),
+        3: t('appropriate'),
+        4: t('over-stocked'),
+        5: t('not-set')
     };
 
     let statusText = statusMap[status] || t('not-set');
 
     // 該当ステータスの不足/過剰数を追加
-    if (status !== 4 && currentInventory !== null && collectionOrderPoint !== null) {
-        if (status === 0 || status === 1) {
-            // 在庫切れ/不足 - 不足数を表示
-            const diff = currentInventory - collectionOrderPoint;
+    if (status !== 4 && currentInventory !== null) {
+        if (status === 0 || status === 1 || status === 2) {
+            // 必要な発注数を表示
+            const orderPoint = collectionOrderPoint ?? collectionSafetyStock;
+            const diff = Number(orderPoint ?? 0) - Number(currentInventory ?? 0);
             statusText += `: ${diff}`;
-        } else if (status === 3) {
+        } else if (status === 4) {
             // 過剰在庫 - 余剰数を表示
             const diff = collectionMaxStock - currentInventory;
             statusText += `: +${diff}`;
@@ -882,8 +888,9 @@ function getInventoryStatusBadgeClass(status) {
         0: 'bg-danger',
         1: 'bg-warning',
         2: 'bg-success',
-        3: 'bg-info',
-        4: 'bg-secondary'
+        3: 'bg-success',
+        4: 'bg-info',
+        5: 'bg-secondary'
     };
     return classMap[status] || 'bg-secondary';
 }
@@ -917,6 +924,7 @@ function displayCollectionPanel(collection) {
     const inventoryStatusText = getInventoryStatusText(
         collection.collectionInventoryStatus,
         collection.collectionCurrentInventory,
+        collection.collectionSafetyStock,
         collection.collectionOrderPoint,
         collection.collectionMaxStock
     );
