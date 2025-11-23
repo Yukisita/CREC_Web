@@ -867,7 +867,7 @@ function getInventoryStatusText(status, currentInventory, collectionSafetyStock,
     let statusText = statusMap[status] || t('not-set');
 
     // 該当ステータスの不足/過剰数を追加
-    if (status !== 4 && currentInventory !== null) {
+    if (status !== 5 && currentInventory !== null) {
         if (status === 0 || status === 1 || status === 2) {
             // 必要な発注数を表示
             const orderPoint = collectionOrderPoint ?? collectionSafetyStock;
@@ -875,8 +875,8 @@ function getInventoryStatusText(status, currentInventory, collectionSafetyStock,
             statusText += `: ${diff}`;
         } else if (status === 4) {
             // 過剰在庫 - 余剰数を表示
-            const diff = collectionMaxStock - currentInventory;
-            statusText += `: +${diff}`;
+            const diff = currentInventory - collectionMaxStock;
+            statusText += `: ${diff}`;
         }
     }
 
