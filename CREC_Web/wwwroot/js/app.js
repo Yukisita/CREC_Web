@@ -858,6 +858,15 @@ function createCollectionCard(collection) {
     return colDiv;
 }
 
+/**
+ * 在庫状況を表すテキストを取得
+ * @param {any} status
+ * @param {any} currentInventory
+ * @param {any} collectionSafetyStock
+ * @param {any} collectionOrderPoint
+ * @param {any} collectionMaxStock
+ * @returns
+ */
 function getInventoryStatusText(status, currentInventory, collectionSafetyStock, collectionOrderPoint, collectionMaxStock) {
     const statusMap = {
         0: t('stock-out'),
