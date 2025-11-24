@@ -900,6 +900,11 @@ function getInventoryStatusText(status, currentInventory, collectionSafetyStock,
     return statusText;
 }
 
+/**
+ * 在庫状況に応じたバッジのクラスを取得
+ * @param {number} status - 在庫状況のステータスコード (0-5)
+ * @returns {string} - バッジに適用するクラス名
+ */
 function getInventoryStatusBadgeClass(status) {
     const classMap = {
         0: 'bg-danger',
