@@ -753,8 +753,11 @@ function createCollectionRow(collection) {
     inventoryCell.title = inventoryCell.textContent;
 
     const statusCell = document.createElement('td');
+    // 値は HTML を含むため innerHTML で挿入して改行を反映する
     statusCell.innerHTML = `<span class="badge ${inventoryBadgeClass}">${inventoryStatusText}</span>`;
-    statusCell.title = inventoryStatusText;
+    // title 属性には HTML を含まないプレーンテキストを設定（<br> 等を取り除く）
+    const plainStatusText = inventoryStatusText.replace(/<br\s*\/?>/ig, ' ').replace(/<[^>]*>/g, '');
+    statusCell.title = plainStatusText;
 
     row.appendChild(thumbnailCell);
     row.appendChild(nameCell);
@@ -871,7 +874,7 @@ function getInventoryStatusText(status, currentInventory, collectionSafetyStock,
     const statusMap = {
         0: t('stock-out'),
         1: t('under-stocked'),
-        2: t('appropriate-need-reorder'),
+        2: t('appropriate'),// 需要発注、文字数の都合で「適正在庫」のみを表示し、発注数は後で追加
         3: t('appropriate'),
         4: t('over-stocked'),
         5: t('not-set')
@@ -886,13 +889,13 @@ function getInventoryStatusText(status, currentInventory, collectionSafetyStock,
             const orderPoint = collectionOrderPoint ?? collectionSafetyStock;
             if (orderPoint != null) {
                 const diff = Number(orderPoint) - Number(currentInventory ?? 0);
-                statusText += `: ${t('order-quantity')} = ${diff}`;
+                statusText += `<br>${t('order-quantity')} = ${diff}`;
             }
         } else if (status === 4) {
             if (collectionMaxStock != null) {
-                // 過剰在庫 - 余剰数を表示
+                // 過剰在庫数を表示
                 const diff = currentInventory - collectionMaxStock;
-                statusText += `: ${t('excess-quantity')} = ${diff}`;
+                statusText += `<br>${t('excess-quantity')} = ${diff}`;
             }
         }
     }
