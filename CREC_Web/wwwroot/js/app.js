@@ -885,7 +885,7 @@ function getInventoryStatusText(status, currentInventory, collectionSafetyStock,
             // 必要な発注数を表示
             const orderPoint = collectionOrderPoint ?? collectionSafetyStock;
             if (orderPoint != null) {
-                const diff = Number(orderPoint ?? 0) - Number(currentInventory ?? 0);
+                const diff = Number(orderPoint) - Number(currentInventory ?? 0);
                 statusText += `: ${t('order-quantity')} = ${diff}`;
             }
         } else if (status === 4) {
