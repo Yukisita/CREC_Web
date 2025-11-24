@@ -273,7 +273,7 @@ namespace CREC_Web.Services
                 {
                     collection.CollectionInventoryStatus = InventoryStatus.UnderStocked;
                 }
-                else if (orderPoint.HasValue && totalInventory < orderPoint.Value)
+                else if (orderPoint.HasValue && totalInventory >= (safetyStock ?? 0) && totalInventory < orderPoint.Value)
                 {
                     collection.CollectionInventoryStatus = InventoryStatus.AppropriateNeedReorder;
                 }
