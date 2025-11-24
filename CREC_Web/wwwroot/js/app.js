@@ -860,12 +860,12 @@ function createCollectionCard(collection) {
 
 /**
  * 在庫状況を表すテキストを取得
- * @param {any} status
- * @param {any} currentInventory
- * @param {any} collectionSafetyStock
- * @param {any} collectionOrderPoint
- * @param {any} collectionMaxStock
- * @returns
+ * @param {number} status - The inventory status code (0-5)
+ * @param {number|null} currentInventory - The current inventory count
+ * @param {number|null} collectionSafetyStock - The safety stock level
+ * @param {number|null} collectionOrderPoint - The reorder point
+ * @param {number|null} collectionMaxStock - The maximum stock level
+ * @returns {string} The inventory status text with optional quantity information
  */
 function getInventoryStatusText(status, currentInventory, collectionSafetyStock, collectionOrderPoint, collectionMaxStock) {
     const statusMap = {
