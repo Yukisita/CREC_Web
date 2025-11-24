@@ -887,9 +887,11 @@ function getInventoryStatusText(status, currentInventory, collectionSafetyStock,
             const diff = Number(orderPoint ?? 0) - Number(currentInventory ?? 0);
             statusText += `: ${t('order-quantity')} = ${diff}`;
         } else if (status === 4) {
-            // 過剰在庫 - 余剰数を表示
-            const diff = currentInventory - collectionMaxStock;
-            statusText += `: ${t('excess-quantity')} = ${diff}`;
+            if (collectionMaxStock != null) {
+                // 過剰在庫 - 余剰数を表示
+                const diff = currentInventory - collectionMaxStock;
+                statusText += `: ${t('excess-quantity')} = ${diff}`;
+            }
         }
     }
 
