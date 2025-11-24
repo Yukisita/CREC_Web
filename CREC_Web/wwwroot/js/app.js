@@ -756,8 +756,7 @@ function createCollectionRow(collection) {
     // 値は HTML を含むため innerHTML で挿入して改行を反映する
     statusCell.innerHTML = `<span class="badge ${inventoryBadgeClass}">${inventoryStatusText}</span>`;
     // title 属性には HTML を含まないプレーンテキストを設定（<br> 等を取り除く）
-    const plainStatusText = inventoryStatusText.replace(/<br\s*\/?>/ig, ' ').replace(/<[^>]*>/g, '');
-    statusCell.title = plainStatusText;
+    statusCell.title = stripHtmlToText(inventoryStatusText);
 
     row.appendChild(thumbnailCell);
     row.appendChild(nameCell);
@@ -1223,6 +1222,11 @@ function t(key) {
     return translations[currentLanguage][key] || key;
 }
 
+/**
+ * HTMLエスケープを行う
+ * @param {any} text
+ * @returns
+ */
 function escapeHtml(text) {
     if (text === null || text === undefined) return '';
     const map = {
@@ -1233,4 +1237,16 @@ function escapeHtml(text) {
         "'": '&#039;'
     };
     return String(text).replace(/[&<>"']/g, ch => map[ch]);
+}
+
+/**
+ * HTMLからテキストを抽出する
+ * @param {any} html
+ * @returns
+ */
+function stripHtmlToText(html) {
+    const div = document.createElement('div');
+    div.innerHTML = html || '';
+    // textContent はタグを取り除いた生テキストを返す
+    return (div.textContent || div.innerText || '').replace(/\s+/g, ' ').trim();
 }
