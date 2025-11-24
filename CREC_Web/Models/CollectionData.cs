@@ -13,6 +13,7 @@ namespace CREC_Web.Models
     {
         StockOut,        // 在庫切れ
         UnderStocked,    // 在庫不足
+        AppropriateNeedReorder, // 在庫適正だが発注点以下
         Appropriate,     // 在庫適正
         OverStocked,     // 在庫過剰
         NotSet           // 未設定

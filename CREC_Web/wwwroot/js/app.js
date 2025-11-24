@@ -56,9 +56,12 @@ const translations = {
         'files': 'ファイル',
         'stock-out': '在庫切れ',
         'under-stocked': '在庫不足',
+        'appropriate-need-reorder': '在庫適正（発注必要）',
         'appropriate': '在庫適正',
         'over-stocked': '在庫過剰',
         'not-set': '未設定',
+        'order-quantity': '発注数',
+        'excess-quantity': '超過数',
         'page': 'ページ',
         'of': '/',
         'previous': '前へ',
@@ -106,9 +109,12 @@ const translations = {
         'files': 'Files',
         'stock-out': 'Stock Out',
         'under-stocked': 'Under Stocked',
+        'appropriate-need-reorder': 'Appropriate (Need Reorder)',
         'appropriate': 'Appropriate',
         'over-stocked': 'Over Stocked',
         'not-set': 'Not Set',
+        'order-quantity': 'Order Quantity',
+        'excess-quantity': 'Excess Quantity',
         'page': 'Page',
         'of': 'of',
         'previous': 'Previous',
@@ -677,6 +683,7 @@ function createCollectionRow(collection) {
     const inventoryStatusText = getInventoryStatusText(
         collection.collectionInventoryStatus,
         collection.collectionCurrentInventory,
+        collection.collectionSafetyStock,
         collection.collectionOrderPoint,
         collection.collectionMaxStock
     );
@@ -746,8 +753,10 @@ function createCollectionRow(collection) {
     inventoryCell.title = inventoryCell.textContent;
 
     const statusCell = document.createElement('td');
+    // 値は HTML を含むため innerHTML で挿入して改行を反映する
     statusCell.innerHTML = `<span class="badge ${inventoryBadgeClass}">${inventoryStatusText}</span>`;
-    statusCell.title = inventoryStatusText;
+    // title 属性には HTML を含まないプレーンテキストを設定（<br> 等を取り除く）
+    statusCell.title = stripHtmlToText(inventoryStatusText);
 
     row.appendChild(thumbnailCell);
     row.appendChild(nameCell);
@@ -772,6 +781,7 @@ function createCollectionCard(collection) {
     const inventoryStatusText = getInventoryStatusText(
         collection.collectionInventoryStatus,
         collection.collectionCurrentInventory,
+        collection.collectionSafetyStock,
         collection.collectionOrderPoint,
         collection.collectionMaxStock
     );
@@ -850,40 +860,61 @@ function createCollectionCard(collection) {
     return colDiv;
 }
 
-function getInventoryStatusText(status, currentInventory, collectionOrderPoint, collectionMaxStock) {
+/**
+ * 在庫状況を表すテキストを取得
+ * @param {number} status - The inventory status code (0-5)
+ * @param {number|null} currentInventory - The current inventory count
+ * @param {number|null} collectionSafetyStock - The safety stock level
+ * @param {number|null} collectionOrderPoint - The reorder point
+ * @param {number|null} collectionMaxStock - The maximum stock level
+ * @returns {string} The inventory status text with optional quantity information
+ */
+function getInventoryStatusText(status, currentInventory, collectionSafetyStock, collectionOrderPoint, collectionMaxStock) {
     const statusMap = {
         0: t('stock-out'),
         1: t('under-stocked'),
-        2: t('appropriate'),
-        3: t('over-stocked'),
-        4: t('not-set')
+        2: t('appropriate'),// 需要発注、文字数の都合で「適正在庫」のみを表示し、発注数は後で追加
+        3: t('appropriate'),
+        4: t('over-stocked'),
+        5: t('not-set')
     };
 
     let statusText = statusMap[status] || t('not-set');
 
     // 該当ステータスの不足/過剰数を追加
-    if (status !== 4 && currentInventory !== null && collectionOrderPoint !== null) {
-        if (status === 0 || status === 1) {
-            // 在庫切れ/不足 - 不足数を表示
-            const diff = currentInventory - collectionOrderPoint;
-            statusText += `: ${diff}`;
-        } else if (status === 3) {
-            // 過剰在庫 - 余剰数を表示
-            const diff = collectionMaxStock - currentInventory;
-            statusText += `: +${diff}`;
+    if (status !== 5 && currentInventory !== null) {
+        if (status === 0 || status === 1 || status === 2) {
+            // 必要な発注数を表示
+            const orderPoint = collectionOrderPoint ?? collectionSafetyStock;
+            if (orderPoint != null) {
+                const diff = Number(orderPoint) - Number(currentInventory ?? 0);
+                statusText += `<br>${t('order-quantity')} = ${diff}`;
+            }
+        } else if (status === 4) {
+            if (collectionMaxStock != null) {
+                // 過剰在庫数を表示
+                const diff = currentInventory - collectionMaxStock;
+                statusText += `<br>${t('excess-quantity')} = ${diff}`;
+            }
         }
     }
 
     return statusText;
 }
 
+/**
+ * 在庫状況に応じたバッジのクラスを取得
+ * @param {number} status - 在庫状況のステータスコード (0-5)
+ * @returns {string} - バッジに適用するクラス名
+ */
 function getInventoryStatusBadgeClass(status) {
     const classMap = {
         0: 'bg-danger',
         1: 'bg-warning',
         2: 'bg-success',
-        3: 'bg-info',
-        4: 'bg-secondary'
+        3: 'bg-success',
+        4: 'bg-info',
+        5: 'bg-secondary'
     };
     return classMap[status] || 'bg-secondary';
 }
@@ -917,6 +948,7 @@ function displayCollectionPanel(collection) {
     const inventoryStatusText = getInventoryStatusText(
         collection.collectionInventoryStatus,
         collection.collectionCurrentInventory,
+        collection.collectionSafetyStock,
         collection.collectionOrderPoint,
         collection.collectionMaxStock
     );
@@ -1190,6 +1222,11 @@ function t(key) {
     return translations[currentLanguage][key] || key;
 }
 
+/**
+ * HTMLエスケープを行う
+ * @param {any} text
+ * @returns
+ */
 function escapeHtml(text) {
     if (text === null || text === undefined) return '';
     const map = {
@@ -1200,4 +1237,16 @@ function escapeHtml(text) {
         "'": '&#039;'
     };
     return String(text).replace(/[&<>"']/g, ch => map[ch]);
+}
+
+/**
+ * HTMLからテキストを抽出する
+ * @param {any} html
+ * @returns
+ */
+function stripHtmlToText(html) {
+    const div = document.createElement('div');
+    div.innerHTML = html || '';
+    // textContent はタグを取り除いた生テキストを返す
+    return (div.textContent || div.innerText || '').replace(/\s+/g, ' ').trim();
 }
