@@ -11,6 +11,7 @@
     <style>
         :root {
             --mobile-breakpoint: 768px;
+            --min-column-width: 80px;
         }
 
         .search-filters {
@@ -87,7 +88,7 @@
         }
 
         .collections-table th.resizable {
-            min-width: 80px;
+            min-width: var(--min-column-width);
         }
 
         .collections-table th .th-content {
@@ -135,9 +136,9 @@
             font-size: 1.5rem;
         }
 
-        .thumbnail-cell {
+        .collections-table .thumbnail-cell {
             width: 90px;
-            min-width: 90px;
+            min-width: var(--min-column-width);
         }
 
         /* Side panel styles */
