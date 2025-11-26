@@ -103,7 +103,7 @@ app.MapFallback(async context =>
         return;
     }
 
-    var indexPath = Path.Combine(executablePath, "Views", "Index.html");
+    var indexPath = Path.Combine(executablePath, "Views", "Home", "Index.cshtml");
     if (File.Exists(indexPath))
     {
         context.Response.ContentType = "text/html";
@@ -112,7 +112,7 @@ app.MapFallback(async context =>
     else
     {
         context.Response.StatusCode = 404;
-        await context.Response.WriteAsync("index.html not found");
+        await context.Response.WriteAsync("Index.cshtml not found");
     }
 });
 
