@@ -1,0 +1,139 @@
+@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="container-fluid mt-4" style="padding-left: 1rem; padding-right: 1rem;">
+    <!-- Search Filters -->
+    <div class="search-filters">
+        <h5 class="mb-3" data-lang="search-title"></h5>
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label for="searchText" class="form-label" data-lang="search-text"></label>
+                <input type="text" class="form-control" id="searchText" placeholder="検索キーワード / Search keyword">
+            </div>
+            <div class="col-md-2">
+                <label for="searchField" class="form-label" data-lang="search-field"></label>
+                <select class="form-select" id="searchField">
+                    <option value="0" data-lang="field-all"></option>
+                    <option value="1" data-lang="field-id"></option>
+                    <option value="2" data-lang="field-name"></option>
+                    <option value="3" data-lang="field-mc"></option>
+                    <option value="4" data-lang="field-category"></option>
+                    <option value="5" data-lang="field-tags"></option>
+                    <option value="6" data-lang="field-location"></option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="searchMethod" class="form-label" data-lang="search-method"></label>
+                <select class="form-select" id="searchMethod">
+                    <option value="0" data-lang="method-partial"></option>
+                    <option value="1" data-lang="method-prefix"></option>
+                    <option value="2" data-lang="method-suffix"></option>
+                    <option value="3" data-lang="method-exact"></option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="inventoryStatusFilter" class="form-label" data-lang="inventory-status"></label>
+                <select class="form-select" id="inventoryStatusFilter">
+                    <option value="" data-lang="all-status"></option>
+                    <option value="0" data-lang="stock-out"></option>
+                    <option value="1" data-lang="under-stocked"></option>
+                    <option value="2" data-lang="appropriate-need-reorder"></option>
+                    <option value="3" data-lang="appropriate"></option>
+                    <option value="4" data-lang="over-stocked"></option>
+                    <option value="5" data-lang="not-set"></option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="pageSize" class="form-label" data-lang="page-size">表示件数 / Page Size</label>
+                <select class="form-select" id="pageSize">
+                    <option value="10">10</option>
+                    <option value="20" selected>20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-md-7">
+                <label class="form-label">&nbsp;</label>
+                <div>
+                    <button class="btn btn-primary me-2" id="searchButton">
+                        <i class="bi bi-search"></i>
+                        <span data-lang="search-button"></span>
+                    </button>
+                    <button class="btn btn-outline-secondary" id="clearFiltersButton">
+                        <i class="bi bi-x-circle"></i>
+                        <span data-lang="clear-button"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Summary and View Toggle -->
+    <div id="resultsSummary" class="mb-3" style="display: none;">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <span id="resultsText"></span>
+            </div>
+            <div class="btn-group view-toggle-buttons" role="group" aria-label="View mode toggle">
+                <button type="button" class="btn btn-outline-primary" id="gridViewBtn" title="Grid View / グリッド表示">
+                    <i class="bi bi-grid-3x3-gap"></i>
+                    <span class="d-none d-sm-inline ms-1" data-lang="grid-view"></span>
+                </button>
+                <button type="button" class="btn btn-outline-primary active" id="tableViewBtn" title="Table View / テーブル表示">
+                    <i class="bi bi-table"></i>
+                    <span class="d-none d-sm-inline ms-1" data-lang="table-view"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="loading" class="loading" style="display: none;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2" data-lang="loading">読み込み中... / Loading...</p>
+    </div>
+
+    <!-- Error -->
+    <div id="error" class="error" style="display: none;"></div>
+
+    <!-- Collections Grid View -->
+    <div id="collectionsGridContainer" class="row" style="display: none;">
+        <!-- Collection cards will be loaded here -->
+    </div>
+
+    <!-- Collections Table -->
+    <div id="collectionsTableContainer" style="display: none; overflow-x: auto;">
+        <table class="collections-table table table-hover">
+            <thead>
+                <tr>
+                    <!-- Thumbnail column: intentionally no visible label, but aria-label added for accessibility -->
+                    <th class="resizable thumbnail-cell" aria-label="Thumbnail"><div class="th-content"></div><div class="resizer"></div></th>
+                    <th class="resizable"><div class="th-content" data-lang="field-name"></div><div class="resizer"></div></th>
+                    <th class="resizable"><div class="th-content" data-lang="field-id"></div><div class="resizer"></div></th>
+                    <th class="resizable"><div class="th-content" data-lang="field-mc"></div><div class="resizer"></div></th>
+                    <th class="resizable"><div class="th-content" data-lang="field-category"></div><div class="resizer"></div></th>
+                    <th class="resizable"><div class="th-content" data-lang="field-firstTag"></div><div class="resizer"></div></th>
+                    <th class="resizable"><div class="th-content" data-lang="field-secondTag"></div><div class="resizer"></div></th>
+                    <th class="resizable"><div class="th-content" data-lang="field-thirdTag"></div><div class="resizer"></div></th>
+                    <th class="resizable"><div class="th-content" data-lang="field-location"></div><div class="resizer"></div></th>
+                    <th class="resizable"><div class="th-content" data-lang="registration-date"></div><div class="resizer"></div></th>
+                    <th class="resizable"><div class="th-content" data-lang="inventory"></div><div class="resizer"></div></th>
+                    <th class="resizable"><div class="th-content" data-lang="inventory-status"></div><div class="resizer"></div></th>
+                </tr>
+            </thead>
+            <tbody id="collectionsTable">
+                <!-- Collections will be loaded here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div id="pagination" class="pagination-container">
+        <!-- Pagination will be loaded here -->
+    </div>
+</div>

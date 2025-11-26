@@ -9,30 +9,30 @@ using Microsoft.Extensions.FileProviders;
 
 Console.WriteLine("Starting CREC Web Server...");
 
-// WebƒAƒvƒŠƒP[ƒVƒ‡ƒ“ƒrƒ‹ƒ_[‚Ìì¬
+// Webã‚¢ãƒ—ãƒªã‚±ãƒ¼ã‚·ãƒ§ãƒ³ãƒ“ãƒ«ãƒ€ãƒ¼ã®ä½œæˆ
 var builder = WebApplication.CreateBuilder(args);
 
-// CREC‚ÌƒvƒƒWƒFƒNƒgƒtƒ@ƒCƒ‹‚ÌƒpƒX‚ğæ“¾
+// CRECã®ãƒ—ãƒ­ã‚¸ã‚§ã‚¯ãƒˆãƒ•ã‚¡ã‚¤ãƒ«ã®ãƒ‘ã‚¹ã‚’å–å¾—
 var crecFilePath = string.Empty;
 ProjectSettings? projectSettings = null;
 if (args.Length > 0 && args[0].EndsWith(".crec", StringComparison.OrdinalIgnoreCase))
 {
-    // ƒRƒ}ƒ“ƒhƒ‰ƒCƒ“ˆø”‚©‚çƒvƒƒWƒFƒNƒgƒtƒ@ƒCƒ‹‚ÌƒpƒX‚ğæ“¾
+    // ã‚³ãƒãƒ³ãƒ‰ãƒ©ã‚¤ãƒ³å¼•æ•°ã‹ã‚‰ãƒ—ãƒ­ã‚¸ã‚§ã‚¯ãƒˆãƒ•ã‚¡ã‚¤ãƒ«ã®ãƒ‘ã‚¹ã‚’å–å¾—
     crecFilePath = args[0];
 }
 else
 {
-    // CRECƒtƒ@ƒCƒ‹‚ªƒRƒ}ƒ“ƒhƒ‰ƒCƒ“ˆø”‚Éw’è‚³‚ê‚Ä‚¢‚È‚¢ê‡Aè“®‚Å‚ÌƒpƒX“ü—Í‚ğ‘Ò‹@
+    // CRECãƒ•ã‚¡ã‚¤ãƒ«ãŒã‚³ãƒãƒ³ãƒ‰ãƒ©ã‚¤ãƒ³å¼•æ•°ã«æŒ‡å®šã•ã‚Œã¦ã„ãªã„å ´åˆã€æ‰‹å‹•ã§ã®ãƒ‘ã‚¹å…¥åŠ›ã‚’å¾…æ©Ÿ
     Console.WriteLine("No .crec file specified. Please enter the project data folder path:");
     var inputPath = Console.ReadLine()?.Trim();
     crecFilePath = inputPath ?? string.Empty;
 }
 
-// CREC‚ÌƒvƒƒWƒFƒNƒgƒtƒ@ƒCƒ‹‚ğ“Ç‚İ‚İAƒvƒƒWƒFƒNƒgİ’è‚ğæ“¾
+// CRECã®ãƒ—ãƒ­ã‚¸ã‚§ã‚¯ãƒˆãƒ•ã‚¡ã‚¤ãƒ«ã‚’èª­ã¿è¾¼ã¿ã€ãƒ—ãƒ­ã‚¸ã‚§ã‚¯ãƒˆè¨­å®šã‚’å–å¾—
 Console.WriteLine($"Loading project settings from: {crecFilePath}");
 projectSettings = ParseCrecFile(crecFilePath);
 
-// ƒvƒƒWƒFƒNƒgİ’è‚ğ“K—p
+// ãƒ—ãƒ­ã‚¸ã‚§ã‚¯ãƒˆè¨­å®šã‚’é©ç”¨
 if (projectSettings != null)
 {
     builder.Configuration["ProjectDataPath"] = projectSettings.ProjectDataPath;
@@ -50,13 +50,13 @@ else
     Console.WriteLine("Warning: Failed to parse .crec file or extract project settings");
 }
 
-// wwwrootƒtƒHƒ‹ƒ_‚ÌƒpƒX‚ğİ’è
+// wwwrootãƒ•ã‚©ãƒ«ãƒ€ã®ãƒ‘ã‚¹ã‚’è¨­å®š
 var executablePath = AppContext.BaseDirectory;
 var webRootPath = Path.Combine(executablePath, "wwwroot");
 builder.Environment.WebRootPath = webRootPath;
 
 // Add services to the container
-builder.Services.AddControllers();
+builder.Services.AddControllersWithViews();
 builder.Services.AddEndpointsApiExplorer();
 
 // Add CREC data service
@@ -73,7 +73,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-// URLİ’è
+// URLè¨­å®š
 builder.WebHost.UseUrls("http://0.0.0.0:5000");
 
 var app = builder.Build();
@@ -90,33 +90,13 @@ if (Directory.Exists(webRootPath))
 }
 
 app.UseRouting();
+
 app.MapControllers();
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
-// Serve the main web interface - map fallback to serve index.html for SPA
-// Only for non-API routes to avoid conflicts with API controllers
-app.MapFallback(async context =>
-{
-    // Don't intercept API requests
-    if (context.Request.Path.StartsWithSegments("/api"))
-    {
-        context.Response.StatusCode = 404;
-        return;
-    }
-
-    var indexPath = Path.Combine(webRootPath,"Pages", "index.html");
-    if (File.Exists(indexPath))
-    {
-        context.Response.ContentType = "text/html";
-        await context.Response.SendFileAsync(indexPath);
-    }
-    else
-    {
-        context.Response.StatusCode = 404;
-        await context.Response.WriteAsync("index.html not found");
-    }
-});
-
-// ‹N“®î•ñ‚ğ•\¦
+// èµ·å‹•æƒ…å ±ã‚’è¡¨ç¤º
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 if (projectSettings != null)
 {
