@@ -56,7 +56,7 @@ var webRootPath = Path.Combine(executablePath, "wwwroot");
 builder.Environment.WebRootPath = webRootPath;
 
 // Add services to the container
-builder.Services.AddControllers();
+builder.Services.AddControllersWithViews();
 builder.Services.AddEndpointsApiExplorer();
 
 // Add CREC data service
@@ -90,31 +90,12 @@ if (Directory.Exists(webRootPath))
 }
 
 app.UseRouting();
+
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
+
 app.MapControllers();
-
-// Serve the main web interface - map fallback to serve index.html for SPA
-// Only for non-API routes to avoid conflicts with API controllers
-app.MapFallback(async context =>
-{
-    // Don't intercept API requests
-    if (context.Request.Path.StartsWithSegments("/api"))
-    {
-        context.Response.StatusCode = 404;
-        return;
-    }
-
-    var indexPath = Path.Combine(executablePath, "Views", "Home", "Index.cshtml");
-    if (File.Exists(indexPath))
-    {
-        context.Response.ContentType = "text/html";
-        await context.Response.SendFileAsync(indexPath);
-    }
-    else
-    {
-        context.Response.StatusCode = 404;
-        await context.Response.WriteAsync("Index.cshtml not found");
-    }
-});
 
 // 起動情報を表示
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
