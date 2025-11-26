@@ -26,7 +26,13 @@ let projectSettings = {
 const ANIMATION_DELAY = 10
 
 // 最小列幅（ピクセル）
-const MIN_COLUMN_WIDTH = 50
+const MIN_COLUMN_WIDTH = (() => {
+    const v = (typeof document !== 'undefined')
+        ? getComputedStyle(document.documentElement).getPropertyValue('--min-column-width').trim()
+        : '';
+    const parsed = parseInt(v);
+    return Number.isFinite(parsed) ? parsed : 80; // 0 を正しく受け入れ、NaN の場合のみフォールバック
+})();
 
 // モバイルブレークポイントをCSSから取得
 function getMobileBreakpoint() {
