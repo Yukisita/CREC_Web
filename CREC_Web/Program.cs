@@ -9,30 +9,30 @@ using Microsoft.Extensions.FileProviders;
 
 Console.WriteLine("Starting CREC Web Server...");
 
-// WebƒAƒvƒŠƒP[ƒVƒ‡ƒ“ƒrƒ‹ƒ_[‚Ìì¬
+// Webï¿½Aï¿½vï¿½ï¿½ï¿½Pï¿½[ï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½rï¿½ï¿½ï¿½_ï¿½[ï¿½Ìì¬
 var builder = WebApplication.CreateBuilder(args);
 
-// CREC‚ÌƒvƒƒWƒFƒNƒgƒtƒ@ƒCƒ‹‚ÌƒpƒX‚ğæ“¾
+// CRECï¿½Ìƒvï¿½ï¿½ï¿½Wï¿½Fï¿½Nï¿½gï¿½tï¿½@ï¿½Cï¿½ï¿½ï¿½Ìƒpï¿½Xï¿½ï¿½ï¿½æ“¾
 var crecFilePath = string.Empty;
 ProjectSettings? projectSettings = null;
 if (args.Length > 0 && args[0].EndsWith(".crec", StringComparison.OrdinalIgnoreCase))
 {
-    // ƒRƒ}ƒ“ƒhƒ‰ƒCƒ“ˆø”‚©‚çƒvƒƒWƒFƒNƒgƒtƒ@ƒCƒ‹‚ÌƒpƒX‚ğæ“¾
+    // ï¿½Rï¿½}ï¿½ï¿½ï¿½hï¿½ï¿½ï¿½Cï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½vï¿½ï¿½ï¿½Wï¿½Fï¿½Nï¿½gï¿½tï¿½@ï¿½Cï¿½ï¿½ï¿½Ìƒpï¿½Xï¿½ï¿½ï¿½æ“¾
     crecFilePath = args[0];
 }
 else
 {
-    // CRECƒtƒ@ƒCƒ‹‚ªƒRƒ}ƒ“ƒhƒ‰ƒCƒ“ˆø”‚Éw’è‚³‚ê‚Ä‚¢‚È‚¢ê‡Aè“®‚Å‚ÌƒpƒX“ü—Í‚ğ‘Ò‹@
+    // CRECï¿½tï¿½@ï¿½Cï¿½ï¿½ï¿½ï¿½ï¿½Rï¿½}ï¿½ï¿½ï¿½hï¿½ï¿½ï¿½Cï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Éwï¿½è‚³ï¿½ï¿½Ä‚ï¿½ï¿½È‚ï¿½ï¿½ê‡ï¿½Aï¿½è“®ï¿½Å‚Ìƒpï¿½Xï¿½ï¿½ï¿½Í‚ï¿½Ò‹@
     Console.WriteLine("No .crec file specified. Please enter the project data folder path:");
     var inputPath = Console.ReadLine()?.Trim();
     crecFilePath = inputPath ?? string.Empty;
 }
 
-// CREC‚ÌƒvƒƒWƒFƒNƒgƒtƒ@ƒCƒ‹‚ğ“Ç‚İ‚İAƒvƒƒWƒFƒNƒgİ’è‚ğæ“¾
+// CRECï¿½Ìƒvï¿½ï¿½ï¿½Wï¿½Fï¿½Nï¿½gï¿½tï¿½@ï¿½Cï¿½ï¿½ï¿½ï¿½Ç‚İï¿½ï¿½İAï¿½vï¿½ï¿½ï¿½Wï¿½Fï¿½Nï¿½gï¿½İ’ï¿½ï¿½ï¿½æ“¾
 Console.WriteLine($"Loading project settings from: {crecFilePath}");
 projectSettings = ParseCrecFile(crecFilePath);
 
-// ƒvƒƒWƒFƒNƒgİ’è‚ğ“K—p
+// ï¿½vï¿½ï¿½ï¿½Wï¿½Fï¿½Nï¿½gï¿½İ’ï¿½ï¿½Kï¿½p
 if (projectSettings != null)
 {
     builder.Configuration["ProjectDataPath"] = projectSettings.ProjectDataPath;
@@ -50,7 +50,7 @@ else
     Console.WriteLine("Warning: Failed to parse .crec file or extract project settings");
 }
 
-// wwwrootƒtƒHƒ‹ƒ_‚ÌƒpƒX‚ğİ’è
+// wwwrootï¿½tï¿½Hï¿½ï¿½ï¿½_ï¿½Ìƒpï¿½Xï¿½ï¿½İ’ï¿½
 var executablePath = AppContext.BaseDirectory;
 var webRootPath = Path.Combine(executablePath, "wwwroot");
 builder.Environment.WebRootPath = webRootPath;
@@ -73,7 +73,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-// URLİ’è
+// URLï¿½İ’ï¿½
 builder.WebHost.UseUrls("http://0.0.0.0:5000");
 
 var app = builder.Build();
@@ -103,7 +103,7 @@ app.MapFallback(async context =>
         return;
     }
 
-    var indexPath = Path.Combine(webRootPath,"Pages", "index.html");
+    var indexPath = Path.Combine(executablePath, "Views", "Index.html");
     if (File.Exists(indexPath))
     {
         context.Response.ContentType = "text/html";
@@ -116,7 +116,7 @@ app.MapFallback(async context =>
     }
 });
 
-// ‹N“®î•ñ‚ğ•\¦
+// ï¿½Nï¿½ï¿½ï¿½ï¿½ï¿½ï¿½\ï¿½ï¿½
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 if (projectSettings != null)
 {
