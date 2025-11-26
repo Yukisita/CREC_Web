@@ -9,30 +9,30 @@ using Microsoft.Extensions.FileProviders;
 
 Console.WriteLine("Starting CREC Web Server...");
 
-// Web�A�v���P�[�V�����r���_�[�̍쐬
+// Webアプリケーションビルダーの作成
 var builder = WebApplication.CreateBuilder(args);
 
-// CREC�̃v���W�F�N�g�t�@�C���̃p�X���擾
+// CRECのプロジェクトファイルのパスを取得
 var crecFilePath = string.Empty;
 ProjectSettings? projectSettings = null;
 if (args.Length > 0 && args[0].EndsWith(".crec", StringComparison.OrdinalIgnoreCase))
 {
-    // �R�}���h���C����������v���W�F�N�g�t�@�C���̃p�X���擾
+    // コマンドライン引数からプロジェクトファイルのパスを取得
     crecFilePath = args[0];
 }
 else
 {
-    // CREC�t�@�C�����R�}���h���C�������Ɏw�肳��Ă��Ȃ��ꍇ�A�蓮�ł̃p�X���͂�ҋ@
+    // CRECファイルがコマンドライン引数に指定されていない場合、手動でのパス入力を待機
     Console.WriteLine("No .crec file specified. Please enter the project data folder path:");
     var inputPath = Console.ReadLine()?.Trim();
     crecFilePath = inputPath ?? string.Empty;
 }
 
-// CREC�̃v���W�F�N�g�t�@�C����ǂݍ��݁A�v���W�F�N�g�ݒ���擾
+// CRECのプロジェクトファイルを読み込み、プロジェクト設定を取得
 Console.WriteLine($"Loading project settings from: {crecFilePath}");
 projectSettings = ParseCrecFile(crecFilePath);
 
-// �v���W�F�N�g�ݒ��K�p
+// プロジェクト設定を適用
 if (projectSettings != null)
 {
     builder.Configuration["ProjectDataPath"] = projectSettings.ProjectDataPath;
@@ -50,7 +50,7 @@ else
     Console.WriteLine("Warning: Failed to parse .crec file or extract project settings");
 }
 
-// wwwroot�t�H���_�̃p�X��ݒ�
+// wwwrootフォルダのパスを設定
 var executablePath = AppContext.BaseDirectory;
 var webRootPath = Path.Combine(executablePath, "wwwroot");
 builder.Environment.WebRootPath = webRootPath;
@@ -73,7 +73,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-// URL�ݒ�
+// URL設定
 builder.WebHost.UseUrls("http://0.0.0.0:5000");
 
 var app = builder.Build();
@@ -116,7 +116,7 @@ app.MapFallback(async context =>
     }
 });
 
-// �N������\��
+// 起動情報を表示
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 if (projectSettings != null)
 {
