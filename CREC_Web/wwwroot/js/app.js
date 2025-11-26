@@ -782,7 +782,7 @@ function createCollectionRow(collection) {
 
 function createCollectionCard(collection) {
     const colDiv = document.createElement('div');
-    colDiv.className = 'col-lg-3 col-md-4 col-sm-6 mb-4';
+    colDiv.className = 'col-lg-2 col-md-4 col-sm-4 mb-4';
 
     const inventoryStatusText = getInventoryStatusText(
         collection.collectionInventoryStatus,
