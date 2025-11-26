@@ -4,10 +4,6 @@
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     <CopyToPublishDirectory>Always</CopyToPublishDirectory>
   </Content>
-  <Content Update="Views\**\*">
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-  </Content>
 </ItemGroup>
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
