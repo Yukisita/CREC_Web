@@ -91,11 +91,10 @@ if (Directory.Exists(webRootPath))
 
 app.UseRouting();
 
+app.MapControllers();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
-
-app.MapControllers();
 
 // 起動情報を表示
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
