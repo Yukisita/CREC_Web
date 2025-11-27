@@ -6,59 +6,15 @@
     <!-- Search Filters -->
     <div class="search-filters">
         <h5 class="mb-3" data-lang="search-title"></h5>
-        <div class="row g-3">
-            <div class="col-md-3">
+        <!-- Always visible: Text search and buttons -->
+        <div class="row g-3 align-items-end">
+            <div class="col-12 col-md-6">
                 <label for="searchText" class="form-label" data-lang="search-text"></label>
                 <input type="text" class="form-control" id="searchText" placeholder="検索キーワード / Search keyword">
             </div>
-            <div class="col-md-2">
-                <label for="searchField" class="form-label" data-lang="search-field"></label>
-                <select class="form-select" id="searchField">
-                    <option value="0" data-lang="field-all"></option>
-                    <option value="1" data-lang="field-id"></option>
-                    <option value="2" data-lang="field-name"></option>
-                    <option value="3" data-lang="field-mc"></option>
-                    <option value="4" data-lang="field-category"></option>
-                    <option value="5" data-lang="field-tags"></option>
-                    <option value="6" data-lang="field-location"></option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <label for="searchMethod" class="form-label" data-lang="search-method"></label>
-                <select class="form-select" id="searchMethod">
-                    <option value="0" data-lang="method-partial"></option>
-                    <option value="1" data-lang="method-prefix"></option>
-                    <option value="2" data-lang="method-suffix"></option>
-                    <option value="3" data-lang="method-exact"></option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label for="inventoryStatusFilter" class="form-label" data-lang="inventory-status"></label>
-                <select class="form-select" id="inventoryStatusFilter">
-                    <option value="" data-lang="all-status"></option>
-                    <option value="0" data-lang="stock-out"></option>
-                    <option value="1" data-lang="under-stocked"></option>
-                    <option value="2" data-lang="appropriate-need-reorder"></option>
-                    <option value="3" data-lang="appropriate"></option>
-                    <option value="4" data-lang="over-stocked"></option>
-                    <option value="5" data-lang="not-set"></option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <label for="pageSize" class="form-label" data-lang="page-size">表示件数 / Page Size</label>
-                <select class="form-select" id="pageSize">
-                    <option value="10">10</option>
-                    <option value="20" selected>20</option>
-                    <option value="50">50</option>
-                    <option value="100">100</option>
-                </select>
-            </div>
-        </div>
-        <div class="row mt-3">
-            <div class="col-md-7">
-                <label class="form-label">&nbsp;</label>
-                <div>
-                    <button class="btn btn-primary me-2" id="searchButton">
+            <div class="col-12 col-md-6">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" id="searchButton">
                         <i class="bi bi-search"></i>
                         <span data-lang="search-button"></span>
                     </button>
@@ -66,6 +22,57 @@
                         <i class="bi bi-x-circle"></i>
                         <span data-lang="clear-button"></span>
                     </button>
+                    <button class="btn btn-outline-primary ms-auto" id="toggleAdvancedFiltersButton" type="button" aria-expanded="false" aria-controls="advancedFiltersSection">
+                        <i class="bi bi-sliders"></i>
+                        <span data-lang="advanced-filters"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Advanced filters: Hidden by default -->
+        <div id="advancedFiltersSection" class="advanced-filters-section" role="region" aria-labelledby="toggleAdvancedFiltersButton">
+            <div class="row g-3 mt-2">
+                <div class="col-md-3 col-lg-2">
+                    <label for="searchField" class="form-label" data-lang="search-field"></label>
+                    <select class="form-select" id="searchField">
+                        <option value="0" data-lang="field-all"></option>
+                        <option value="1" data-lang="field-id"></option>
+                        <option value="2" data-lang="field-name"></option>
+                        <option value="3" data-lang="field-mc"></option>
+                        <option value="4" data-lang="field-category"></option>
+                        <option value="5" data-lang="field-tags"></option>
+                        <option value="6" data-lang="field-location"></option>
+                    </select>
+                </div>
+                <div class="col-md-3 col-lg-2">
+                    <label for="searchMethod" class="form-label" data-lang="search-method"></label>
+                    <select class="form-select" id="searchMethod">
+                        <option value="0" data-lang="method-partial"></option>
+                        <option value="1" data-lang="method-prefix"></option>
+                        <option value="2" data-lang="method-suffix"></option>
+                        <option value="3" data-lang="method-exact"></option>
+                    </select>
+                </div>
+                <div class="col-md-3 col-lg-2">
+                    <label for="inventoryStatusFilter" class="form-label" data-lang="inventory-status"></label>
+                    <select class="form-select" id="inventoryStatusFilter">
+                        <option value="" data-lang="all-status"></option>
+                        <option value="0" data-lang="stock-out"></option>
+                        <option value="1" data-lang="under-stocked"></option>
+                        <option value="2" data-lang="appropriate-need-reorder"></option>
+                        <option value="3" data-lang="appropriate"></option>
+                        <option value="4" data-lang="over-stocked"></option>
+                        <option value="5" data-lang="not-set"></option>
+                    </select>
+                </div>
+                <div class="col-md-3 col-lg-2">
+                    <label for="pageSize" class="form-label" data-lang="page-size">表示件数 / Page Size</label>
+                    <select class="form-select" id="pageSize">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
                 </div>
             </div>
         </div>

@@ -94,6 +94,7 @@ const translations = {
         'page-size': '表示件数',
         'search-button': '検索',
         'clear-button': 'クリア',
+        'advanced-filters': '詳細',
         'close': '閉じる',
         'view-details': '詳細を見る',
         'no-thumbnail': 'サムネイルなし',
@@ -147,6 +148,7 @@ const translations = {
         'page-size': 'Page Size',
         'search-button': 'Search',
         'clear-button': 'Clear',
+        'advanced-filters': 'Advanced',
         'close': 'Close',
         'view-details': 'View Details',
         'no-thumbnail': 'No Thumbnail',
@@ -238,7 +240,8 @@ async function initializeApp() {
             { id: 'detailPanelOverlay', event: 'click', handler: closeDetailPanel },// 詳細パネルオープンのイベントリスナ
             { id: 'detailPanelClose', event: 'click', handler: closeDetailPanel },// 詳細パネルクローズのイベントリスナ
             { id: 'gridViewBtn', event: 'click', handler: switchToGridView },// グリッド表示ボタンのイベントリスナ
-            { id: 'tableViewBtn', event: 'click', handler: switchToTableView }// テーブル表示ボタンのイベントリスナ
+            { id: 'tableViewBtn', event: 'click', handler: switchToTableView },// テーブル表示ボタンのイベントリスナ
+            { id: 'toggleAdvancedFiltersButton', event: 'click', handler: toggleAdvancedFilters }// 詳細フィルタ表示切り替えボタンのイベントリスナ
         ]);
 
         // 保存された表示モードの読み込み
@@ -262,6 +265,13 @@ async function initializeApp() {
 
         // 初回の画面サイズからモバイルフラグを設定
         lastIsMobile = window.innerWidth < getMobileBreakpoint();
+
+        // 保存された詳細フィルタの表示状態を復元
+        const savedAdvancedFiltersVisible = localStorage.getItem('crec_advanced_filters_visible');
+        if (savedAdvancedFiltersVisible === 'true') {
+            // 詳細フィルタを表示状態にする（既に保存されているのでsaveToStorage=false）
+            showAdvancedFilters(false);
+        }
 
         // ウィンドウリサイズイベントハンドラ登録
         window.addEventListener('resize', handleWindowResize);
@@ -646,6 +656,68 @@ function switchToTableView() {
     // Re-render current results
     if (window.lastSearchResult) {
         displaySearchResults(window.lastSearchResult);
+    }
+}
+
+/**
+ * 詳細フィルタを表示状態にする
+ * @param {boolean} [saveToStorage=true] - localStorageに状態を保存するかどうか
+ */
+function showAdvancedFilters(saveToStorage = true) {
+    const advancedFiltersSection = document.getElementById('advancedFiltersSection');
+    const toggleButton = document.getElementById('toggleAdvancedFiltersButton');
+    
+    if (!advancedFiltersSection || !toggleButton) {
+        return;
+    }
+    
+    advancedFiltersSection.classList.add('show');
+    toggleButton.classList.remove('btn-outline-primary');
+    toggleButton.classList.add('btn-primary');
+    toggleButton.setAttribute('aria-expanded', 'true');
+    
+    if (saveToStorage) {
+        localStorage.setItem('crec_advanced_filters_visible', 'true');
+    }
+}
+
+/**
+ * 詳細フィルタを非表示状態にする
+ * @param {boolean} [saveToStorage=true] - localStorageに状態を保存するかどうか
+ */
+function hideAdvancedFilters(saveToStorage = true) {
+    const advancedFiltersSection = document.getElementById('advancedFiltersSection');
+    const toggleButton = document.getElementById('toggleAdvancedFiltersButton');
+    
+    if (!advancedFiltersSection || !toggleButton) {
+        return;
+    }
+    
+    advancedFiltersSection.classList.remove('show');
+    toggleButton.classList.remove('btn-primary');
+    toggleButton.classList.add('btn-outline-primary');
+    toggleButton.setAttribute('aria-expanded', 'false');
+    
+    if (saveToStorage) {
+        localStorage.setItem('crec_advanced_filters_visible', 'false');
+    }
+}
+
+// 詳細フィルタの表示/非表示を切り替え
+function toggleAdvancedFilters() {
+    const advancedFiltersSection = document.getElementById('advancedFiltersSection');
+    
+    if (!advancedFiltersSection) {
+        return;
+    }
+    
+    // Use classList.contains('show') as the source of truth for visibility state
+    const isHidden = !advancedFiltersSection.classList.contains('show');
+    
+    if (isHidden) {
+        showAdvancedFilters();
+    } else {
+        hideAdvancedFilters();
     }
 }
 
