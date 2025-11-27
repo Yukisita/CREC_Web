@@ -273,7 +273,6 @@ async function initializeApp() {
             const advancedFiltersSection = document.getElementById('advancedFiltersSection');
             const toggleButton = document.getElementById('toggleAdvancedFiltersButton');
             if (advancedFiltersSection && toggleButton) {
-                advancedFiltersSection.style.display = 'block';
                 advancedFiltersSection.classList.add('show');
                 toggleButton.classList.remove('btn-outline-primary');
                 toggleButton.classList.add('btn-primary');
@@ -680,14 +679,12 @@ function toggleAdvancedFilters() {
     const isHidden = !advancedFiltersSection.classList.contains('show');
     
     if (isHidden) {
-        advancedFiltersSection.style.display = 'block';
         advancedFiltersSection.classList.add('show');
         toggleButton.classList.remove('btn-outline-primary');
         toggleButton.classList.add('btn-primary');
         toggleButton.setAttribute('aria-expanded', 'true');
         localStorage.setItem('crec_advanced_filters_visible', 'true');
     } else {
-        advancedFiltersSection.style.display = 'none';
         advancedFiltersSection.classList.remove('show');
         toggleButton.classList.remove('btn-primary');
         toggleButton.classList.add('btn-outline-primary');
