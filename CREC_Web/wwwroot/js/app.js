@@ -661,7 +661,8 @@ function toggleAdvancedFilters() {
         return;
     }
     
-    const isHidden = advancedFiltersSection.style.display === 'none';
+    // Use classList.contains('show') as the source of truth for visibility state
+    const isHidden = !advancedFiltersSection.classList.contains('show');
     
     if (isHidden) {
         advancedFiltersSection.style.display = 'block';
