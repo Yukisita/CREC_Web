@@ -256,6 +256,18 @@
             min-width: 100px;
         }
 
+        /* Advanced filters toggle section */
+        .advanced-filters-section {
+            padding-top: 0.5rem;
+            border-top: 1px solid #dee2e6;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .advanced-filters-section.show {
+            display: block !important;
+        }
+
         /* Mobile responsive - auto-switch to grid view */
         @@media (max-width: var(--mobile-breakpoint)) {
             .detail-panel {

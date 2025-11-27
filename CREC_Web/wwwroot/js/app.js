@@ -94,6 +94,7 @@ const translations = {
         'page-size': '表示件数',
         'search-button': '検索',
         'clear-button': 'クリア',
+        'advanced-filters': '詳細',
         'close': '閉じる',
         'view-details': '詳細を見る',
         'no-thumbnail': 'サムネイルなし',
@@ -147,6 +148,7 @@ const translations = {
         'page-size': 'Page Size',
         'search-button': 'Search',
         'clear-button': 'Clear',
+        'advanced-filters': 'Advanced',
         'close': 'Close',
         'view-details': 'View Details',
         'no-thumbnail': 'No Thumbnail',
@@ -238,7 +240,8 @@ async function initializeApp() {
             { id: 'detailPanelOverlay', event: 'click', handler: closeDetailPanel },// 詳細パネルオープンのイベントリスナ
             { id: 'detailPanelClose', event: 'click', handler: closeDetailPanel },// 詳細パネルクローズのイベントリスナ
             { id: 'gridViewBtn', event: 'click', handler: switchToGridView },// グリッド表示ボタンのイベントリスナ
-            { id: 'tableViewBtn', event: 'click', handler: switchToTableView }// テーブル表示ボタンのイベントリスナ
+            { id: 'tableViewBtn', event: 'click', handler: switchToTableView },// テーブル表示ボタンのイベントリスナ
+            { id: 'toggleAdvancedFiltersButton', event: 'click', handler: toggleAdvancedFilters }// 詳細フィルタ表示切り替えボタンのイベントリスナ
         ]);
 
         // 保存された表示モードの読み込み
@@ -646,6 +649,30 @@ function switchToTableView() {
     // Re-render current results
     if (window.lastSearchResult) {
         displaySearchResults(window.lastSearchResult);
+    }
+}
+
+// 詳細フィルタの表示/非表示を切り替え
+function toggleAdvancedFilters() {
+    const advancedFiltersSection = document.getElementById('advancedFiltersSection');
+    const toggleButton = document.getElementById('toggleAdvancedFiltersButton');
+    
+    if (!advancedFiltersSection || !toggleButton) {
+        return;
+    }
+    
+    const isHidden = advancedFiltersSection.style.display === 'none';
+    
+    if (isHidden) {
+        advancedFiltersSection.style.display = 'block';
+        advancedFiltersSection.classList.add('show');
+        toggleButton.classList.remove('btn-outline-primary');
+        toggleButton.classList.add('btn-primary');
+    } else {
+        advancedFiltersSection.style.display = 'none';
+        advancedFiltersSection.classList.remove('show');
+        toggleButton.classList.remove('btn-primary');
+        toggleButton.classList.add('btn-outline-primary');
     }
 }
 
