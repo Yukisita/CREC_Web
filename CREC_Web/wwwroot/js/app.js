@@ -269,15 +269,8 @@ async function initializeApp() {
         // 保存された詳細フィルタの表示状態を復元
         const savedAdvancedFiltersVisible = localStorage.getItem('crec_advanced_filters_visible');
         if (savedAdvancedFiltersVisible === 'true') {
-            // 詳細フィルタを表示状態にする
-            const advancedFiltersSection = document.getElementById('advancedFiltersSection');
-            const toggleButton = document.getElementById('toggleAdvancedFiltersButton');
-            if (advancedFiltersSection && toggleButton) {
-                advancedFiltersSection.classList.add('show');
-                toggleButton.classList.remove('btn-outline-primary');
-                toggleButton.classList.add('btn-primary');
-                toggleButton.setAttribute('aria-expanded', 'true');
-            }
+            // 詳細フィルタを表示状態にする（既に保存されているのでsaveToStorage=false）
+            showAdvancedFilters(false);
         }
 
         // ウィンドウリサイズイベントハンドラ登録
@@ -666,8 +659,11 @@ function switchToTableView() {
     }
 }
 
-// 詳細フィルタの表示/非表示を切り替え
-function toggleAdvancedFilters() {
+/**
+ * 詳細フィルタを表示状態にする
+ * @param {boolean} [saveToStorage=true] - localStorageに状態を保存するかどうか
+ */
+function showAdvancedFilters(saveToStorage = true) {
     const advancedFiltersSection = document.getElementById('advancedFiltersSection');
     const toggleButton = document.getElementById('toggleAdvancedFiltersButton');
     
@@ -675,21 +671,53 @@ function toggleAdvancedFilters() {
         return;
     }
     
+    advancedFiltersSection.classList.add('show');
+    toggleButton.classList.remove('btn-outline-primary');
+    toggleButton.classList.add('btn-primary');
+    toggleButton.setAttribute('aria-expanded', 'true');
+    
+    if (saveToStorage) {
+        localStorage.setItem('crec_advanced_filters_visible', 'true');
+    }
+}
+
+/**
+ * 詳細フィルタを非表示状態にする
+ * @param {boolean} [saveToStorage=true] - localStorageに状態を保存するかどうか
+ */
+function hideAdvancedFilters(saveToStorage = true) {
+    const advancedFiltersSection = document.getElementById('advancedFiltersSection');
+    const toggleButton = document.getElementById('toggleAdvancedFiltersButton');
+    
+    if (!advancedFiltersSection || !toggleButton) {
+        return;
+    }
+    
+    advancedFiltersSection.classList.remove('show');
+    toggleButton.classList.remove('btn-primary');
+    toggleButton.classList.add('btn-outline-primary');
+    toggleButton.setAttribute('aria-expanded', 'false');
+    
+    if (saveToStorage) {
+        localStorage.setItem('crec_advanced_filters_visible', 'false');
+    }
+}
+
+// 詳細フィルタの表示/非表示を切り替え
+function toggleAdvancedFilters() {
+    const advancedFiltersSection = document.getElementById('advancedFiltersSection');
+    
+    if (!advancedFiltersSection) {
+        return;
+    }
+    
     // Use classList.contains('show') as the source of truth for visibility state
     const isHidden = !advancedFiltersSection.classList.contains('show');
     
     if (isHidden) {
-        advancedFiltersSection.classList.add('show');
-        toggleButton.classList.remove('btn-outline-primary');
-        toggleButton.classList.add('btn-primary');
-        toggleButton.setAttribute('aria-expanded', 'true');
-        localStorage.setItem('crec_advanced_filters_visible', 'true');
+        showAdvancedFilters();
     } else {
-        advancedFiltersSection.classList.remove('show');
-        toggleButton.classList.remove('btn-primary');
-        toggleButton.classList.add('btn-outline-primary');
-        toggleButton.setAttribute('aria-expanded', 'false');
-        localStorage.setItem('crec_advanced_filters_visible', 'false');
+        hideAdvancedFilters();
     }
 }
 
