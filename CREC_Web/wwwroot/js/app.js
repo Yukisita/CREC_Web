@@ -266,6 +266,21 @@ async function initializeApp() {
         // 初回の画面サイズからモバイルフラグを設定
         lastIsMobile = window.innerWidth < getMobileBreakpoint();
 
+        // 保存された詳細フィルタの表示状態を復元
+        const savedAdvancedFiltersVisible = localStorage.getItem('crec_advanced_filters_visible');
+        if (savedAdvancedFiltersVisible === 'true') {
+            // 詳細フィルタを表示状態にする
+            const advancedFiltersSection = document.getElementById('advancedFiltersSection');
+            const toggleButton = document.getElementById('toggleAdvancedFiltersButton');
+            if (advancedFiltersSection && toggleButton) {
+                advancedFiltersSection.style.display = 'block';
+                advancedFiltersSection.classList.add('show');
+                toggleButton.classList.remove('btn-outline-primary');
+                toggleButton.classList.add('btn-primary');
+                toggleButton.setAttribute('aria-expanded', 'true');
+            }
+        }
+
         // ウィンドウリサイズイベントハンドラ登録
         window.addEventListener('resize', handleWindowResize);
 
@@ -669,11 +684,15 @@ function toggleAdvancedFilters() {
         advancedFiltersSection.classList.add('show');
         toggleButton.classList.remove('btn-outline-primary');
         toggleButton.classList.add('btn-primary');
+        toggleButton.setAttribute('aria-expanded', 'true');
+        localStorage.setItem('crec_advanced_filters_visible', 'true');
     } else {
         advancedFiltersSection.style.display = 'none';
         advancedFiltersSection.classList.remove('show');
         toggleButton.classList.remove('btn-primary');
         toggleButton.classList.add('btn-outline-primary');
+        toggleButton.setAttribute('aria-expanded', 'false');
+        localStorage.setItem('crec_advanced_filters_visible', 'false');
     }
 }
 
