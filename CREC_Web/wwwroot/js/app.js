@@ -99,7 +99,15 @@ const translations = {
         'view-details': '詳細を見る',
         'no-thumbnail': 'サムネイルなし',
         'grid-view': 'グリッド',
-        'table-view': 'テーブル'
+        'table-view': 'テーブル',
+        'qr-scan-button': 'QR',
+        'qr-scanner-title': 'QRコードスキャン',
+        'qr-scanner-initializing': 'カメラを起動中...',
+        'qr-scanner-ready': 'QRコードをスキャンしてください',
+        'qr-scanner-success': 'QRコードを検出しました',
+        'qr-scanner-error-camera': 'カメラにアクセスできません',
+        'qr-scanner-error-permission': 'カメラへのアクセスが拒否されました',
+        'qr-scanner-error-not-supported': 'お使いのブラウザはカメラをサポートしていません'
     },
     en: {
         'loading': 'Loading...',
@@ -153,7 +161,15 @@ const translations = {
         'view-details': 'View Details',
         'no-thumbnail': 'No Thumbnail',
         'grid-view': 'Grid',
-        'table-view': 'Table'
+        'table-view': 'Table',
+        'qr-scan-button': 'QR',
+        'qr-scanner-title': 'Scan QR Code',
+        'qr-scanner-initializing': 'Initializing camera...',
+        'qr-scanner-ready': 'Point camera at QR code',
+        'qr-scanner-success': 'QR code detected',
+        'qr-scanner-error-camera': 'Cannot access camera',
+        'qr-scanner-error-permission': 'Camera access denied',
+        'qr-scanner-error-not-supported': 'Your browser does not support camera access'
     }
 };
 
@@ -235,13 +251,16 @@ async function initializeApp() {
         // イベントリスナの一括設定
         setupEventListeners([
             { id: 'searchButton', event: 'click', handler: () => searchCollections() },// 検索ボタンのイベントリスナ
+            { id: 'qrScanButton', event: 'click', handler: openQrScanner },// QRスキャンボタンのイベントリスナ
             { id: 'clearFiltersButton', event: 'click', handler: clearFilters },// フィルタクリアボタンのイベントリスナ
             { id: 'languageToggle', event: 'click', handler: toggleLanguage },// 言語切り替えボタンのイベントリスナ
             { id: 'detailPanelOverlay', event: 'click', handler: closeDetailPanel },// 詳細パネルオープンのイベントリスナ
             { id: 'detailPanelClose', event: 'click', handler: closeDetailPanel },// 詳細パネルクローズのイベントリスナ
             { id: 'gridViewBtn', event: 'click', handler: switchToGridView },// グリッド表示ボタンのイベントリスナ
             { id: 'tableViewBtn', event: 'click', handler: switchToTableView },// テーブル表示ボタンのイベントリスナ
-            { id: 'toggleAdvancedFiltersButton', event: 'click', handler: toggleAdvancedFilters }// 詳細フィルタ表示切り替えボタンのイベントリスナ
+            { id: 'toggleAdvancedFiltersButton', event: 'click', handler: toggleAdvancedFilters },// 詳細フィルタ表示切り替えボタンのイベントリスナ
+            { id: 'qrScannerClose', event: 'click', handler: closeQrScanner },// QRスキャナークローズのイベントリスナ
+            { id: 'qrScannerOverlay', event: 'click', handler: closeQrScanner }// QRスキャナーオーバーレイクローズのイベントリスナ
         ]);
 
         // 保存された表示モードの読み込み
@@ -1327,4 +1346,222 @@ function stripHtmlToText(html) {
     div.innerHTML = html || '';
     // textContent はタグを取り除いた生テキストを返す
     return (div.textContent || div.innerText || '').replace(/\s+/g, ' ').trim();
+}
+
+// =====================
+// QR Scanner Functions
+// =====================
+
+// QRスキャナーの状態管理
+let qrScannerStream = null;
+let qrScannerAnimationFrame = null;
+let qrScannerActive = false;
+
+/**
+ * QRスキャナーモーダルを開く
+ */
+async function openQrScanner() {
+    const modal = document.getElementById('qrScannerModal');
+    const overlay = document.getElementById('qrScannerOverlay');
+    const video = document.getElementById('qrVideo');
+    const statusElement = document.getElementById('qrScannerStatus');
+    const errorElement = document.getElementById('qrScannerError');
+
+    if (!modal || !overlay || !video) {
+        console.error('QR scanner elements not found');
+        return;
+    }
+
+    // モーダルを表示
+    overlay.classList.add('show');
+    modal.classList.add('show');
+
+    // ステータス初期化
+    statusElement.textContent = t('qr-scanner-initializing');
+    statusElement.style.display = 'block';
+    errorElement.style.display = 'none';
+
+    // カメラサポートをチェック
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showQrScannerError(t('qr-scanner-error-not-supported'));
+        return;
+    }
+
+    try {
+        // カメラアクセス許可を取得（背面カメラ優先）
+        qrScannerStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: { ideal: 'environment' },
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            }
+        });
+
+        video.srcObject = qrScannerStream;
+        
+        // ビデオ再生開始を待機
+        await new Promise((resolve) => {
+            video.onloadedmetadata = () => {
+                video.play();
+                resolve();
+            };
+        });
+
+        // QRコードスキャン開始
+        qrScannerActive = true;
+        statusElement.textContent = t('qr-scanner-ready');
+        startQrScanning();
+
+    } catch (error) {
+        console.error('Camera access error:', error);
+        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+            showQrScannerError(t('qr-scanner-error-permission'));
+        } else {
+            showQrScannerError(t('qr-scanner-error-camera'));
+        }
+    }
+}
+
+/**
+ * QRスキャナーモーダルを閉じる
+ */
+function closeQrScanner() {
+    const modal = document.getElementById('qrScannerModal');
+    const overlay = document.getElementById('qrScannerOverlay');
+    const video = document.getElementById('qrVideo');
+
+    // スキャン停止
+    qrScannerActive = false;
+    if (qrScannerAnimationFrame) {
+        cancelAnimationFrame(qrScannerAnimationFrame);
+        qrScannerAnimationFrame = null;
+    }
+
+    // カメラストリーム停止
+    if (qrScannerStream) {
+        qrScannerStream.getTracks().forEach(track => track.stop());
+        qrScannerStream = null;
+    }
+
+    // ビデオ要素クリア
+    if (video) {
+        video.srcObject = null;
+    }
+
+    // モーダルを非表示
+    if (modal) modal.classList.remove('show');
+    if (overlay) overlay.classList.remove('show');
+}
+
+/**
+ * QRスキャナーエラーを表示
+ * @param {string} message - エラーメッセージ
+ */
+function showQrScannerError(message) {
+    const statusElement = document.getElementById('qrScannerStatus');
+    const errorElement = document.getElementById('qrScannerError');
+
+    if (statusElement) statusElement.style.display = 'none';
+    if (errorElement) {
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+    }
+}
+
+/**
+ * QRコードスキャンを開始
+ */
+function startQrScanning() {
+    const video = document.getElementById('qrVideo');
+    
+    if (!video || !qrScannerActive) return;
+
+    // キャンバスを作成（オフスクリーン）
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+
+    function scanFrame() {
+        if (!qrScannerActive || !video.videoWidth) {
+            qrScannerAnimationFrame = requestAnimationFrame(scanFrame);
+            return;
+        }
+
+        // キャンバスサイズをビデオに合わせる
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        // ビデオフレームをキャンバスに描画
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // 画像データを取得
+        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+        // jsQRでQRコードを検出
+        if (typeof jsQR !== 'undefined') {
+            const qrCode = jsQR(imageData.data, imageData.width, imageData.height, {
+                inversionAttempts: 'dontInvert'
+            });
+
+            if (qrCode && qrCode.data) {
+                // QRコードが検出された
+                handleQrCodeDetected(qrCode.data);
+                return; // スキャンを停止
+            }
+        }
+
+        // 次のフレームをスキャン
+        qrScannerAnimationFrame = requestAnimationFrame(scanFrame);
+    }
+
+    // スキャン開始
+    qrScannerAnimationFrame = requestAnimationFrame(scanFrame);
+}
+
+/**
+ * QRコード検出時の処理
+ * @param {string} data - QRコードのデータ
+ */
+function handleQrCodeDetected(data) {
+    const statusElement = document.getElementById('qrScannerStatus');
+    
+    console.log('QR Code detected:', data);
+
+    // ステータス更新
+    if (statusElement) {
+        statusElement.textContent = t('qr-scanner-success');
+    }
+
+    // QRスキャナーを閉じる
+    closeQrScanner();
+
+    // 検出されたUUIDで検索を実行
+    searchByUuid(data);
+}
+
+/**
+ * UUIDで検索を実行
+ * @param {string} uuid - 検索するUUID
+ */
+function searchByUuid(uuid) {
+    const searchTextElement = document.getElementById('searchText');
+    const searchFieldElement = document.getElementById('searchField');
+    const searchMethodElement = document.getElementById('searchMethod');
+
+    // 検索フィールドを設定
+    if (searchTextElement) {
+        searchTextElement.value = uuid;
+    }
+
+    // 検索フィールドをID（UUID）に設定 - SearchField.ID = 1
+    if (searchFieldElement) {
+        searchFieldElement.value = '1';
+    }
+
+    // 検索方式を完全一致に設定 - SearchMethod.Exact = 3
+    if (searchMethodElement) {
+        searchMethodElement.value = '3';
+    }
+
+    // 検索を実行
+    searchCollections();
 }

@@ -276,6 +276,142 @@
                 right: -100%;
             }
         }
+
+        /* QR Scanner Modal Styles */
+        .qr-scanner-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(0,0,0,0.7);
+            z-index: 1060;
+            display: none;
+        }
+
+        .qr-scanner-overlay.show {
+            display: block;
+        }
+
+        .qr-scanner-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            width: 90%;
+            max-width: 500px;
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.3);
+            z-index: 1070;
+            display: none;
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+
+        .qr-scanner-modal.show {
+            display: block;
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+
+        .qr-scanner-header {
+            padding: 1rem 1.5rem;
+            background-color: #0d6efd;
+            color: white;
+            border-radius: 0.5rem 0.5rem 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .qr-scanner-header h5 {
+            margin: 0;
+        }
+
+        .qr-scanner-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0;
+        }
+
+        .qr-scanner-close:hover {
+            opacity: 0.8;
+        }
+
+        .qr-scanner-body {
+            padding: 1.5rem;
+        }
+
+        .qr-video-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+            background: #000;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        #qrVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .qr-scan-region {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60%;
+            height: 60%;
+            border: 3px solid #0d6efd;
+            border-radius: 0.5rem;
+            box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);
+        }
+
+        .qr-scan-region::before,
+        .qr-scan-region::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-color: #0d6efd;
+            border-style: solid;
+        }
+
+        .qr-scan-region::before {
+            top: -3px;
+            left: -3px;
+            border-width: 3px 0 0 3px;
+            border-radius: 0.5rem 0 0 0;
+        }
+
+        .qr-scan-region::after {
+            bottom: -3px;
+            right: -3px;
+            border-width: 0 3px 3px 0;
+            border-radius: 0 0 0.5rem 0;
+        }
+
+        .qr-scanner-status {
+            text-align: center;
+            margin-top: 1rem;
+            color: #6c757d;
+        }
+
+        .qr-scanner-error {
+            text-align: center;
+            margin-top: 1rem;
+            color: #dc3545;
+            padding: 0.5rem;
+            background-color: #f8d7da;
+            border-radius: 0.25rem;
+        }
     </style>
     @await RenderSectionAsync("Styles", required: false)
 </head>
@@ -298,6 +434,23 @@
 
     @RenderBody()
 
+    <!-- QR Scanner Modal -->
+    <div class="qr-scanner-overlay" id="qrScannerOverlay"></div>
+    <div class="qr-scanner-modal" id="qrScannerModal">
+        <div class="qr-scanner-header">
+            <h5 id="qrScannerTitle" data-lang="qr-scanner-title">QRコードスキャン</h5>
+            <button class="qr-scanner-close" id="qrScannerClose">&times;</button>
+        </div>
+        <div class="qr-scanner-body">
+            <div class="qr-video-container">
+                <video id="qrVideo" autoplay playsinline></video>
+                <div class="qr-scan-region"></div>
+            </div>
+            <div id="qrScannerStatus" class="qr-scanner-status" data-lang="qr-scanner-initializing">カメラを起動中...</div>
+            <div id="qrScannerError" class="qr-scanner-error" style="display: none;"></div>
+        </div>
+    </div>
+
     <!-- Detail Panel Overlay -->
     <div class="detail-panel-overlay" id="detailPanelOverlay"></div>
 
@@ -313,6 +466,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script src="~/js/app.js"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
