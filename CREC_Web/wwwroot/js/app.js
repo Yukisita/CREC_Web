@@ -1479,10 +1479,23 @@ function startQrScanning() {
     // キャンバスを作成（オフスクリーン）
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d', { willReadFrequently: true });
+    
+    // ビデオ読み込み待機のリトライカウンター
+    let videoLoadRetries = 0;
+    const maxVideoLoadRetries = 100; // 約3秒間待機（30fps想定）
 
     function scanFrame() {
-        if (!qrScannerActive || !video.videoWidth) {
-            qrScannerAnimationFrame = requestAnimationFrame(scanFrame);
+        if (!qrScannerActive) return;
+        
+        // ビデオがまだ読み込まれていない場合
+        if (!video.videoWidth) {
+            videoLoadRetries++;
+            if (videoLoadRetries < maxVideoLoadRetries) {
+                qrScannerAnimationFrame = requestAnimationFrame(scanFrame);
+            } else {
+                console.warn('Video failed to load after maximum retries');
+                showQrScannerError(t('qr-scanner-error-camera'));
+            }
             return;
         }
 
@@ -1525,6 +1538,16 @@ function handleQrCodeDetected(data) {
     const statusElement = document.getElementById('qrScannerStatus');
     
     console.log('QR Code detected:', data);
+
+    // UUIDフォーマットの検証（ハイフンありなしの両方に対応）
+    // 標準UUID形式: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    // ハイフンなし: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    const uuidRegex = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
+    
+    if (!uuidRegex.test(data)) {
+        // UUIDフォーマットでない場合でも検索を実行（他のIDタイプの可能性があるため）
+        console.log('Scanned data is not a standard UUID format, but will search anyway');
+    }
 
     // ステータス更新
     if (statusElement) {
