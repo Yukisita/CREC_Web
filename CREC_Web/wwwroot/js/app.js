@@ -1359,28 +1359,6 @@ let qrScannerStream = null;
 let qrTask = null;
 
 /**
- * getUserMedia関数を取得（モバイルブラウザ互換性対応）
- * @returns {Function|null} getUserMedia関数、またはサポートされていない場合はnull
- */
-function getGetUserMedia() {
-    // 標準API
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        return (constraints) => navigator.mediaDevices.getUserMedia(constraints);
-    }
-    // レガシーAPI（古いモバイルブラウザ用）
-    const getUserMedia = navigator.getUserMedia || 
-                         navigator.webkitGetUserMedia || 
-                         navigator.mozGetUserMedia || 
-                         navigator.msGetUserMedia;
-    if (getUserMedia) {
-        return (constraints) => new Promise((resolve, reject) => {
-            getUserMedia.call(navigator, constraints, resolve, reject);
-        });
-    }
-    return null;
-}
-
-/**
  * QRスキャナーモーダルを開く
  */
 async function openQrScanner() {
@@ -1404,11 +1382,8 @@ async function openQrScanner() {
     statusElement.style.display = 'block';
     errorElement.style.display = 'none';
 
-    // getUserMedia関数を取得
-    const getUserMediaFunc = getGetUserMedia();
-    
     // カメラサポートをチェック
-    if (!getUserMediaFunc) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         // HTTPSチェック（カメラAPIはセキュアコンテキストが必要）
         if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
             showQrScannerError(t('qr-scanner-error-https'));
@@ -1420,7 +1395,7 @@ async function openQrScanner() {
 
     try {
         // カメラアクセス許可を取得（背面カメラ優先）
-        qrScannerStream = await getUserMediaFunc({
+        qrScannerStream = await navigator.mediaDevices.getUserMedia({
             video: {
                 facingMode: { ideal: 'environment' },
                 width: { ideal: 1280 },
