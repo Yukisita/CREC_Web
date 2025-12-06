@@ -73,8 +73,8 @@ builder.Services.AddCors(options =>
     });
 });
 
-// URL設定
-builder.WebHost.UseUrls("http://0.0.0.0:5000");
+// URL設定 (HTTPSはカメラアクセスに必要)
+builder.WebHost.UseUrls("https://0.0.0.0:5001", "http://0.0.0.0:5000");
 
 var app = builder.Build();
 
@@ -111,9 +111,10 @@ logger.LogInformation("Executable directory: {ExecutablePath}", executablePath);
 logger.LogInformation("Web root path: {WebRootPath}", webRootPath);
 logger.LogInformation("wwwroot exists: {WebRootExists}", Directory.Exists(webRootPath));
 logger.LogInformation("Web interface will be available at:");
-logger.LogInformation("  - http://localhost:5000");
-logger.LogInformation("  - http://[your-ip]:5000");
-logger.LogInformation("API documentation available at: http://localhost:5000/swagger");
+logger.LogInformation("  - https://localhost:5001 (HTTPS - required for camera access)");
+logger.LogInformation("  - http://localhost:5000 (HTTP)");
+logger.LogInformation("  - https://[your-ip]:5001");
+logger.LogInformation("API documentation available at: https://localhost:5001/swagger");
 
 // Helper method to parse .crec file and extract project settings
 static ProjectSettings? ParseCrecFile(string crecFilePath)
