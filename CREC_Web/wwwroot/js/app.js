@@ -1354,8 +1354,7 @@ function stripHtmlToText(html) {
 
 // QRスキャナーの状態管理
 let qrScannerStream = null;
-let qrScannerAnimationFrame = null;
-let qrScannerActive = false;
+let qrTask = null;
 
 /**
  * QRスキャナーモーダルを開く
@@ -1408,7 +1407,6 @@ async function openQrScanner() {
         });
 
         // QRコードスキャン開始
-        qrScannerActive = true;
         statusElement.textContent = t('qr-scanner-ready');
         startQrScanning();
 
@@ -1431,11 +1429,8 @@ function closeQrScanner() {
     const video = document.getElementById('qrVideo');
 
     // スキャン停止
-    qrScannerActive = false;
-    if (qrScannerAnimationFrame) {
-        cancelAnimationFrame(qrScannerAnimationFrame);
-        qrScannerAnimationFrame = null;
-    }
+    clearInterval(qrTask); // タスクを停止
+    qrTask = null; // タスクをクリア
 
     // カメラストリーム停止
     if (qrScannerStream) {
@@ -1473,29 +1468,22 @@ function showQrScannerError(message) {
  */
 function startQrScanning() {
     const video = document.getElementById('qrVideo');
-    
-    if (!video || !qrScannerActive) return;
+
+    if (!video) return;
 
     // キャンバスを作成（オフスクリーン）
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d', { willReadFrequently: true });
-    
+
     // ビデオ読み込み待機のリトライカウンター
     let videoLoadRetries = 0;
     const maxVideoLoadRetries = 100; // 約3秒間待機（30fps想定）
 
     function scanFrame() {
-        if (!qrScannerActive) return;
-        
+        console.log('Scanning frame...');
+
         // ビデオがまだ読み込まれていない場合
         if (!video.videoWidth) {
-            videoLoadRetries++;
-            if (videoLoadRetries < maxVideoLoadRetries) {
-                qrScannerAnimationFrame = requestAnimationFrame(scanFrame);
-            } else {
-                console.warn('Video failed to load after maximum retries');
-                showQrScannerError(t('qr-scanner-error-camera'));
-            }
             return;
         }
 
@@ -1518,16 +1506,17 @@ function startQrScanning() {
             if (qrCode && qrCode.data) {
                 // QRコードが検出された
                 handleQrCodeDetected(qrCode.data);
+                clearInterval(qrTask); // スキャンを停止
+                qrTask = null; // タスクをクリア
                 return; // スキャンを停止
             }
         }
-
-        // 次のフレームをスキャン
-        qrScannerAnimationFrame = requestAnimationFrame(scanFrame);
     }
 
     // スキャン開始
-    qrScannerAnimationFrame = requestAnimationFrame(scanFrame);
+    qrTask = setInterval(() => {
+        requestAnimationFrame(scanFrame);
+    }, 1000 / 15);
 }
 
 /**
