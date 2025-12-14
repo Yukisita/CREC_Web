@@ -1,6 +1,7 @@
 # Third-Party Licenses
 
 This document contains the licenses for all third-party software and libraries used in CREC Web.
+本ドキュメントでは、CREC Webで使用しているサードパーティソフトウェア及びライブラリのライセンスを記載しています。
 
 ## Table of Contents
 
