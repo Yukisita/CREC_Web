@@ -1484,13 +1484,23 @@ function startQrScanning() {
 
     // ビデオ読み込み待機のリトライカウンター
     let videoLoadRetries = 0;
-    const maxVideoLoadRetries = 100; // 約3秒間待機（30fps想定）
+    const maxVideoLoadRetries = 100;
 
+    /**
+     * QRコードスキャン処理
+     */
     function scanFrame() {
         console.log('Scanning frame...');
 
         // ビデオがまだ読み込まれていない場合
         if (!video.videoWidth) {
+            videoLoadRetries++;// リトライカウンターを増加
+            // 最大リトライ回数を超えたらエラー表示して終了
+            if (videoLoadRetries >= maxVideoLoadRetries) {
+                showQrScannerError(t('qr-scanner-error-camera'));
+                clearInterval(qrTask); // スキャンを停止
+                qrTask = null; // タスクをクリア
+            }
             return;
         }
 
@@ -1515,15 +1525,13 @@ function startQrScanning() {
                 handleQrCodeDetected(qrCode.data);
                 clearInterval(qrTask); // スキャンを停止
                 qrTask = null; // タスクをクリア
-                return; // スキャンを停止
+                return;
             }
         }
     }
 
     // スキャン開始
-    qrTask = setInterval(() => {
-        requestAnimationFrame(scanFrame);
-    }, 1000 / 15);
+    qrTask = setInterval(scanFrame, 1000 / 100);
 }
 
 /**
