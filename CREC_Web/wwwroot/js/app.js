@@ -4,6 +4,10 @@ Copyright (c) [2025] [S.Yukisita]
 This software is released under the MIT License.
 */
 
+/*
+QRコード、QR Codeは株式会社デンソーウェーブの登録商標です。
+*/
+
 // グローバル変数
 let currentPage = 1;
 let currentPageSize = 20;
@@ -100,6 +104,7 @@ const translations = {
         'no-thumbnail': 'サムネイルなし',
         'grid-view': 'グリッド',
         'table-view': 'テーブル',
+        'qr-registered-trademark': 'QRコード、QR Codeは株式会社デンソーウェーブの登録商標です。', 
         'qr-scan-button': 'QR',
         'qr-scanner-title': 'QRコードスキャン',
         'qr-scanner-initializing': 'カメラを起動中...',
@@ -163,6 +168,7 @@ const translations = {
         'no-thumbnail': 'No Thumbnail',
         'grid-view': 'Grid',
         'table-view': 'Table',
+        'qr-registered-trademark': 'QRコード and QR Code is a registered trademark of DENSO WAVE INCORPORATED in Japan and in other countries', 
         'qr-scan-button': 'QR',
         'qr-scanner-title': 'Scan QR Code',
         'qr-scanner-initializing': 'Initializing camera...',
