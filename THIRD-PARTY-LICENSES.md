@@ -1,7 +1,8 @@
-# Third-Party Licenses
+# Third-Party Licenses and Registerd Trademark
 
-This document contains the licenses for all third-party software and libraries used in CREC Web.
-本ドキュメントでは、CREC Webで使用しているサードパーティソフトウェア及びライブラリのライセンスを記載しています。
+本ドキュメントでは、CREC Webで使用しているサードパーティソフトウェア及びライブラリのライセンス、及び商標を記載しています。
+
+This document contains the licenses for all third-party software and libraries, and registerd trademark used in CREC Web.
 
 ## Table of Contents
 
@@ -9,6 +10,7 @@ This document contains the licenses for all third-party software and libraries u
 2. [Bootstrap Icons](#bootstrap-icons)
 3. [jsQR](#jsqr)
 4. [.NET Runtime](#net-runtime)
+5. [QR Code](#qr-code)
 
 ---
 
@@ -298,6 +300,15 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+```
+
+---
+
+## QR Code
+
+```
+QRコードは株式会社デンソーウェーブの登録商標です
+QR Code is a registered trademark of DENSO WAVE INCORPORATED in Japan and in other countries.
 ```
 
 ---
