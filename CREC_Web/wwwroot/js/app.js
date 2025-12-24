@@ -113,7 +113,9 @@ const translations = {
         'qr-scanner-error-camera': 'カメラにアクセスできません',
         'qr-scanner-error-permission': 'カメラへのアクセスが拒否されました',
         'qr-scanner-error-not-supported': 'お使いのブラウザはカメラをサポートしていません',
-        'qr-scanner-error-https': 'カメラを使用するにはHTTPS接続が必要です'
+        'qr-scanner-error-https': 'カメラを使用するにはHTTPS接続が必要です',
+        'project-overview': 'プロジェクト概要',
+        'third-party-licenses': 'サードパーティライブラリ'
     },
     en: {
         'loading': 'Loading...',
@@ -177,7 +179,9 @@ const translations = {
         'qr-scanner-error-camera': 'Cannot access camera',
         'qr-scanner-error-permission': 'Camera access denied',
         'qr-scanner-error-not-supported': 'Your browser does not support camera access',
-        'qr-scanner-error-https': 'HTTPS connection is required to use the camera'
+        'qr-scanner-error-https': 'HTTPS connection is required to use the camera',
+        'project-overview': 'Project Overview',
+        'third-party-licenses': 'Third-Party Licenses'
     }
 };
 
