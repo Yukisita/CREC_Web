@@ -792,9 +792,9 @@ function createCollectionRow(collection) {
     const inventoryStatusText = getInventoryStatusText(
         collection.collectionInventoryStatus,
         collection.collectionCurrentInventory,
-        collection.collectionSafetyStock,
-        collection.collectionOrderPoint,
-        collection.collectionMaxStock
+        collection.inventoryData.setting.safetyStock,
+        collection.inventoryData.setting.reorderPoint,
+        collection.inventoryData.setting.maximumLevel
     );
     const inventoryBadgeClass = getInventoryStatusBadgeClass(collection.collectionInventoryStatus);
 
@@ -890,9 +890,9 @@ function createCollectionCard(collection) {
     const inventoryStatusText = getInventoryStatusText(
         collection.collectionInventoryStatus,
         collection.collectionCurrentInventory,
-        collection.collectionSafetyStock,
-        collection.collectionOrderPoint,
-        collection.collectionMaxStock
+        collection.inventoryData.setting.safetyStock,
+        collection.inventoryData.setting.reorderPoint,
+        collection.inventoryData.setting.maximumLevel
     );
     const inventoryBadgeClass = getInventoryStatusBadgeClass(collection.collectionInventoryStatus);
 
@@ -1057,9 +1057,9 @@ function displayCollectionPanel(collection) {
     const inventoryStatusText = getInventoryStatusText(
         collection.collectionInventoryStatus,
         collection.collectionCurrentInventory,
-        collection.collectionSafetyStock,
-        collection.collectionOrderPoint,
-        collection.collectionMaxStock
+        collection.inventoryData.setting.safetyStock,
+        collection.inventoryData.setting.reorderPoint,
+        collection.inventoryData.setting.maximumLevel
     );
     const inventoryBadgeClass = getInventoryStatusBadgeClass(collection.collectionInventoryStatus);
 
