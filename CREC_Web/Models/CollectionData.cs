@@ -204,7 +204,7 @@ namespace CREC_Web.Models
                 return InventoryStatus.NotSet;
             }
 
-            if(count == null)
+            if (count == null)
             {
                 return InventoryStatus.NotSet;
             }
