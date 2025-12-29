@@ -482,5 +482,15 @@ namespace CREC_Web.Services
                 .OrderBy(tag => tag)
                 .ToList();
         }
+
+        /// <summary>
+        /// キャッシュをクリア
+        /// </summary>
+        public void ClearCache()
+        {
+            _collectionsCache.Clear();
+            _lastCacheUpdate = DateTime.MinValue;
+            _logger.LogInformation("Collection cache cleared");
+        }
     }
 }
