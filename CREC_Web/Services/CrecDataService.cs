@@ -4,9 +4,10 @@ Copyright (c) [2025] [S.Yukisita]
 This software is released under the MIT License.
 */
 
-using System.Text;
 using CREC_Web.Extensions;
 using CREC_Web.Models;
+using System.Runtime.Serialization.Json;
+using System.Text;
 
 namespace CREC_Web.Services
 {
@@ -201,8 +202,7 @@ namespace CREC_Web.Services
                 CollectionTag1 = " - ",
                 CollectionTag2 = " - ",
                 CollectionTag3 = " - ",
-                CollectionRealLocation = " - ",
-                CollectionInventoryStatus = InventoryStatus.NotSet
+                CollectionRealLocation = " - "
             };
 
             LoadFileList(collection, directoryPath);
@@ -210,91 +210,40 @@ namespace CREC_Web.Services
         }
 
         /// <summary>
-        /// 在庫情報を読み込み（CREC本体のLoadCollectionInventoryDataに準拠）
+        /// 在庫情報を読み込み
         /// </summary>
         private void LoadInventoryData(CollectionData collection, string directoryPath)
         {
+            var inventoryFilePath = Path.Combine(directoryPath, "SystemData", "inventory.json");
+            if (!File.Exists(inventoryFilePath))
+            {
+                _logger.LogWarning($"{inventoryFilePath} does not exist.");
+                collection.CollectionCurrentInventory = null;
+                collection.CollectionInventoryStatus = InventoryStatus.NotSet;
+                return;
+            }
+
             try
             {
-                var inventoryFilePath = Path.Combine(directoryPath, "inventory.inv");
-                if (!File.Exists(inventoryFilePath))
+                string json = File.ReadAllText(inventoryFilePath, Encoding.UTF8);
+                var serializer = new DataContractJsonSerializer(typeof(InventoryData));
+                using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(json)))
                 {
-                    collection.CollectionInventoryStatus = InventoryStatus.NotSet;
-                    collection.CollectionCurrentInventory = null;
-                    return;
-                }
-
-                var lines = File.ReadAllLines(inventoryFilePath, Encoding.GetEncoding("UTF-8"));
-                if (lines.Length == 0) return;
-
-                int? safetyStock = null;
-                int? orderPoint = null;
-                int? maxStock = null;
-                int totalInventory = 0;
-
-                bool firstLine = true;
-                foreach (var line in lines)
-                {
-                    var cols = line.Split(',');
-                    if (cols.Length < 4) continue;
-
-                    if (firstLine)
+                    var inventoryData = serializer.ReadObject(stream) as InventoryData;
+                    if (inventoryData != null)
                     {
-                        // 最初の行から安全在庫、発注点、最大在庫レベルを読み取る
-                        if (!string.IsNullOrEmpty(cols[1]) && int.TryParse(cols[1], out int ss))
-                            safetyStock = ss;
-                        if (!string.IsNullOrEmpty(cols[2]) && int.TryParse(cols[2], out int op))
-                            orderPoint = op;
-                        if (!string.IsNullOrEmpty(cols[3]) && int.TryParse(cols[3], out int ms))
-                            maxStock = ms;
-                        firstLine = false;
+                        collection.InventoryData = inventoryData;
+                        collection.CollectionCurrentInventory = inventoryData.CalculateCurrentInventory();
+                        collection.CollectionInventoryStatus = inventoryData.GetInventoryStatus(collection.CollectionCurrentInventory);
                     }
-                    else
-                    {
-                        // 2行目以降から在庫数を合計
-                        if (cols.Length >= 3 && int.TryParse(cols[2], out int count))
-                        {
-                            totalInventory += count;
-                        }
-                    }
-                }
-
-                collection.CollectionCurrentInventory = totalInventory;
-                collection.CollectionSafetyStock = safetyStock;
-                collection.CollectionOrderPoint = orderPoint;
-                collection.CollectionMaxStock = maxStock;
-
-                // 在庫状況を判定（CREC本体のロジックに準拠）
-                if (totalInventory == 0)
-                {
-                    collection.CollectionInventoryStatus = InventoryStatus.StockOut;
-                }
-                else if (safetyStock.HasValue && totalInventory < safetyStock.Value)
-                {
-                    collection.CollectionInventoryStatus = InventoryStatus.UnderStocked;
-                }
-                else if (orderPoint.HasValue && totalInventory >= (safetyStock ?? 0) && totalInventory < orderPoint.Value)
-                {
-                    collection.CollectionInventoryStatus = InventoryStatus.AppropriateNeedReorder;
-                }
-                else if (maxStock.HasValue && totalInventory > maxStock.Value)
-                {
-                    collection.CollectionInventoryStatus = InventoryStatus.OverStocked;
-                }
-                else if (!safetyStock.HasValue && !orderPoint.HasValue && !maxStock.HasValue)
-                {
-                    collection.CollectionInventoryStatus = InventoryStatus.NotSet;
-                }
-                else
-                {
-                    collection.CollectionInventoryStatus = InventoryStatus.Appropriate;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, $"Error loading inventory data from {directoryPath}");
-                collection.CollectionInventoryStatus = InventoryStatus.NotSet;
+                _logger.LogWarning(ex, $"Error loading inventory data from {inventoryFilePath}");
                 collection.CollectionCurrentInventory = null;
+                collection.CollectionInventoryStatus = InventoryStatus.NotSet;
+                return;
             }
         }
 
