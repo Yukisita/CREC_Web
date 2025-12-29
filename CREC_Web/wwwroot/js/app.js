@@ -1648,13 +1648,13 @@ function searchByUuid(uuid) {
 // Inventory Operation Functions
 // =====================
 
-let currentInventoryCollection = null;
+let currentInventoryCollectionId = null;
 
 /**
  * 在庫操作モーダルを開く
  */
 function openInventoryOperationModal(collection) {
-    currentInventoryCollection = collection;
+    currentInventoryCollectionId = collection.collectionID;
     
     const modal = document.getElementById('inventoryOperationModal');
     const overlay = document.getElementById('inventoryOperationOverlay');
@@ -1684,9 +1684,6 @@ function openInventoryOperationModal(collection) {
     if (cancelBtn) {
         cancelBtn.onclick = closeInventoryOperationModal;
     }
-    
-    // オーバーレイクリックで閉じる
-    overlay.onclick = closeInventoryOperationModal;
     
     // フォーム送信ハンドラ
     form.onsubmit = async (e) => {
@@ -1719,7 +1716,7 @@ function closeInventoryOperationModal() {
     if (modal) modal.classList.remove('show');
     if (overlay) overlay.classList.remove('show');
     
-    currentInventoryCollection = null;
+    currentInventoryCollectionId = null;
 }
 
 /**
@@ -1732,7 +1729,7 @@ async function saveInventoryOperation() {
     const errorElement = document.getElementById('inventoryOperationError');
     const validationMessage = document.getElementById('quantityValidationMessage');
     
-    if (!operationType || !operationQuantity || !currentInventoryCollection) {
+    if (!operationType || !operationQuantity || !currentInventoryCollectionId) {
         return;
     }
     
@@ -1754,7 +1751,7 @@ async function saveInventoryOperation() {
     
     try {
         // APIエンドポイントに送信
-        const response = await fetch(`/api/Inventory/${encodeURIComponent(currentInventoryCollection.collectionID)}`, {
+        const response = await fetch(`/api/Inventory/${encodeURIComponent(currentInventoryCollectionId)}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1775,7 +1772,7 @@ async function saveInventoryOperation() {
         closeInventoryOperationModal();
         
         // 詳細パネルを再読み込み
-        await showCollectionDetails(currentInventoryCollection.collectionID);
+        await showCollectionDetails(currentInventoryCollectionId);
         
         // 検索結果も更新
         await searchCollections(currentPage);
