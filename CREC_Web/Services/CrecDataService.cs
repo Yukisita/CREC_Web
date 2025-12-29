@@ -217,6 +217,9 @@ namespace CREC_Web.Services
             var inventoryFilePath = Path.Combine(directoryPath, "SystemData", "inventory.json");
             if (!File.Exists(inventoryFilePath))
             {
+                _logger.LogWarning($"{inventoryFilePath} does not exist.");
+                collection.CollectionCurrentInventory = null;
+                collection.CollectionInventoryStatus = InventoryStatus.NotSet;
                 return;
             }
 
@@ -235,8 +238,11 @@ namespace CREC_Web.Services
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogWarning(ex, $"Error loading inventory data from {inventoryFilePath}");
+                collection.CollectionCurrentInventory = null;
+                collection.CollectionInventoryStatus = InventoryStatus.NotSet;
                 return;
             }
         }
