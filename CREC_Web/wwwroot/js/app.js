@@ -1057,9 +1057,9 @@ function displayCollectionPanel(collection) {
     const inventoryStatusText = getInventoryStatusText(
         collection.collectionInventoryStatus,
         collection.collectionCurrentInventory,
-        collection.inventoryData.setting.safetyStock,
-        collection.inventoryData.setting.reorderPoint,
-        collection.inventoryData.setting.maximumLevel
+        collection.inventoryData?.setting?.safetyStock,
+        collection.inventoryData?.setting?.reorderPoint,
+        collection.inventoryData?.setting?.maximumLevel
     );
     const inventoryBadgeClass = getInventoryStatusBadgeClass(collection.collectionInventoryStatus);
 
