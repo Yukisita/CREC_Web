@@ -224,10 +224,6 @@ namespace CREC_Web.Models
             {
                 return InventoryStatus.OverStocked;
             }
-            else if (!Setting.SafetyStock.HasValue && !Setting.ReorderPoint.HasValue && !Setting.MaximumLevel.HasValue)
-            {
-                return InventoryStatus.NotSet;
-            }
             else
             {
                 return InventoryStatus.Appropriate;
