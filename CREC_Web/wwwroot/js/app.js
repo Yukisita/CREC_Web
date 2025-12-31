@@ -1715,6 +1715,8 @@ function closeInventoryOperationModal() {
     
     if (modal) modal.classList.remove('show');
     if (overlay) overlay.classList.remove('show');
+
+    currentInventoryCollectionId = null;
 }
 
 /**
@@ -1766,15 +1768,14 @@ async function saveInventoryOperation() {
             throw new Error(errorText || `HTTP error! status: ${response.status}`);
         }
         
-        // 成功したらモーダルを閉じる
-        closeInventoryOperationModal();
-        
         // 詳細パネルを再読み込み
         await showCollectionDetails(currentInventoryCollectionId);
         
         // 検索結果も更新
         await searchCollections(currentPage);
-        
+
+        // 成功したらモーダルを閉じる
+        closeInventoryOperationModal();
     } catch (error) {
         console.error('Error saving inventory operation:', error);
         errorElement.textContent = t('operation-error') + ': ' + error.message;
