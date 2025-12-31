@@ -1715,8 +1715,6 @@ function closeInventoryOperationModal() {
     
     if (modal) modal.classList.remove('show');
     if (overlay) overlay.classList.remove('show');
-    
-    currentInventoryCollectionId = null;
 }
 
 /**
