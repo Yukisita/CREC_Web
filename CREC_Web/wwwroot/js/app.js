@@ -1696,14 +1696,13 @@ function openInventoryOperationModal(collection) {
     // 操作タイプ変更時の数量バリデーション
     const operationType = document.getElementById('operationType');
     const operationQuantity = document.getElementById('operationQuantity');
-    
     if (operationType && operationQuantity) {
         operationType.addEventListener('change', () => {
-            operationQuantity.classList.remove('is-invalid');
+            operationQuantity.classList.remove('is-invalid');// 操作タイプ変更時にエラースタイルをリセット
         });
         
         operationQuantity.addEventListener('input', () => {
-            operationQuantity.classList.remove('is-invalid');
+            operationQuantity.classList.remove('is-invalid');// 数量入力時にエラースタイルをリセット
         });
     }
 }
