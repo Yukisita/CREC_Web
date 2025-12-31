@@ -144,8 +144,13 @@ namespace CREC_Web.Controllers
         /// </summary>
         public class InventoryOperationRequest
         {
+            // 在庫操作タイプ
             public InventoryOperationType OperationType { get; set; }
+
+            // 数量（入庫は正、出庫は負）
             public int Quantity { get; set; }
+
+            // 在庫操作コメント
             public string Note { get; set; } = string.Empty;
         }
 
@@ -157,14 +162,14 @@ namespace CREC_Web.Controllers
         {
             try
             {
-                // コレクションIDのバリデーション
+                // コレクションIDの評価
                 if (string.IsNullOrWhiteSpace(collectionId) ||
                     collectionId.Contains("..") || collectionId.Contains("/") || collectionId.Contains("\\"))
                 {
                     return BadRequest("Invalid collection ID");
                 }
 
-                // バリデーション: 入庫は正の数、出庫は負の数
+                // 在庫操作数の評価: 入庫は正の数、出庫は負の数
                 if (request.OperationType == InventoryOperationType.EntryOperation && request.Quantity <= 0)
                 {
                     return BadRequest("Entry operation must have a positive quantity");
@@ -227,7 +232,6 @@ namespace CREC_Web.Controllers
                     Quantity = request.Quantity,
                     Note = request.Note ?? string.Empty
                 };
-
                 inventoryData.Operations.Add(newOperation);
 
                 // inventory.jsonを保存
@@ -240,17 +244,22 @@ namespace CREC_Web.Controllers
                     await System.IO.File.WriteAllTextAsync(inventoryFilePath, jsonString, System.Text.Encoding.UTF8);
                 }
 
+                // 在庫操作のログを出力
                 _logger.LogInformation("Inventory operation added for collection {CollectionId}: Type={OperationType}, Quantity={Quantity}",
                     collectionId.SanitizeForLog(), request.OperationType, request.Quantity);
 
                 // キャッシュをクリア
                 _crecDataService.ClearCache();
 
+                // 成功を返す
                 return Ok(new { message = "Inventory operation saved successfully" });
             }
             catch (Exception ex)
             {
+                // エラーログを出力
                 _logger.LogError(ex, "Error adding inventory operation for collection {CollectionId}", collectionId.SanitizeForLog());
+
+                // 500エラーを返す
                 return StatusCode(500, "Internal server error: " + ex.Message);
             }
         }
