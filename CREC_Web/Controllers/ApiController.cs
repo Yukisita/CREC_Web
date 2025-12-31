@@ -248,8 +248,8 @@ namespace CREC_Web.Controllers
                 _logger.LogInformation("Inventory operation added for collection {CollectionId}: Type={OperationType}, Quantity={Quantity}",
                     collectionId.SanitizeForLog(), request.OperationType, request.Quantity);
 
-                // キャッシュをクリア
-                _crecDataService.ClearCache();
+                // コレクションリストのキャッシュをクリア
+                _crecDataService.ClearCollectionsListCache();
 
                 // 成功を返す
                 return Ok(new { message = "Inventory operation saved successfully" });
