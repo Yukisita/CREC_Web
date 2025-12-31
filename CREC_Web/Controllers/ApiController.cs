@@ -236,7 +236,8 @@ namespace CREC_Web.Controllers
                 {
                     serializerWrite.WriteObject(stream, inventoryData);
                     var jsonBytes = stream.ToArray();
-                    await System.IO.File.WriteAllBytesAsync(inventoryFilePath, jsonBytes);
+                    var jsonString = System.Text.Encoding.UTF8.GetString(jsonBytes);// UTF-8（BOMなし）を明示的に指定
+                    await System.IO.File.WriteAllTextAsync(inventoryFilePath, jsonString, System.Text.Encoding.UTF8);
                 }
 
                 _logger.LogInformation("Inventory operation added for collection {CollectionId}: Type={OperationType}, Quantity={Quantity}",
