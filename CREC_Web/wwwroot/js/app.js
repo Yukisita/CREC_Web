@@ -128,7 +128,7 @@ const translations = {
         'cancel': 'キャンセル',
         'operation-success': '在庫操作を保存しました',
         'operation-error': '在庫操作の保存に失敗しました',
-        'quantity-validation-overflow': '在庫数が上限を超えています',
+        'quantity-validation-overflow': '在庫数が範囲を超えています（-9007199254740991 ~ 9007199254740991）',
         'quantity-validation-entry': '入庫の場合は正の数を入力してください',
         'quantity-validation-exit': '出庫の場合は負の数を入力してください'
     },
@@ -209,7 +209,7 @@ const translations = {
         'cancel': 'Cancel',
         'operation-success': 'Inventory operation saved successfully',
         'operation-error': 'Failed to save inventory operation',
-        'quantity-validation-overflow': 'Number exceeds maximum limit',
+        'quantity-validation-overflow': 'Number exceeds　(-9007199254740991 ~ 9007199254740991)',
         'quantity-validation-entry': 'Please enter a positive number for entry operation',
         'quantity-validation-exit': 'Please enter a negative number for exit operation'
     }

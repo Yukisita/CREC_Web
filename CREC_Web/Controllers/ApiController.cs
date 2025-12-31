@@ -148,7 +148,7 @@ namespace CREC_Web.Controllers
             public InventoryOperationType OperationType { get; set; }
 
             // 数量（入庫は正、出庫は負）
-            public int Quantity { get; set; }
+            public long Quantity { get; set; }
 
             // 在庫操作コメント
             public string Note { get; set; } = string.Empty;
@@ -169,6 +169,11 @@ namespace CREC_Web.Controllers
                     return BadRequest("Invalid collection ID");
                 }
 
+                // 在庫操作数の評価: longオーバフローを確認
+                if (request.Quantity < long.MinValue || request.Quantity > long.MaxValue)
+                {
+                    return BadRequest("Quantity is out of range");
+                }
                 // 在庫操作数の評価: 入庫は正の数、出庫は負の数
                 if (request.OperationType == InventoryOperationType.EntryOperation && request.Quantity <= 0)
                 {

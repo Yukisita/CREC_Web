@@ -118,7 +118,7 @@ namespace CREC_Web.Models
         /// 現在の在庫数
         /// </summary>
         [DataMember(Name = "quantity")]
-        public int Quantity { get; set; }
+        public long Quantity { get; set; }
 
         /// <summary>
         /// 在庫操作のコメント
@@ -177,9 +177,9 @@ namespace CREC_Web.Models
         /// <summary>
         /// 現在の在庫数を計算
         /// </summary>
-        public int? CalculateCurrentInventory()
+        public long? CalculateCurrentInventory()
         {
-            int? inventory = 0;
+            long? inventory = 0;
             if (Operations != null)
             {
                 foreach (var op in Operations)
@@ -197,7 +197,7 @@ namespace CREC_Web.Models
         /// <summary>
         /// 在庫状況を取得
         /// </summary>
-        public InventoryStatus GetInventoryStatus(int? count)
+        public InventoryStatus GetInventoryStatus(long? count)
         {
             if (!Setting.SafetyStock.HasValue && !Setting.ReorderPoint.HasValue && !Setting.MaximumLevel.HasValue)
             {
@@ -306,7 +306,7 @@ namespace CREC_Web.Models
         /// <summary>
         /// 現在の在庫数
         /// </summary>
-        public int? CollectionCurrentInventory { get; set; } = null;
+        public long? CollectionCurrentInventory { get; set; } = null;
 
         /// <summary>
         /// 在庫状況
