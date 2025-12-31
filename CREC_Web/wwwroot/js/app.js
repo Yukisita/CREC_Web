@@ -1723,6 +1723,14 @@ function closeInventoryOperationModal() {
  * 在庫操作を保存
  */
 async function saveInventoryOperation() {
+    // 複数回押下防止のため一時的に無効化
+    const saveButton = document.getElementById('inventoryOperationSave');
+    if (saveButton) {
+        saveButton.disabled = true;
+    } else {
+        return;
+    }
+
     const operationType = document.getElementById('operationType');
     const operationQuantity = document.getElementById('operationQuantity');
     const operationComment = document.getElementById('operationComment');
@@ -1730,6 +1738,7 @@ async function saveInventoryOperation() {
     const validationMessage = document.getElementById('quantityValidationMessage');
     
     if (!operationType || !operationQuantity || !currentInventoryCollectionId) {
+        saveButton.disabled = false;
         return;
     }
     
@@ -1741,11 +1750,13 @@ async function saveInventoryOperation() {
     if (type === 0 && quantity <= 0) {
         operationQuantity.classList.add('is-invalid');
         validationMessage.textContent = t('quantity-validation-entry');
+        saveButton.disabled = false;
         return;
     }
     if (type === 1 && quantity >= 0) {
         operationQuantity.classList.add('is-invalid');
         validationMessage.textContent = t('quantity-validation-exit');
+        saveButton.disabled = false;
         return;
     }
     
@@ -1762,15 +1773,15 @@ async function saveInventoryOperation() {
                 note: comment
             })
         });
-        
+
         if (!response.ok) {
             const errorText = await response.text();
             throw new Error(errorText || `HTTP error! status: ${response.status}`);
         }
-        
+
         // 詳細パネルを再読み込み
         await showCollectionDetails(currentInventoryCollectionId);
-        
+
         // 検索結果も更新
         await searchCollections(currentPage);
 
@@ -1780,5 +1791,7 @@ async function saveInventoryOperation() {
         console.error('Error saving inventory operation:', error);
         errorElement.textContent = t('operation-error') + ': ' + error.message;
         errorElement.style.display = 'block';
+    } finally {
+        saveButton.disabled = false;
     }
 }
