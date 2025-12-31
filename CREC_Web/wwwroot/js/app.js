@@ -128,6 +128,7 @@ const translations = {
         'cancel': 'キャンセル',
         'operation-success': '在庫操作を保存しました',
         'operation-error': '在庫操作の保存に失敗しました',
+        'quantity-validation-overflow': '在庫数が上限を超えています',
         'quantity-validation-entry': '入庫の場合は正の数を入力してください',
         'quantity-validation-exit': '出庫の場合は負の数を入力してください'
     },
@@ -208,6 +209,7 @@ const translations = {
         'cancel': 'Cancel',
         'operation-success': 'Inventory operation saved successfully',
         'operation-error': 'Failed to save inventory operation',
+        'quantity-validation-overflow': 'Number exceeds maximum limit',
         'quantity-validation-entry': 'Please enter a positive number for entry operation',
         'quantity-validation-exit': 'Please enter a negative number for exit operation'
     }
@@ -1745,7 +1747,14 @@ async function saveInventoryOperation() {
     const type = parseInt(operationType.value);
     const quantity = parseInt(operationQuantity.value);
     const comment = operationComment ? operationComment.value : '';
-    
+
+    // バリエーション：数値のオーバーフローを確認
+    if (!Number.isSafeInteger(quantity)) {
+        operationQuantity.classList.add('is-invalid');
+        validationMessage.textContent = t('quantity-validation-overflow');
+        saveButton.disabled = false;
+        return;
+    }
     // バリデーション: 入庫は正の数、出庫は負の数
     if (type === 0 && quantity <= 0) {
         operationQuantity.classList.add('is-invalid');
