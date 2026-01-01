@@ -1,6 +1,6 @@
 /*
 CREC Web - Frontend Application
-Copyright (c) [2025] [S.Yukisita]
+Copyright (c) [2025 - 2026] [S.Yukisita]
 This software is released under the MIT License.
 */
 
@@ -115,7 +115,22 @@ const translations = {
         'qr-scanner-error-not-supported': 'お使いのブラウザはカメラをサポートしていません',
         'qr-scanner-error-https': 'カメラを使用するにはHTTPS接続が必要です',
         'project-overview': 'プロジェクト概要',
-        'third-party-licenses': 'サードパーティライブラリ'
+        'third-party-licenses': 'サードパーティライブラリ',
+        'inventory-operation': '在庫操作',
+        'inventory-operation-title': '在庫操作',
+        'operation-type': '在庫操作',
+        'operation-entry': '入庫',
+        'operation-exit': '出庫',
+        'operation-stocktaking': '棚卸し',
+        'operation-quantity': '在庫操作数',
+        'operation-comment': 'コメント',
+        'save': '保存',
+        'cancel': 'キャンセル',
+        'operation-success': '在庫操作を保存しました',
+        'operation-error': '在庫操作の保存に失敗しました',
+        'quantity-validation-overflow': '在庫数が範囲を超えています（-9007199254740991 ~ 9007199254740991）',
+        'quantity-validation-entry': '入庫の場合は正の数を入力してください',
+        'quantity-validation-exit': '出庫の場合は負の数を入力してください'
     },
     en: {
         'loading': 'Loading...',
@@ -181,7 +196,22 @@ const translations = {
         'qr-scanner-error-not-supported': 'Your browser does not support camera access',
         'qr-scanner-error-https': 'HTTPS connection is required to use the camera',
         'project-overview': 'Project Overview',
-        'third-party-licenses': 'Third-Party Licenses'
+        'third-party-licenses': 'Third-Party Licenses',
+        'inventory-operation': 'Inventory Operation',
+        'inventory-operation-title': 'Inventory Operation',
+        'operation-type': 'Operation Type',
+        'operation-entry': 'Entry',
+        'operation-exit': 'Exit',
+        'operation-stocktaking': 'Stocktaking',
+        'operation-quantity': 'Quantity',
+        'operation-comment': 'Comment',
+        'save': 'Save',
+        'cancel': 'Cancel',
+        'operation-success': 'Inventory operation saved successfully',
+        'operation-error': 'Failed to save inventory operation',
+        'quantity-validation-overflow': 'Number exceeds (-9007199254740991 ~ 9007199254740991)',
+        'quantity-validation-entry': 'Please enter a positive number for entry operation',
+        'quantity-validation-exit': 'Please enter a negative number for exit operation'
     }
 };
 
@@ -1122,7 +1152,12 @@ function displayCollectionPanel(collection) {
         </div>
             
         <div class="detail-section">
-            <h6>${t('inventory')}</h6>
+            <h6>
+                ${t('inventory')}
+                <button id="inventoryOperationBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
+                    <i class="bi bi-pencil-square"></i> ${t('inventory-operation')}
+                </button>
+            </h6>
             <p>${collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : t('not-set')}</p>
         </div>
             
@@ -1167,6 +1202,14 @@ function displayCollectionPanel(collection) {
     overlay.classList.add('show');
     setTimeout(() => {
         panel.classList.add('open');
+    }, ANIMATION_DELAY);
+
+    // 在庫操作ボタンのイベントリスナを設定
+    setTimeout(() => {
+        const inventoryOperationBtn = document.getElementById('inventoryOperationBtn');
+        if (inventoryOperationBtn) {
+            inventoryOperationBtn.addEventListener('click', () => openInventoryOperationModal(collection));
+        }
     }, ANIMATION_DELAY);
 
     // 画像がある場合はカルーセル制御を設定
@@ -1601,4 +1644,162 @@ function searchByUuid(uuid) {
 
     // 検索を実行
     searchCollections();
+}
+
+// =====================
+// Inventory Operation Functions
+// =====================
+
+let currentInventoryCollectionId = null;
+
+/**
+ * 在庫操作モーダルを開く
+ */
+function openInventoryOperationModal(collection) {
+    currentInventoryCollectionId = collection.collectionID;
+    
+    const modal = document.getElementById('inventoryOperationModal');
+    const overlay = document.getElementById('inventoryOperationOverlay');
+    const form = document.getElementById('inventoryOperationForm');
+    const errorElement = document.getElementById('inventoryOperationError');
+    
+    if (!modal || !overlay || !form) {
+        console.error('Inventory operation modal elements not found');
+        return;
+    }
+    
+    // フォームをリセット
+    form.reset();
+    errorElement.style.display = 'none';
+    
+    // モーダルを表示
+    overlay.classList.add('show');
+    modal.classList.add('show');
+    
+    // イベントリスナの設定
+    const closeBtn = document.getElementById('inventoryOperationClose');
+    const cancelBtn = document.getElementById('inventoryOperationCancel');
+    
+    if (closeBtn) {
+        closeBtn.onclick = closeInventoryOperationModal;
+    }
+    if (cancelBtn) {
+        cancelBtn.onclick = closeInventoryOperationModal;
+    }
+    
+    // フォーム送信ハンドラ
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        await saveInventoryOperation();
+    };
+    
+    // 操作タイプ変更時の数量バリデーション
+    const operationType = document.getElementById('operationType');
+    const operationQuantity = document.getElementById('operationQuantity');
+    if (operationType && operationQuantity) {
+        operationType.addEventListener('change', () => {
+            operationQuantity.classList.remove('is-invalid'); // 操作タイプ変更時にエラースタイルをリセット
+        });
+        
+        operationQuantity.addEventListener('input', () => {
+            operationQuantity.classList.remove('is-invalid'); // 数量入力時にエラースタイルをリセット
+        });
+    }
+}
+
+/**
+ * 在庫操作モーダルを閉じる
+ */
+function closeInventoryOperationModal() {
+    const modal = document.getElementById('inventoryOperationModal');
+    const overlay = document.getElementById('inventoryOperationOverlay');
+    
+    if (modal) modal.classList.remove('show');
+    if (overlay) overlay.classList.remove('show');
+
+    currentInventoryCollectionId = null;
+}
+
+/**
+ * 在庫操作を保存
+ */
+async function saveInventoryOperation() {
+    // 複数回押下防止のため一時的に無効化
+    const saveButton = document.getElementById('inventoryOperationSave');
+    if (saveButton) {
+        saveButton.disabled = true;
+    } else {
+        return;
+    }
+
+    const operationType = document.getElementById('operationType');
+    const operationQuantity = document.getElementById('operationQuantity');
+    const operationComment = document.getElementById('operationComment');
+    const errorElement = document.getElementById('inventoryOperationError');
+    const validationMessage = document.getElementById('quantityValidationMessage');
+    
+    if (!operationType || !operationQuantity || !currentInventoryCollectionId) {
+        saveButton.disabled = false;
+        return;
+    }
+    
+    const type = parseInt(operationType.value);
+    const quantity = parseInt(operationQuantity.value);
+    const comment = operationComment ? operationComment.value : '';
+
+    // バリデーション: 数値のオーバーフローを確認(範囲: -9007199254740991 ~ 9007199254740991)
+    if (!Number.isSafeInteger(quantity)) {
+        operationQuantity.classList.add('is-invalid');
+        validationMessage.textContent = t('quantity-validation-overflow');
+        saveButton.disabled = false;
+        return;
+    }
+    // バリデーション: 入庫は正の数、出庫は負の数
+    if (type === 0 && quantity <= 0) {
+        operationQuantity.classList.add('is-invalid');
+        validationMessage.textContent = t('quantity-validation-entry');
+        saveButton.disabled = false;
+        return;
+    }
+    if (type === 1 && quantity >= 0) {
+        operationQuantity.classList.add('is-invalid');
+        validationMessage.textContent = t('quantity-validation-exit');
+        saveButton.disabled = false;
+        return;
+    }
+    
+    try {
+        // APIエンドポイントに送信
+        const response = await fetch(`/api/Inventory/${encodeURIComponent(currentInventoryCollectionId)}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                operationType: type,
+                quantity: quantity,
+                note: comment
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || `HTTP error! status: ${response.status}`);
+        }
+
+        // 詳細パネルを再読み込み
+        await showCollectionDetails(currentInventoryCollectionId);
+
+        // 検索結果も更新
+        await searchCollections(currentPage);
+
+        // 成功したらモーダルを閉じる
+        closeInventoryOperationModal();
+    } catch (error) {
+        console.error('Error saving inventory operation:', error);
+        errorElement.textContent = t('operation-error') + ': ' + error.message;
+        errorElement.style.display = 'block';
+    } finally {
+        saveButton.disabled = false;
+    }
 }

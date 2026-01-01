@@ -1,6 +1,6 @@
 ﻿/*
 CREC Web - Data Reader Service
-Copyright (c) [2025] [S.Yukisita]
+Copyright (c) [2025 - 2026] [S.Yukisita]
 This software is released under the MIT License.
 */
 
@@ -481,6 +481,16 @@ namespace CREC_Web.Services
                 .Distinct()
                 .OrderBy(tag => tag)
                 .ToList();
+        }
+
+        /// <summary>
+        /// コレクションリストのキャッシュをクリア
+        /// </summary>
+        public void ClearCollectionsListCache()
+        {
+            _collectionsCache.Clear();
+            _lastCacheUpdate = DateTime.MinValue; // 最終キャッシュ更新時刻を最小値（実質的に「初期化されていない」状態）にリセット
+            _logger.LogInformation("Collections list cache cleared");
         }
     }
 }

@@ -1,6 +1,6 @@
 ﻿/*
 CREC Web - API Controller
-Copyright (c) [2025] [S.Yukisita]
+Copyright (c) [2025 - 2026] [S.Yukisita]
 This software is released under the MIT License.
 */
 
@@ -120,6 +120,155 @@ namespace CREC_Web.Controllers
             {
                 _logger.LogError(ex, "Error getting tags");
                 return StatusCode(500, "Internal server error");
+            }
+        }
+    }
+
+    [ApiController]
+    [Route("api/[controller]")]
+    public class InventoryController : ControllerBase
+    {
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<InventoryController> _logger;
+        private readonly CrecDataService _crecDataService;
+
+        public InventoryController(IConfiguration configuration, ILogger<InventoryController> logger, CrecDataService crecDataService)
+        {
+            _configuration = configuration;
+            _logger = logger;
+            _crecDataService = crecDataService;
+        }
+
+        /// <summary>
+        /// 在庫操作リクエスト
+        /// </summary>
+        public class InventoryOperationRequest
+        {
+            // 在庫操作タイプ
+            public InventoryOperationType OperationType { get; set; }
+
+            // 数量（入庫は正、出庫は負）
+            public long Quantity { get; set; }
+
+            // 在庫操作コメント
+            public string Note { get; set; } = string.Empty;
+        }
+
+        /// <summary>
+        /// 在庫操作を追加
+        /// </summary>
+        [HttpPost("{collectionId}")]
+        public async Task<IActionResult> AddInventoryOperation(string collectionId, [FromBody] InventoryOperationRequest request)
+        {
+            try
+            {
+                // コレクションIDの評価
+                if (string.IsNullOrWhiteSpace(collectionId) ||
+                    collectionId.Contains("..") || collectionId.Contains("/") || collectionId.Contains("\\"))
+                {
+                    return BadRequest("Invalid collection ID");
+                }
+
+                // 在庫操作数の評価: JavaScriptのNumber.MAX_SAFE_INTEGER/MIN_SAFE_INTEGER範囲内か確認
+                const long maxSafeInteger = 9007199254740991L;
+                const long minSafeInteger = -9007199254740991L;
+                if (request.Quantity > maxSafeInteger || request.Quantity < minSafeInteger)
+                {
+                    return BadRequest("Quantity is out of safe integer range");
+                }
+
+                // 在庫操作数の評価: 入庫は正の数、出庫は負の数
+                if (request.OperationType == InventoryOperationType.EntryOperation && request.Quantity <= 0)
+                {
+                    return BadRequest("Entry operation must have a positive quantity");
+                }
+                if (request.OperationType == InventoryOperationType.ExitOperation && request.Quantity >= 0)
+                {
+                    return BadRequest("Exit operation must have a negative quantity");
+                }
+
+                // コレクションが存在するか確認
+                var collection = await _crecDataService.GetCollectionByIdAsync(collectionId);
+                if (collection == null)
+                {
+                    return NotFound($"Collection with ID '{collectionId}' not found");
+                }
+
+                var dataFolder = _configuration["ProjectDataPath"] ?? Directory.GetCurrentDirectory();
+                var collectionFolder = Path.GetFullPath(Path.Combine(dataFolder, collectionId));
+                var systemDataFolder = Path.Combine(collectionFolder, "SystemData");
+                var inventoryFilePath = Path.Combine(systemDataFolder, "inventory.json");
+
+                // パストラバーサル防止
+                if (!collectionFolder.StartsWith(dataFolder, StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest("Access denied");
+                }
+
+                // SystemDataフォルダが存在しない場合は作成
+                if (!Directory.Exists(systemDataFolder))
+                {
+                    Directory.CreateDirectory(systemDataFolder);
+                }
+
+                // 既存のinventory.jsonを読み込むか新規作成
+                InventoryData inventoryData;
+                if (System.IO.File.Exists(inventoryFilePath))
+                {
+                    var json = await System.IO.File.ReadAllTextAsync(inventoryFilePath, System.Text.Encoding.UTF8);
+                    var serializer = new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(InventoryData));
+                    using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json)))
+                    {
+                        inventoryData = serializer.ReadObject(stream) as InventoryData ?? new InventoryData();
+                    }
+                }
+                else
+                {
+                    inventoryData = new InventoryData
+                    {
+                        MetaData = new InventoryMetaData(collectionId),
+                        Setting = new InventoryOperationSetting(),
+                        Operations = new List<InventoryOperationRecord>()
+                    };
+                }
+
+                // 新しい操作を追加
+                var newOperation = new InventoryOperationRecord
+                {
+                    DateTime = DateTimeOffset.UtcNow.ToString("o"),
+                    OperationType = request.OperationType,
+                    Quantity = request.Quantity,
+                    Note = request.Note ?? string.Empty
+                };
+                inventoryData.Operations.Add(newOperation);
+
+                // inventory.jsonを保存
+                var serializerWrite = new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(InventoryData));
+                using (var stream = new MemoryStream())
+                {
+                    serializerWrite.WriteObject(stream, inventoryData);
+                    var jsonBytes = stream.ToArray();
+                    var jsonString = System.Text.Encoding.UTF8.GetString(jsonBytes); // UTF-8（BOMなし）を明示的に指定
+                    await System.IO.File.WriteAllTextAsync(inventoryFilePath, jsonString, System.Text.Encoding.UTF8);
+                }
+
+                // 在庫操作のログを出力
+                _logger.LogInformation("Inventory operation added for collection {CollectionId}: Type={OperationType}, Quantity={Quantity}",
+                    collectionId.SanitizeForLog(), request.OperationType, request.Quantity);
+
+                // コレクションリストのキャッシュをクリア
+                _crecDataService.ClearCollectionsListCache();
+
+                // 成功を返す
+                return Ok(new { message = "Inventory operation saved successfully" });
+            }
+            catch (Exception ex)
+            {
+                // エラーログを出力
+                _logger.LogError(ex, "Error adding inventory operation for collection {CollectionId}", collectionId.SanitizeForLog());
+
+                // 500エラーを返す
+                return StatusCode(500, "Internal server error: " + ex.Message);
             }
         }
     }
