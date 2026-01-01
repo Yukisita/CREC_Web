@@ -306,6 +306,9 @@ namespace CREC_Web.Models
         /// <summary>
         /// 現在の在庫数
         /// </summary>
+        /// <remarks>
+        /// 範囲は-9223372036854775808 ~ 9223372036854775807
+        /// </remarks>
         public long? CollectionCurrentInventory { get; set; } = null;
 
         /// <summary>

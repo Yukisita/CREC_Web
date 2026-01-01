@@ -1747,7 +1747,7 @@ async function saveInventoryOperation() {
     const quantity = parseInt(operationQuantity.value);
     const comment = operationComment ? operationComment.value : '';
 
-    // バリエーション：数値のオーバーフローを確認
+    // バリデーション: 数値のオーバーフローを確認(範囲: -9007199254740991 ~ 9007199254740991)
     if (!Number.isSafeInteger(quantity)) {
         operationQuantity.classList.add('is-invalid');
         validationMessage.textContent = t('quantity-validation-overflow');
