@@ -507,6 +507,41 @@
         </div>
     </div>
 
+    <!-- Inventory Operation Modal -->
+    <div class="qr-scanner-overlay" id="inventoryOperationOverlay"></div>
+    <div class="qr-scanner-modal" id="inventoryOperationModal">
+        <div class="qr-scanner-header">
+            <h5 id="inventoryOperationTitle" data-lang="inventory-operation-title"></h5>
+            <button class="qr-scanner-close" id="inventoryOperationClose">&times;</button>
+        </div>
+        <div class="qr-scanner-body">
+            <form id="inventoryOperationForm">
+                <div class="mb-3">
+                    <label for="operationType" class="form-label" data-lang="operation-type"></label>
+                    <select class="form-select" id="operationType" required>
+                        <option value="0" data-lang="operation-entry"></option>
+                        <option value="1" data-lang="operation-exit"></option>
+                        <option value="2" data-lang="operation-stocktaking"></option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="operationQuantity" class="form-label" data-lang="operation-quantity"></label>
+                    <input type="number" class="form-control" id="operationQuantity" required>
+                    <div class="invalid-feedback" id="quantityValidationMessage"></div>
+                </div>
+                <div class="mb-3">
+                    <label for="operationComment" class="form-label" data-lang="operation-comment"></label>
+                    <textarea class="form-control" id="operationComment" rows="3"></textarea>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary" id="inventoryOperationSave" data-lang="save"></button>
+                    <button type="button" class="btn btn-secondary" id="inventoryOperationCancel" data-lang="cancel"></button>
+                </div>
+            </form>
+            <div id="inventoryOperationError" class="qr-scanner-error" style="display: none; margin-top: 1rem;"></div>
+        </div>
+    </div>
+
     <!-- Detail Panel Overlay -->
     <div class="detail-panel-overlay" id="detailPanelOverlay"></div>
 
