@@ -209,7 +209,7 @@ const translations = {
         'cancel': 'Cancel',
         'operation-success': 'Inventory operation saved successfully',
         'operation-error': 'Failed to save inventory operation',
-        'quantity-validation-overflow': 'Number exceeds　(-9007199254740991 ~ 9007199254740991)',
+        'quantity-validation-overflow': 'Number exceeds (-9007199254740991 ~ 9007199254740991)',
         'quantity-validation-entry': 'Please enter a positive number for entry operation',
         'quantity-validation-exit': 'Please enter a negative number for exit operation'
     }
