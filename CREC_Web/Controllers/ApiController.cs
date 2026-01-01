@@ -169,11 +169,14 @@ namespace CREC_Web.Controllers
                     return BadRequest("Invalid collection ID");
                 }
 
-                // 在庫操作数の評価: longオーバフローを確認
-                if (request.Quantity < long.MinValue || request.Quantity > long.MaxValue)
+                // 在庫操作数の評価: JavaScriptのNumber.MAX_SAFE_INTEGER/MIN_SAFE_INTEGER範囲内か確認
+                const long maxSafeInteger = 9007199254740991L;
+                const long minSafeInteger = -9007199254740991L;
+                if (request.Quantity > maxSafeInteger || request.Quantity < minSafeInteger)
                 {
-                    return BadRequest("Quantity is out of range");
+                    return BadRequest("Quantity is out of safe integer range");
                 }
+
                 // 在庫操作数の評価: 入庫は正の数、出庫は負の数
                 if (request.OperationType == InventoryOperationType.EntryOperation && request.Quantity <= 0)
                 {
