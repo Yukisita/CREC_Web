@@ -131,7 +131,10 @@ const translations = {
         'quantity-validation-overflow': '在庫数が範囲を超えています（-9007199254740991 ~ 9007199254740991）',
         'quantity-validation-entry': '入庫の場合は正の数を入力してください',
         'quantity-validation-exit': '出庫の場合は負の数を入力してください',
-        'inventory-management-settings': '在庫管理設定'
+        'inventory-management-settings': '在庫管理設定',
+        'safety-stock': '安全在庫数', 
+        'reorder-point': '発注点', 
+        'maximum-level': '最大在庫数'
     },
     en: {
         'loading': 'Loading...',
@@ -213,7 +216,10 @@ const translations = {
         'quantity-validation-overflow': 'Number exceeds (-9007199254740991 ~ 9007199254740991)',
         'quantity-validation-entry': 'Please enter a positive number for entry operation',
         'quantity-validation-exit': 'Please enter a negative number for exit operation',
-        'inventory-management-settings': 'Inventory Management Settings'
+        'inventory-management-settings': 'Inventory Management Settings',
+        'safety-stock': 'Safety Stock',
+        'reorder-point': 'Reorder Point',
+        'maximum-level': 'Maximum Level'
     }
 };
 
@@ -1219,6 +1225,14 @@ function displayCollectionPanel(collection) {
         }
     }, ANIMATION_DELAY);
 
+    // 在庫管理設定ボタンのイベントリスナを設定
+    setTimeout(() => {
+        const inventoryManagementSettingsBtn = document.getElementById('inventoryManagementSettingsBtn');
+        if (inventoryManagementSettingsBtn) {
+            inventoryManagementSettingsBtn.addEventListener('click', () => openInventoryManagementSettingsModal(collection));
+        }
+    }, ANIMATION_DELAY);
+
     // 画像がある場合はカルーセル制御を設定
     if (images.length > 0) {
         setTimeout(() => {
@@ -1809,4 +1823,52 @@ async function saveInventoryOperation() {
     } finally {
         saveButton.disabled = false;
     }
+}
+
+/**
+ * 在庫管理設定モーダルを開く
+ */
+function openInventoryManagementSettingsModal(collection) {
+    currentInventoryCollectionId = collection.collectionID;
+
+    const modal = document.getElementById('inventoryManagementSettingsModal');
+    const overlay = document.getElementById('inventoryManagementSettingsOverlay');
+    const form = document.getElementById('inventoryManagementSettingsForm');
+    const errorElement = document.getElementById('inventoryManagementSettingsError');
+
+    if (!modal || !overlay || !form) {
+        console.error('Inventory management settings modal elements not found');
+        return;
+    }
+
+    // フォームをリセット
+    form.reset();
+    errorElement.style.display = 'none';
+
+    // モーダルを表示
+    overlay.classList.add('show');
+    modal.classList.add('show');
+
+    // イベントリスナの設定
+    const closeBtn = document.getElementById('inventoryManagementSettingsClose');
+    const cancelBtn = document.getElementById('inventoryManagementSettingsCancel');
+    if (closeBtn) {
+        closeBtn.onclick = closeInventoryManagementSettingsModal;
+    }
+    if (cancelBtn) {
+        cancelBtn.onclick = closeInventoryManagementSettingsModal;
+    }
+}
+
+/**
+ * 在庫管理設定モーダルを閉じる
+ */
+function closeInventoryManagementSettingsModal() {
+    const modal = document.getElementById('inventoryManagementSettingsModal');
+    const overlay = document.getElementById('inventoryManagementSettingsOverlay');
+
+    if (modal) modal.classList.remove('show');
+    if (overlay) overlay.classList.remove('show');
+
+    currentInventoryCollectionId = null;
 }
