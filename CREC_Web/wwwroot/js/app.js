@@ -130,7 +130,8 @@ const translations = {
         'operation-error': '在庫操作の保存に失敗しました',
         'quantity-validation-overflow': '在庫数が範囲を超えています（-9007199254740991 ~ 9007199254740991）',
         'quantity-validation-entry': '入庫の場合は正の数を入力してください',
-        'quantity-validation-exit': '出庫の場合は負の数を入力してください'
+        'quantity-validation-exit': '出庫の場合は負の数を入力してください',
+        'inventory-management-settings': '在庫管理設定'
     },
     en: {
         'loading': 'Loading...',
@@ -211,7 +212,8 @@ const translations = {
         'operation-error': 'Failed to save inventory operation',
         'quantity-validation-overflow': 'Number exceeds (-9007199254740991 ~ 9007199254740991)',
         'quantity-validation-entry': 'Please enter a positive number for entry operation',
-        'quantity-validation-exit': 'Please enter a negative number for exit operation'
+        'quantity-validation-exit': 'Please enter a negative number for exit operation',
+        'inventory-management-settings': 'Inventory Management Settings'
     }
 };
 
@@ -1162,7 +1164,12 @@ function displayCollectionPanel(collection) {
         </div>
             
         <div class="detail-section">
-            <h6>${t('inventory-status')}</h6>
+            <h6>
+                ${t('inventory-status')}
+                <button id="inventoryManagementSettingsBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
+                    <i class="bi bi-pencil-square"></i> ${t('inventory-management-settings')}
+                </button>
+            </h6>
             <p><span class="badge ${inventoryBadgeClass}">${inventoryStatusText}</span></p>
         </div>
             
