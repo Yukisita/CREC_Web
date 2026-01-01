@@ -245,7 +245,7 @@ namespace CREC_Web.Controllers
                 {
                     serializerWrite.WriteObject(stream, inventoryData);
                     var jsonBytes = stream.ToArray();
-                    var jsonString = System.Text.Encoding.UTF8.GetString(jsonBytes);// UTF-8（BOMなし）を明示的に指定
+                    var jsonString = System.Text.Encoding.UTF8.GetString(jsonBytes); // UTF-8（BOMなし）を明示的に指定
                     await System.IO.File.WriteAllTextAsync(inventoryFilePath, jsonString, System.Text.Encoding.UTF8);
                 }
 
