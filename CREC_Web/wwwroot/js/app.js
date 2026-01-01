@@ -1698,11 +1698,11 @@ function openInventoryOperationModal(collection) {
     const operationQuantity = document.getElementById('operationQuantity');
     if (operationType && operationQuantity) {
         operationType.addEventListener('change', () => {
-            operationQuantity.classList.remove('is-invalid');// 操作タイプ変更時にエラースタイルをリセット
+            operationQuantity.classList.remove('is-invalid'); // 操作タイプ変更時にエラースタイルをリセット
         });
         
         operationQuantity.addEventListener('input', () => {
-            operationQuantity.classList.remove('is-invalid');// 数量入力時にエラースタイルをリセット
+            operationQuantity.classList.remove('is-invalid'); // 数量入力時にエラースタイルをリセット
         });
     }
 }
