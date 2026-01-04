@@ -1944,23 +1944,23 @@ async function saveInventoryManagementSettings() {
     const maximumLevel = maximumLevelElement && maximumLevelElement.value ? parseInt(maximumLevelElement.value) : null;
     
     // バリデーション: 数値のオーバーフローを確認(範囲: -9007199254740991 ~ 9007199254740991)
+    var isValid = true;
     if (!Number.isSafeInteger(safetyStock)) {
         safetyStockElement.classList.add('is-invalid');
         safetyStockValidationMessage.textContent = t('safeInteger-overflow');
-        saveButton.disabled = false;
-        return;
+        isValid = false;
     }
-
     if (!Number.isSafeInteger(reorderPoint)) {
         reorderPointElement.classList.add('is-invalid');
         reorderPointValidationMessage.textContent = t('safeInteger-overflow');
-        saveButton.disabled = false;
-        return;
+        isValid = false;
     }
-
     if (!Number.isSafeInteger(maximumLevel)) {
         maximumLevelElement.classList.add('is-invalid');
         maximumLevelValidationMessage.textContent = t('safeInteger-overflow');
+        isValid = false;
+    }
+    if (!isValid) {
         saveButton.disabled = false;
         return;
     }
