@@ -132,7 +132,7 @@ const translations = {
         'quantity-validation-entry': '入庫の場合は正の数を入力してください',
         'quantity-validation-exit': '出庫の場合は負の数を入力してください',
         'inventory-management-settings': '在庫管理設定',
-        'safety-stock': '安全在庫数', 
+        'safety-stock': '安全在庫数',
         'reorder-point': '発注点', 
         'maximum-level': '最大在庫数',
         'safeInteger-overflow':'設定値が、設定可能範囲（-9007199254740991 ~ 9007199254740991）を超えています。'
