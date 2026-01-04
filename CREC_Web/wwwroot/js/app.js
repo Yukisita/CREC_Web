@@ -1903,8 +1903,8 @@ function openInventoryManagementSettingsModal(collection) {
 }
 
 /**
-* 在庫管理設定モーダルを閉じる
-*/
+ * 在庫管理設定モーダルを閉じる
+ */
 function closeInventoryManagementSettingsModal() {
     const modal = document.getElementById('inventoryManagementSettingsModal');
     const overlay = document.getElementById('inventoryManagementSettingsOverlay');
@@ -1917,7 +1917,7 @@ function closeInventoryManagementSettingsModal() {
 
 /**
  * 在庫管理設定を保存
-*/
+ */
 async function saveInventoryManagementSettings() {
     // 複数回押下防止のため一時的に無効化
     const saveButton = document.getElementById('inventoryManagementSettingsSave');
