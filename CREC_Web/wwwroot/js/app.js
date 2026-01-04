@@ -1858,17 +1858,98 @@ function openInventoryManagementSettingsModal(collection) {
     if (cancelBtn) {
         cancelBtn.onclick = closeInventoryManagementSettingsModal;
     }
-}
 
-/**
- * 在庫管理設定モーダルを閉じる
- */
-function closeInventoryManagementSettingsModal() {
-    const modal = document.getElementById('inventoryManagementSettingsModal');
-    const overlay = document.getElementById('inventoryManagementSettingsOverlay');
+    // フォーム送信ハンドラ
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        await saveInventoryManagementSettings();
+    };
 
-    if (modal) modal.classList.remove('show');
-    if (overlay) overlay.classList.remove('show');
+    // 既存の在庫管理設定をフォームに反映
+    const safetyStockElement = document.getElementById('safetyStock');
+    const reorderPointElement = document.getElementById('reorderPoint');
+    const maximumLevelElement = document.getElementById('maximumLevel');
+    if (collection.inventoryData && collection.inventoryData.setting) {
+        const setting = collection.inventoryData.setting;
+        if (safetyStockElement) {
+            safetyStockElement.value = setting.safetyStock !== null ? setting.safetyStock : '';
+        }
+        if (reorderPointElement) {
+            reorderPointElement.value = setting.reorderPoint !== null ? setting.reorderPoint : '';
+        }
+        if (maximumLevelElement) {
+            maximumLevelElement.value = setting.maximumLevel !== null ? setting.maximumLevel : '';
+        }
+    }
 
-    currentInventoryCollectionId = null;
+    /**
+     * 在庫管理設定モーダルを閉じる
+     */
+    function closeInventoryManagementSettingsModal() {
+        const modal = document.getElementById('inventoryManagementSettingsModal');
+        const overlay = document.getElementById('inventoryManagementSettingsOverlay');
+
+        if (modal) modal.classList.remove('show');
+        if (overlay) overlay.classList.remove('show');
+
+        currentInventoryCollectionId = null;
+    }
+
+    /**
+     * 在庫管理設定を保存
+     */
+    async function saveInventoryManagementSettings() {
+        // 複数回押下防止のため一時的に無効化
+        const saveButton = document.getElementById('inventoryManagementSettingsSave');
+        if (saveButton) {
+            saveButton.disabled = true;
+        } else {
+            return;
+        }
+
+        const safetyStockElement = document.getElementById('safetyStock');
+        const reorderPointElement = document.getElementById('reorderPoint');
+        const maximumLevelElement = document.getElementById('maximumLevel');
+        const errorElement = document.getElementById('inventoryManagementSettingsError');
+
+        if (!currentInventoryCollectionId) {
+            saveButton.disabled = false;
+            return;
+        }
+        const safetyStock = safetyStockElement && safetyStockElement.value ? parseInt(safetyStockElement.value) : null;
+        const reorderPoint = reorderPointElement && reorderPointElement.value ? parseInt(reorderPointElement.value) : null;
+        const maximumLevel = maximumLevelElement && maximumLevelElement.value ? parseInt(maximumLevelElement.value) : null;
+        try {
+            // APIエンドポイントに送信
+            const response = await fetch(`/api/Inventory/Settings/${encodeURIComponent(currentInventoryCollectionId)}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    safetyStock: safetyStock,
+                    reorderPoint: reorderPoint,
+                    maximumLevel: maximumLevel
+                })
+            });
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || `HTTP error! status: ${response.status}`);
+            }
+
+            // 詳細パネルを再読み込み
+            await showCollectionDetails(currentInventoryCollectionId);
+
+            // 成功したらモーダルを閉じる
+            closeInventoryManagementSettingsModal();
+        }
+        catch (error) {
+            console.error('Error saving inventory management settings:', error);
+            errorElement.textContent = t('settings-error') + ': ' + error.message;
+            errorElement.style.display = 'block';
+        } finally {
+            saveButton.disabled = false;
+            return;
+        }
+    }
 }
