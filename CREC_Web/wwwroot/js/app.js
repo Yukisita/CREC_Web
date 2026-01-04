@@ -1944,7 +1944,7 @@ async function saveInventoryManagementSettings() {
     const maximumLevel = maximumLevelElement && maximumLevelElement.value ? parseInt(maximumLevelElement.value) : null;
     
     // バリデーション: 数値のオーバーフローを確認(範囲: -9007199254740991 ~ 9007199254740991)
-    var isValid = true;
+    let isValid = true;
     if (!Number.isSafeInteger(safetyStock)) {
         safetyStockElement.classList.add('is-invalid');
         safetyStockValidationMessage.textContent = t('safeInteger-overflow');
