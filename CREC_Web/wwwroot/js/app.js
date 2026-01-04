@@ -1995,6 +1995,5 @@ async function saveInventoryManagementSettings() {
         errorElement.style.display = 'block';
     } finally {
         saveButton.disabled = false;
-        return;
     }
 }
