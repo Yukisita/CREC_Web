@@ -64,19 +64,19 @@ namespace CREC_Web.Models
         /// 安全在庫数
         /// </summary>
         [DataMember(Name = "safetyStock")]
-        public int? SafetyStock { get; set; }
+        public long? SafetyStock { get; set; }
 
         /// <summary>
         /// 発注点
         /// </summary>
         [DataMember(Name = "reorderPoint")]
-        public int? ReorderPoint { get; set; }
+        public long? ReorderPoint { get; set; }
 
         /// <summary>
         /// 最大在庫数
         /// </summary>
         [DataMember(Name = "maximumLevel")]
-        public int? MaximumLevel { get; set; }
+        public long? MaximumLevel { get; set; }
 
         public InventoryOperationSetting()
         {
