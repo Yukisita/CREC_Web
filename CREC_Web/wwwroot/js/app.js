@@ -135,7 +135,7 @@ const translations = {
         'safety-stock': '安全在庫数',
         'reorder-point': '発注点', 
         'maximum-level': '最大在庫数',
-        'safeInteger-overflow':'設定値が、設定可能範囲（-9007199254740991 ~ 9007199254740991）を超えています。'
+        'safe-integer-overflow':'設定値が、設定可能範囲（-9007199254740991 ~ 9007199254740991）を超えています。'
     },
     en: {
         'loading': 'Loading...',
@@ -221,7 +221,7 @@ const translations = {
         'safety-stock': 'Safety Stock',
         'reorder-point': 'Reorder Point',
         'maximum-level': 'Maximum Level',
-        'safeInteger-overflow': 'The value exceeds the configurable range (-9007199254740991 ~ 9007199254740991).'
+        'safe-integer-overflow': 'The value exceeds the configurable range (-9007199254740991 ~ 9007199254740991).'
     }
 };
 
@@ -1947,17 +1947,17 @@ async function saveInventoryManagementSettings() {
     let isValid = true;
     if (!Number.isSafeInteger(safetyStock)) {
         safetyStockElement.classList.add('is-invalid');
-        safetyStockValidationMessage.textContent = t('safeInteger-overflow');
+        safetyStockValidationMessage.textContent = t('safe-integer-overflow');
         isValid = false;
     }
     if (!Number.isSafeInteger(reorderPoint)) {
         reorderPointElement.classList.add('is-invalid');
-        reorderPointValidationMessage.textContent = t('safeInteger-overflow');
+        reorderPointValidationMessage.textContent = t('safe-integer-overflow');
         isValid = false;
     }
     if (!Number.isSafeInteger(maximumLevel)) {
         maximumLevelElement.classList.add('is-invalid');
-        maximumLevelValidationMessage.textContent = t('safeInteger-overflow');
+        maximumLevelValidationMessage.textContent = t('safe-integer-overflow');
         isValid = false;
     }
     if (!isValid) {
