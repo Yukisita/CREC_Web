@@ -1828,6 +1828,15 @@ async function saveInventoryOperation() {
 }
 
 /**
+ * 在庫管理設定モーダルのイベントリスナを保持する構造
+ */
+const inventoryManagementSettingsModalHandlers = {
+    safetyStockInput: null,
+    reorderPointInput: null,
+    maximumLevelInput: null
+}
+
+/**
  * 在庫管理設定モーダルを開く
  */
 function openInventoryManagementSettingsModal(collection) {
@@ -1877,7 +1886,7 @@ function openInventoryManagementSettingsModal(collection) {
     overlay.classList.add('show');
     modal.classList.add('show');
 
-    // イベントリスナの設定
+    // ボタンのイベントリスナの設定
     const closeBtn = document.getElementById('inventoryManagementSettingsClose');
     const cancelBtn = document.getElementById('inventoryManagementSettingsCancel');
     if (closeBtn) {
@@ -1910,22 +1919,36 @@ function openInventoryManagementSettingsModal(collection) {
         }
     }
 
-    // 数値変更時にエラースタイルをリセット
-    if (safetyStockElement) {
-        safetyStockElement.addEventListener('input', () => {
-            safetyStockElement.classList.remove('is-invalid');
-        });
+    // 既存のイベントリスナを削除
+    if (inventoryManagementSettingsModalHandlers.safetyStockInput) {
+        safetyStockElement.removeEventListener('input',
+            inventoryManagementSettingsModalHandlers.safetyStockInput);
     }
-    if (reorderPointElement) {
-        reorderPointElement.addEventListener('input', () => {
-            reorderPointElement.classList.remove('is-invalid');
-        });
+    if (inventoryManagementSettingsModalHandlers.reorderPointInput) {
+        reorderPointElement.removeEventListener('input',
+            inventoryManagementSettingsModalHandlers.reorderPointInput);
     }
-    if (maximumLevelElement) {
-        maximumLevelElement.addEventListener('input', () => {
-            maximumLevelElement.classList.remove('is-invalid');
-        });
+    if (inventoryManagementSettingsModalHandlers.maximumLevelInput) {
+        maximumLevelElement.removeEventListener('input',
+            inventoryManagementSettingsModalHandlers.maximumLevelInput);
     }
+    // 新しいハンドラを作成
+    inventoryManagementSettingsModalHandlers.safetyStockInput = () => {
+        safetyStockElement.classList.remove('is-invalid');
+    };
+    inventoryManagementSettingsModalHandlers.reorderPointInput = () => {
+        reorderPointElement.classList.remove('is-invalid');
+    };
+    inventoryManagementSettingsModalHandlers.maximumLevelInput = () => {
+        maximumLevelElement.classList.remove('is-invalid');
+    };
+    // イベントリスナを設定
+    safetyStockElement.addEventListener('input',
+        inventoryManagementSettingsModalHandlers.safetyStockInput);
+    reorderPointElement.addEventListener('input',
+        inventoryManagementSettingsModalHandlers.reorderPointInput);
+    maximumLevelElement.addEventListener('input',
+        inventoryManagementSettingsModalHandlers.maximumLevelInput);
 }
 
 /**
@@ -1955,19 +1978,37 @@ function closeInventoryManagementSettingsModal() {
             maximumLevelValidationMessage.textContent = '';
         }
 
-        const safetyStockInput = document.getElementById('safetyStock');
-        const reorderPointInput = document.getElementById('reorderPoint');
-        const maximumLevelInput = document.getElementById('maximumLevel');
-        if (safetyStockInput) {
-            safetyStockInput.classList.remove('is-invalid');
+        const safetyStockElement = document.getElementById('safetyStock');
+        const reorderPointElement = document.getElementById('reorderPoint');
+        const maximumLevelElement = document.getElementById('maximumLevel');
+        // エラースタイルをリセット
+        if (safetyStockElement) {
+            safetyStockElement.classList.remove('is-invalid');
         }
-        if (reorderPointInput) {
-            reorderPointInput.classList.remove('is-invalid');
+        if (reorderPointElement) {
+            reorderPointElement.classList.remove('is-invalid');
         }
-        if (maximumLevelInput) {
-            maximumLevelInput.classList.remove('is-invalid');
+        if (maximumLevelElement) {
+            maximumLevelElement.classList.remove('is-invalid');
+        }
+        // イベントリスナを削除
+        if (inventoryManagementSettingsModalHandlers.safetyStockInput) {
+            safetyStockElement.removeEventListener('input',
+                inventoryManagementSettingsModalHandlers.safetyStockInput);
+            inventoryManagementSettingsModalHandlers.safetyStockInput = null;
+        }
+        if (inventoryManagementSettingsModalHandlers.reorderPointInput) {
+            reorderPointElement.removeEventListener('input',
+                inventoryManagementSettingsModalHandlers.reorderPointInput);
+            inventoryManagementSettingsModalHandlers.reorderPointInput = null;
+        }
+        if (inventoryManagementSettingsModalHandlers.maximumLevelInput) {
+            maximumLevelElement.removeEventListener('input',
+                inventoryManagementSettingsModalHandlers.maximumLevelInput);
+            inventoryManagementSettingsModalHandlers.maximumLevelInput = null;
         }
     }
+
     if (overlay) overlay.classList.remove('show');
     if (form) form.reset();
 
