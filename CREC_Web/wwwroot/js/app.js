@@ -1850,7 +1850,6 @@ function openInventoryManagementSettingsModal(collection) {
     const safetyStockValidationMessage = document.getElementById('safetyStockValidationMessage');
     const reorderPointValidationMessage = document.getElementById('reorderPointValidationMessage');
     const maximumLevelValidationMessage = document.getElementById('maximumLevelValidationMessage');
-
     if (safetyStockValidationMessage) {
         safetyStockValidationMessage.textContent = '';
     }
@@ -1864,7 +1863,6 @@ function openInventoryManagementSettingsModal(collection) {
     const safetyStockInput = document.getElementById('safetyStock');
     const reorderPointInput = document.getElementById('reorderPoint');
     const maximumLevelInput = document.getElementById('maximumLevel');
-
     if (safetyStockInput) {
         safetyStockInput.classList.remove('is-invalid');
     }
@@ -1874,6 +1872,7 @@ function openInventoryManagementSettingsModal(collection) {
     if (maximumLevelInput) {
         maximumLevelInput.classList.remove('is-invalid');
     }
+
     // モーダルを表示
     overlay.classList.add('show');
     modal.classList.add('show');
@@ -1937,7 +1936,52 @@ function closeInventoryManagementSettingsModal() {
     const overlay = document.getElementById('inventoryManagementSettingsOverlay');
     const form = document.getElementById('inventoryManagementSettingsForm');
 
-    if (modal) modal.classList.remove('show');
+    if (modal) {
+        modal.classList.remove('show');
+        // エラーメッセージをクリーンアップ
+        const errorElement = document.getElementById('inventoryManagementSettingsError');
+
+        // バリデーションメッセージとエラースタイルをリセット
+        const safetyStockValidationMessage = document.getElementById('safetyStockValidationMessage');
+        const reorderPointValidationMessage = document.getElementById('reorderPointValidationMessage');
+        const maximumLevelValidationMessage = document.getElementById('maximumLevelValidationMessage');
+        if (safetyStockValidationMessage) {
+            safetyStockValidationMessage.textContent = '';
+        }
+        if (reorderPointValidationMessage) {
+            reorderPointValidationMessage.textContent = '';
+        }
+        if (maximumLevelValidationMessage) {
+            maximumLevelValidationMessage.textContent = '';
+        }
+
+        const safetyStockInput = document.getElementById('safetyStock');
+        const reorderPointInput = document.getElementById('reorderPoint');
+        const maximumLevelInput = document.getElementById('maximumLevel');
+        if (safetyStockInput) {
+            safetyStockInput.classList.remove('is-invalid');
+        }
+        if (reorderPointInput) {
+            reorderPointInput.classList.remove('is-invalid');
+        }
+        if (maximumLevelInput) {
+            maximumLevelInput.classList.remove('is-invalid');
+        }
+
+        // イベントリスナをクリーンアップ
+        const saveButton = document.getElementById('inventoryManagementSettingsSave');
+        if (saveButton) {
+            saveButton.onclick = null;
+        }
+        const closeBtn = document.getElementById('inventoryManagementSettingsClose');
+        if (closeBtn) {
+            closeBtn.onclick = null;
+        }
+        const cancelBtn = document.getElementById('inventoryManagementSettingsCancel');
+        if (cancelBtn) {
+            cancelBtn.onclick = null;
+        }
+    }
     if (overlay) overlay.classList.remove('show');
     if (form) form.reset();
 
