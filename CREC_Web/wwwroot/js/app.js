@@ -1846,6 +1846,34 @@ function openInventoryManagementSettingsModal(collection) {
     // エラーメッセージをクリア
     errorElement.style.display = 'none';
 
+    // バリデーションメッセージとエラースタイルをリセット
+    const safetyStockValidationMessage = document.getElementById('safetyStockValidationMessage');
+    const reorderPointValidationMessage = document.getElementById('reorderPointValidationMessage');
+    const maximumLevelValidationMessage = document.getElementById('maximumLevelValidationMessage');
+
+    if (safetyStockValidationMessage) {
+        safetyStockValidationMessage.textContent = '';
+    }
+    if (reorderPointValidationMessage) {
+        reorderPointValidationMessage.textContent = '';
+    }
+    if (maximumLevelValidationMessage) {
+        maximumLevelValidationMessage.textContent = '';
+    }
+
+    const safetyStockInput = document.getElementById('safetyStock');
+    const reorderPointInput = document.getElementById('reorderPoint');
+    const maximumLevelInput = document.getElementById('maximumLevel');
+
+    if (safetyStockInput) {
+        safetyStockInput.classList.remove('is-invalid');
+    }
+    if (reorderPointInput) {
+        reorderPointInput.classList.remove('is-invalid');
+    }
+    if (maximumLevelInput) {
+        maximumLevelInput.classList.remove('is-invalid');
+    }
     // モーダルを表示
     overlay.classList.add('show');
     modal.classList.add('show');
