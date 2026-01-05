@@ -1843,8 +1843,7 @@ function openInventoryManagementSettingsModal(collection) {
         return;
     }
 
-    // フォームをリセット
-    form.reset();
+    // エラーメッセージをクリア
     errorElement.style.display = 'none';
 
     // モーダルを表示
@@ -1908,9 +1907,11 @@ function openInventoryManagementSettingsModal(collection) {
 function closeInventoryManagementSettingsModal() {
     const modal = document.getElementById('inventoryManagementSettingsModal');
     const overlay = document.getElementById('inventoryManagementSettingsOverlay');
+    const form = document.getElementById('inventoryManagementSettingsForm');
 
     if (modal) modal.classList.remove('show');
     if (overlay) overlay.classList.remove('show');
+    if (form) form.reset();
 
     currentInventoryCollectionId = null;
 }
