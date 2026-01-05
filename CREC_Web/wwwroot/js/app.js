@@ -1967,20 +1967,6 @@ function closeInventoryManagementSettingsModal() {
         if (maximumLevelInput) {
             maximumLevelInput.classList.remove('is-invalid');
         }
-
-        // イベントリスナをクリーンアップ
-        const saveButton = document.getElementById('inventoryManagementSettingsSave');
-        if (saveButton) {
-            saveButton.onclick = null;
-        }
-        const closeBtn = document.getElementById('inventoryManagementSettingsClose');
-        if (closeBtn) {
-            closeBtn.onclick = null;
-        }
-        const cancelBtn = document.getElementById('inventoryManagementSettingsCancel');
-        if (cancelBtn) {
-            cancelBtn.onclick = null;
-        }
     }
     if (overlay) overlay.classList.remove('show');
     if (form) form.reset();
