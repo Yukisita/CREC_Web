@@ -333,6 +333,25 @@ namespace CREC_Web.Controllers
                     };
                 }
 
+                // 在庫管理設定値の範囲確認(範囲: -9007199254740991 ~ 9007199254740991, null許容)
+                const long maxSafeInteger = 9007199254740991L;
+                const long minSafeInteger = -9007199254740991L;
+                if (settings.SafetyStock.HasValue &&
+                    (settings.SafetyStock.Value > maxSafeInteger || settings.SafetyStock.Value < minSafeInteger))
+                {
+                    return BadRequest("SafetyStock is out of safe integer range");
+                }
+                if (settings.ReorderPoint.HasValue &&
+                    (settings.ReorderPoint.Value > maxSafeInteger || settings.ReorderPoint.Value < minSafeInteger))
+                {
+                    return BadRequest("ReorderPoint is out of safe integer range");
+                }
+                if (settings.MaximumLevel.HasValue &&
+                    (settings.MaximumLevel.Value > maxSafeInteger || settings.MaximumLevel.Value < minSafeInteger))
+                {
+                    return BadRequest("MaximumLevel is out of safe integer range");
+                }
+
                 // 在庫管理設定値を更新
                 inventoryData.Setting.SafetyStock = settings.SafetyStock;
                 inventoryData.Setting.ReorderPoint = settings.ReorderPoint;
