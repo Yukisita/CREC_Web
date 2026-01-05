@@ -1947,17 +1947,23 @@ async function saveInventoryManagementSettings() {
     let isValid = true;
     if (!Number.isSafeInteger(safetyStock)) {
         safetyStockElement.classList.add('is-invalid');
-        safetyStockValidationMessage.textContent = t('safe-integer-overflow');
+        if (safetyStockValidationMessage) {
+            safetyStockValidationMessage.textContent = t('safe-integer-overflow');
+        }
         isValid = false;
     }
     if (!Number.isSafeInteger(reorderPoint)) {
         reorderPointElement.classList.add('is-invalid');
-        reorderPointValidationMessage.textContent = t('safe-integer-overflow');
+        if (reorderPointValidationMessage) {
+            reorderPointValidationMessage.textContent = t('safe-integer-overflow');
+        }
         isValid = false;
     }
     if (!Number.isSafeInteger(maximumLevel)) {
         maximumLevelElement.classList.add('is-invalid');
-        maximumLevelValidationMessage.textContent = t('safe-integer-overflow');
+        if (maximumLevelValidationMessage) {
+            maximumLevelValidationMessage.textContent = t('safe-integer-overflow');
+        }
         isValid = false;
     }
     if (!isValid) {
