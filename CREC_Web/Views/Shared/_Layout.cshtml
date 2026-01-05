@@ -542,6 +542,39 @@
         </div>
     </div>
 
+    <!-- Inventory Management Settings Modal -->
+    <div class="qr-scanner-overlay" id="inventoryManagementSettingsOverlay"></div>
+    <div class="qr-scanner-modal" id="inventoryManagementSettingsModal">
+        <div class="qr-scanner-header">
+            <h5 id="inventoryManagementSettingsTitle" data-lang="inventory-management-settings"></h5>
+            <button class="qr-scanner-close" id="inventoryManagementSettingsClose">&times;</button>
+        </div>
+        <div class="qr-scanner-body">
+            <form id="inventoryManagementSettingsForm">
+                <div class="mb-3">
+                    <label for="safetyStock" class="form-label" data-lang="safety-stock"></label>
+                    <input type="number" class="form-control" id="safetyStock">
+                    <div class="invalid-feedback" id="safetyStockValidationMessage"></div>
+                </div>
+                <div class="mb-3">
+                    <label for="reorderPoint" class="form-label" data-lang="reorder-point"></label>
+                    <input type="number" class="form-control" id="reorderPoint">
+                    <div class="invalid-feedback" id="reorderPointValidationMessage"></div>
+                </div>
+                <div class="mb-3">
+                    <label for="maximumLevel" class="form-label" data-lang="maximum-level"></label>
+                    <input type="number" class="form-control" id="maximumLevel">
+                    <div class="invalid-feedback" id="maximumLevelValidationMessage"></div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary" id="inventoryManagementSettingsSave" data-lang="save"></button>
+                    <button type="button" class="btn btn-secondary" id="inventoryManagementSettingsCancel" data-lang="cancel"></button>
+                </div>
+            </form>
+            <div id="inventoryManagementSettingsError" class="qr-scanner-error" style="display: none; margin-top: 1rem;"></div>
+        </div>
+    </div>
+
     <!-- Detail Panel Overlay -->
     <div class="detail-panel-overlay" id="detailPanelOverlay"></div>
 

@@ -271,6 +271,124 @@ namespace CREC_Web.Controllers
                 return StatusCode(500, "Internal server error: " + ex.Message);
             }
         }
+
+        /// <summary>
+        /// 在庫管理設定値を保存
+        /// </summary>
+        /// <param name="collectionId">コレクションID</param>
+        /// <param name="settings">在庫管理設定値</param>
+        [HttpPost("Settings/{collectionId}")]
+        public async Task<IActionResult> SaveInventorySettings(string collectionId, [FromBody] InventoryOperationSetting settings)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(collectionId) || settings == null)
+                {
+                    return BadRequest("Invalid request");
+                }
+
+                // コレクションが存在するか確認
+                var collection = await _crecDataService.GetCollectionByIdAsync(collectionId);
+                if (collection == null)
+                {
+                    return NotFound($"Collection with ID '{collectionId}' not found");
+                }
+
+                // データフォルダの取得
+                var dataFolder = _configuration["ProjectDataPath"] ?? Directory.GetCurrentDirectory();
+                var collectionFolder = Path.GetFullPath(Path.Combine(dataFolder, collectionId));
+                var systemDataFolder = Path.Combine(collectionFolder, "SystemData");
+                var inventoryFilePath = Path.Combine(systemDataFolder, "inventory.json");
+
+                // パストラバーサル防止
+                if (!collectionFolder.StartsWith(dataFolder, StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest("Access denied");
+                }
+
+                // SystemDataフォルダが存在しない場合は作成
+                if (!Directory.Exists(systemDataFolder))
+                {
+                    Directory.CreateDirectory(systemDataFolder);
+                }
+
+                // 既存のinventory.jsonを読み込むか新規作成
+                InventoryData inventoryData;
+                if (System.IO.File.Exists(inventoryFilePath))
+                {
+                    var json = await System.IO.File.ReadAllTextAsync(inventoryFilePath, System.Text.Encoding.UTF8);
+                    var serializer = new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(InventoryData));
+                    using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json)))
+                    {
+                        inventoryData = serializer.ReadObject(stream) as InventoryData ?? new InventoryData();
+                    }
+                }
+                else
+                {
+                    inventoryData = new InventoryData
+                    {
+                        MetaData = new InventoryMetaData(collectionId),
+                        Setting = new InventoryOperationSetting(),
+                        Operations = new List<InventoryOperationRecord>()
+                    };
+                }
+
+                // 在庫管理設定値の範囲確認(範囲: -9007199254740991 ~ 9007199254740991, null許容)
+                const long maxSafeInteger = 9007199254740991L;
+                const long minSafeInteger = -9007199254740991L;
+                if (settings.SafetyStock.HasValue &&
+                    (settings.SafetyStock.Value > maxSafeInteger || settings.SafetyStock.Value < minSafeInteger))
+                {
+                    return BadRequest("SafetyStock is out of safe integer range");
+                }
+                if (settings.ReorderPoint.HasValue &&
+                    (settings.ReorderPoint.Value > maxSafeInteger || settings.ReorderPoint.Value < minSafeInteger))
+                {
+                    return BadRequest("ReorderPoint is out of safe integer range");
+                }
+                if (settings.MaximumLevel.HasValue &&
+                    (settings.MaximumLevel.Value > maxSafeInteger || settings.MaximumLevel.Value < minSafeInteger))
+                {
+                    return BadRequest("MaximumLevel is out of safe integer range");
+                }
+
+                // 在庫管理設定値を更新
+                inventoryData.Setting.SafetyStock = settings.SafetyStock;
+                inventoryData.Setting.ReorderPoint = settings.ReorderPoint;
+                inventoryData.Setting.MaximumLevel = settings.MaximumLevel;
+
+                // inventory.jsonを保存
+                var serializerWrite = new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(InventoryData));
+                using (var stream = new MemoryStream())
+                {
+                    serializerWrite.WriteObject(stream, inventoryData);
+                    var jsonBytes = stream.ToArray();
+                    var jsonString = System.Text.Encoding.UTF8.GetString(jsonBytes); // UTF-8（BOMなし）を明示的に指定
+                    await System.IO.File.WriteAllTextAsync(inventoryFilePath, jsonString, System.Text.Encoding.UTF8);
+                }
+
+                // 在庫管理設定値の変更ログを出力
+                _logger.LogInformation("Inventory settings saved for collection {CollectionId}: SafetyStock={SafetyStock}, ReorderPoint={ReorderPoint}, MaximumLevel={MaximumLevel}",
+                    collectionId.SanitizeForLog(),
+                    settings.SafetyStock?.ToString() ?? "null",
+                    settings.ReorderPoint?.ToString() ?? "null",
+                    settings.MaximumLevel?.ToString() ?? "null");
+
+                // コレクションリストのキャッシュをクリア
+                _crecDataService.ClearCollectionsListCache();
+
+                // 成功を返す
+                return Ok(new { message = "Inventory management settings saved successfully" });
+            }
+            catch (Exception ex)
+            {
+                // エラーログを出力
+                _logger.LogError(ex, "Error saving inventory settings for collection {CollectionId}", collectionId.SanitizeForLog());
+
+                // 500エラーを返す
+                return StatusCode(500, "Internal server error: " + ex.Message);
+            }
+        }
     }
 
     [ApiController]
