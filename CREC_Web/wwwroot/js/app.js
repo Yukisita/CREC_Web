@@ -1944,23 +1944,23 @@ async function saveInventoryManagementSettings() {
     const reorderPoint = reorderPointElement && reorderPointElement.value ? parseInt(reorderPointElement.value) : null;
     const maximumLevel = maximumLevelElement && maximumLevelElement.value ? parseInt(maximumLevelElement.value) : null;
     
-    // バリデーション: 数値のオーバーフローを確認(範囲: -9007199254740991 ~ 9007199254740991)
+    // バリデーション: 数値のオーバーフローを確認(範囲: -9007199254740991 ~ 9007199254740991, null許容)
     let isValid = true;
-    if (!Number.isSafeInteger(safetyStock)) {
+    if (safetyStock !== null && !Number.isSafeInteger(safetyStock)) {
         safetyStockElement.classList.add('is-invalid');
         if (safetyStockValidationMessage) {
             safetyStockValidationMessage.textContent = t('safe-integer-overflow');
         }
         isValid = false;
     }
-    if (!Number.isSafeInteger(reorderPoint)) {
+    if (reorderPoint !== null && !Number.isSafeInteger(reorderPoint)) {
         reorderPointElement.classList.add('is-invalid');
         if (reorderPointValidationMessage) {
             reorderPointValidationMessage.textContent = t('safe-integer-overflow');
         }
         isValid = false;
     }
-    if (!Number.isSafeInteger(maximumLevel)) {
+    if (maximumLevel !== null && !Number.isSafeInteger(maximumLevel)) {
         maximumLevelElement.classList.add('is-invalid');
         if (maximumLevelValidationMessage) {
             maximumLevelValidationMessage.textContent = t('safe-integer-overflow');
