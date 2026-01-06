@@ -2022,17 +2022,17 @@ function closeInventoryManagementSettingsModal() {
             maximumLevelElement.classList.remove('is-invalid');
         }
         // イベントリスナを削除
-        if (inventoryManagementSettingsModalHandlers.safetyStockInput) {
+        if (safetyStockElement && inventoryManagementSettingsModalHandlers.safetyStockInput) {
             safetyStockElement.removeEventListener('input',
                 inventoryManagementSettingsModalHandlers.safetyStockInput);
             inventoryManagementSettingsModalHandlers.safetyStockInput = null;
         }
-        if (inventoryManagementSettingsModalHandlers.reorderPointInput) {
+        if (reorderPointElement && inventoryManagementSettingsModalHandlers.reorderPointInput) {
             reorderPointElement.removeEventListener('input',
                 inventoryManagementSettingsModalHandlers.reorderPointInput);
             inventoryManagementSettingsModalHandlers.reorderPointInput = null;
         }
-        if (inventoryManagementSettingsModalHandlers.maximumLevelInput) {
+        if (maximumLevelElement && inventoryManagementSettingsModalHandlers.maximumLevelInput) {
             maximumLevelElement.removeEventListener('input',
                 inventoryManagementSettingsModalHandlers.maximumLevelInput);
             inventoryManagementSettingsModalHandlers.maximumLevelInput = null;
