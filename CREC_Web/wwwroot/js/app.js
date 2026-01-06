@@ -1919,6 +1919,17 @@ function openInventoryManagementSettingsModal(collection) {
         if (maximumLevelElement) {
             maximumLevelElement.value = setting.maximumLevel !== null ? setting.maximumLevel : '';
         }
+    } else {
+        // 設定が存在しない場合は、前回の値が残らないようにフィールドをクリアする
+        if (safetyStockElement) {
+            safetyStockElement.value = '';
+        }
+        if (reorderPointElement) {
+            reorderPointElement.value = '';
+        }
+        if (maximumLevelElement) {
+            maximumLevelElement.value = '';
+        }
     }
 
     // 既存のイベントリスナを削除
