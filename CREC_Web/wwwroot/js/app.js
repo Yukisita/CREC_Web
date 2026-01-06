@@ -2097,8 +2097,10 @@ async function saveInventoryManagementSettings() {
     }
     catch (error) {
         console.error('Error saving inventory management settings:', error);
-        errorElement.textContent = t('settings-error') + ': ' + error.message;
-        errorElement.style.display = 'block';
+        if (errorElement) {
+            errorElement.textContent = t('settings-error') + ': ' + error.message;
+            errorElement.style.display = 'block';
+        }
     } finally {
         saveButton.disabled = false;
     }
