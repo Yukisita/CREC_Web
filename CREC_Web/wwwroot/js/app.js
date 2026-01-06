@@ -1853,7 +1853,9 @@ function openInventoryManagementSettingsModal(collection) {
     }
 
     // エラーメッセージをクリア
-    errorElement.style.display = 'none';
+    if (errorElement) {
+        errorElement.style.display = 'none';
+    }
 
     // バリデーションメッセージとエラースタイルをリセット
     const safetyStockValidationMessage = document.getElementById('safetyStockValidationMessage');
