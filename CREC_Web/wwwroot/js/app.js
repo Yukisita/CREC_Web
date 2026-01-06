@@ -1963,6 +1963,9 @@ function closeInventoryManagementSettingsModal() {
         modal.classList.remove('show');
         // エラーメッセージをクリーンアップ
         const errorElement = document.getElementById('inventoryManagementSettingsError');
+        if (errorElement) {
+            errorElement.textContent = '';
+        }
 
         // バリデーションメッセージとエラースタイルをリセット
         const safetyStockValidationMessage = document.getElementById('safetyStockValidationMessage');
