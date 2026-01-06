@@ -2155,7 +2155,7 @@ async function saveInventoryManagementSettings() {
     catch (error) {
         console.error('Error saving inventory management settings:', error);
         if (errorElement) {
-            errorElement.textContent = t('settings-error') + ': ' + error.message;
+            errorElement.textContent = error.message;
             errorElement.style.display = 'block';
         }
     } finally {
