@@ -1922,35 +1922,47 @@ function openInventoryManagementSettingsModal(collection) {
     }
 
     // 既存のイベントリスナを削除
-    if (inventoryManagementSettingsModalHandlers.safetyStockInput) {
+    if (safetyStockElement && inventoryManagementSettingsModalHandlers.safetyStockInput) {
         safetyStockElement.removeEventListener('input',
             inventoryManagementSettingsModalHandlers.safetyStockInput);
     }
-    if (inventoryManagementSettingsModalHandlers.reorderPointInput) {
+    if (reorderPointElement && inventoryManagementSettingsModalHandlers.reorderPointInput) {
         reorderPointElement.removeEventListener('input',
             inventoryManagementSettingsModalHandlers.reorderPointInput);
     }
-    if (inventoryManagementSettingsModalHandlers.maximumLevelInput) {
+    if (maximumLevelElement && inventoryManagementSettingsModalHandlers.maximumLevelInput) {
         maximumLevelElement.removeEventListener('input',
             inventoryManagementSettingsModalHandlers.maximumLevelInput);
     }
     // 新しいハンドラを作成
     inventoryManagementSettingsModalHandlers.safetyStockInput = () => {
-        safetyStockElement.classList.remove('is-invalid');
+        if (safetyStockElement) {
+            safetyStockElement.classList.remove('is-invalid');
+        }
     };
     inventoryManagementSettingsModalHandlers.reorderPointInput = () => {
-        reorderPointElement.classList.remove('is-invalid');
+        if (reorderPointElement) {
+            reorderPointElement.classList.remove('is-invalid');
+        }
     };
     inventoryManagementSettingsModalHandlers.maximumLevelInput = () => {
-        maximumLevelElement.classList.remove('is-invalid');
+        if (maximumLevelElement) {
+            maximumLevelElement.classList.remove('is-invalid');
+        }
     };
     // イベントリスナを設定
-    safetyStockElement.addEventListener('input',
-        inventoryManagementSettingsModalHandlers.safetyStockInput);
-    reorderPointElement.addEventListener('input',
-        inventoryManagementSettingsModalHandlers.reorderPointInput);
-    maximumLevelElement.addEventListener('input',
-        inventoryManagementSettingsModalHandlers.maximumLevelInput);
+    if (safetyStockElement) {
+        safetyStockElement.addEventListener('input',
+            inventoryManagementSettingsModalHandlers.safetyStockInput);
+    }
+    if (reorderPointElement) {
+        reorderPointElement.addEventListener('input',
+            inventoryManagementSettingsModalHandlers.reorderPointInput);
+    }
+    if (maximumLevelElement) {
+        maximumLevelElement.addEventListener('input',
+            inventoryManagementSettingsModalHandlers.maximumLevelInput);
+    }
 }
 
 /**
