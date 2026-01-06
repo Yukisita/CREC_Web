@@ -353,6 +353,7 @@ namespace CREC_Web.Controllers
                 }
 
                 // 在庫管理設定値を更新
+                inventoryData.Setting ??= new();
                 inventoryData.Setting.SafetyStock = settings.SafetyStock;
                 inventoryData.Setting.ReorderPoint = settings.ReorderPoint;
                 inventoryData.Setting.MaximumLevel = settings.MaximumLevel;
