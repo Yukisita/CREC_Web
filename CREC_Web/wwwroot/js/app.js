@@ -1440,6 +1440,12 @@ function formatUtcToLocal(utcDateString) {
     }
     
     try {
+        // ISO 8601形式の基本的な検証（簡易チェック）
+        // 最低限、日付部分（YYYY-MM-DD）と時刻のT区切りがあることを確認
+        if (typeof utcDateString !== 'string' || !utcDateString.includes('T')) {
+            return utcDateString;
+        }
+        
         const date = new Date(utcDateString);
         
         // 日付が無効な場合は元の文字列を返す

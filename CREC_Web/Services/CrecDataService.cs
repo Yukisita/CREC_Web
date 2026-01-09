@@ -115,14 +115,24 @@ namespace CREC_Web.Services
 
                 // index.jsonを読み込み
                 var jsonContent = await File.ReadAllTextAsync(indexFilePath, Encoding.UTF8);
-                var indexData = JsonSerializer.Deserialize<IndexData>(jsonContent, new JsonSerializerOptions
+                IndexData? indexData;
+                
+                try
                 {
-                    PropertyNameCaseInsensitive = true
-                });
+                    indexData = JsonSerializer.Deserialize<IndexData>(jsonContent, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+                }
+                catch (JsonException jsonEx)
+                {
+                    _logger.LogError(jsonEx, $"Failed to parse index.json in {indexFilePath}: Invalid JSON format");
+                    return CreateBasicCollectionData(directoryPath);
+                }
 
                 if (indexData == null)
                 {
-                    _logger.LogWarning($"Failed to parse index.json in {indexFilePath}");
+                    _logger.LogWarning($"Failed to deserialize index.json in {indexFilePath}: Null result");
                     return CreateBasicCollectionData(directoryPath);
                 }
 
