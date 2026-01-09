@@ -1187,12 +1187,12 @@ function displayCollectionPanel(collection) {
         <div class="detail-section">
             <h6>${t('tags')}</h6>
             <div>
-                ${collection.indexData.values.firstTag && collection.indexData.values.firstTag !== ' - ' ? `<p>${projectSettings.tag1Name || (currentLanguage === 'ja' ? 'タグ 1' : 'Tag 1')}: ${escapeHtml(collection.indexData.values.firstTag)}</p>` : ''}
-                ${collection.indexData.values.secondTag && collection.indexData.values.secondTag !== ' - ' ? `<p>${projectSettings.tag2Name || (currentLanguage === 'ja' ? 'タグ 2' : 'Tag 2')}: ${escapeHtml(collection.indexData.values.secondTag)}</p>` : ''}
-                ${collection.indexData.values.thirdTag && collection.indexData.values.thirdTag !== ' - ' ? `<p>${projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3')}: ${escapeHtml(collection.indexData.values.thirdTag)}</p>` : ''}
-                ${(!collection.indexData.values.firstTag || collection.indexData.values.firstTag === ' - ') &&
-            (!collection.indexData.values.secondTag || collection.indexData.values.secondTag === ' - ') &&
-            (!collection.indexData.values.thirdTag || collection.indexData.values.thirdTag === ' - ') ? `<p>${t('not-set')}</p>` : ''}
+                ${collection.indexData?.values?.firstTag && collection.indexData?.values?.firstTag !== ' - ' ? `<p>${projectSettings.tag1Name || (currentLanguage === 'ja' ? 'タグ 1' : 'Tag 1')}: ${escapeHtml(collection.indexData?.values?.firstTag)}</p>` : ''}
+                ${collection.indexData?.values?.secondTag && collection.indexData?.values?.secondTag !== ' - ' ? `<p>${projectSettings.tag2Name || (currentLanguage === 'ja' ? 'タグ 2' : 'Tag 2')}: ${escapeHtml(collection.indexData?.values?.secondTag)}</p>` : ''}
+                ${collection.indexData?.values?.thirdTag && collection.indexData?.values?.thirdTag !== ' - ' ? `<p>${projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3')}: ${escapeHtml(collection.indexData?.values?.thirdTag)}</p>` : ''}
+                ${(!collection.indexData?.values?.firstTag || collection.indexData?.values?.firstTag === ' - ') &&
+                    (!collection.indexData?.values?.secondTag || collection.indexData?.values?.secondTag === ' - ') &&
+                    (!collection.indexData?.values?.thirdTag || collection.indexData?.values?.thirdTag === ' - ') ? `<p>${t('not-set')}</p>` : ''}
             </div>
         </div>
             
