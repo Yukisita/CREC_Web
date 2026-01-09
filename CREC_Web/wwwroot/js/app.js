@@ -941,17 +941,17 @@ function createCollectionCard(collection) {
 
     // Build tag HTML - display each tag on a separate line like category
     let tagsHtml = '';
-    if (collection.indexData.values.firstTag && collection.indexData.values.firstTag !== ' - ') {
+    if (collection.indexData?.values?.firstTag && collection.indexData?.values?.firstTag !== ' - ') {
         const tag1Label = projectSettings.tag1Name || (currentLanguage === 'ja' ? 'タグ 1' : 'Tag 1');
-        tagsHtml += `<small class="text-muted">${tag1Label}: ${escapeHtml(collection.indexData.values.firstTag)}</small><br>`;
+        tagsHtml += `<small class="text-muted">${tag1Label}: ${escapeHtml(collection.indexData?.values?.firstTag)}</small><br>`;
     }
-    if (collection.indexData.values.secondTag && collection.indexData.values.secondTag !== ' - ') {
+    if (collection.indexData?.values?.secondTag && collection.indexData?.values?.secondTag !== ' - ') {
         const tag2Label = projectSettings.tag2Name || (currentLanguage === 'ja' ? 'タグ 2' : 'Tag 2');
-        tagsHtml += `<small class="text-muted">${tag2Label}: ${escapeHtml(collection.indexData.values.secondTag)}</small><br>`;
+        tagsHtml += `<small class="text-muted">${tag2Label}: ${escapeHtml(collection.indexData?.values?.secondTag)}</small><br>`;
     }
-    if (collection.indexData.values.thirdTag && collection.indexData.values.thirdTag !== ' - ') {
+    if (collection.indexData?.values?.thirdTag && collection.indexData?.values?.thirdTag !== ' - ') {
         const tag3Label = projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3');
-        tagsHtml += `<small class="text-muted">${tag3Label}: ${escapeHtml(collection.indexData.values.thirdTag)}</small><br>`;
+        tagsHtml += `<small class="text-muted">${tag3Label}: ${escapeHtml(collection.indexData?.values?.thirdTag)}</small><br>`;
     }
 
     // Use the collection ID (which is the folder name) for the thumbnail URL
