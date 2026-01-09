@@ -829,7 +829,7 @@ function handleWindowResize() {
 
 function createCollectionRow(collection) {
     const row = document.createElement('tr');
-    row.addEventListener('click', () => showCollectionDetails(collection.indexData.systemData.id));
+    row.addEventListener('click', () => showCollectionDetails(collection.indexData?.systemData?.id));
 
     const inventoryStatusText = getInventoryStatusText(
         collection.collectionInventoryStatus,
