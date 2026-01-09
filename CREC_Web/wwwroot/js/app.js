@@ -864,8 +864,8 @@ function createCollectionRow(collection) {
     thumbnailCell.appendChild(thumbnailPlaceholder);
 
     const nameCell = document.createElement('td');
-    nameCell.innerHTML = `<strong>${escapeHtml(collection.indexData.values.name)}</strong>`;
-    nameCell.title = collection.indexData.values.name;
+    nameCell.innerHTML = `<strong>${escapeHtml(collection.indexData?.values?.name)}</strong>`;
+    nameCell.title = collection.indexData?.values?.name;
 
     const idCell = document.createElement('td');
     idCell.innerHTML = `<small class="text-muted">${escapeHtml(collection.indexData.systemData.id)}</small>`;
