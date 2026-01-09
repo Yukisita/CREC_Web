@@ -896,8 +896,9 @@ function createCollectionRow(collection) {
     locationCell.title = collection.collectionRealLocation || '-';
 
     const dateCell = document.createElement('td');
-    dateCell.textContent = collection.collectionRegistrationDate || '-';
-    dateCell.title = collection.collectionRegistrationDate || '-';
+    const formattedDate = formatUtcToLocal(collection.collectionRegistrationDate);
+    dateCell.textContent = formattedDate;
+    dateCell.title = formattedDate;
 
     const inventoryCell = document.createElement('td');
     inventoryCell.textContent = collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : '-';
@@ -1155,7 +1156,7 @@ function displayCollectionPanel(collection) {
             
         <div class="detail-section">
             <h6>${t('registration-date')}</h6>
-            <p>${escapeHtml(collection.collectionRegistrationDate)}</p>
+            <p>${escapeHtml(formatUtcToLocal(collection.collectionRegistrationDate))}</p>
         </div>
             
         <div class="detail-section">
@@ -1426,6 +1427,40 @@ function stripHtmlToText(html) {
     div.innerHTML = html || '';
     // textContent はタグを取り除いた生テキストを返す
     return (div.textContent || div.innerText || '').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * UTC日時文字列をローカル日時文字列に変換
+ * @param {string} utcDateString - UTC形式の日時文字列 (例: "2024-11-08T18:13:37.0000000+00:00")
+ * @returns {string} - ローカルタイムゾーンでフォーマットされた日時文字列、または元の文字列（パース失敗時）
+ */
+function formatUtcToLocal(utcDateString) {
+    if (!utcDateString || utcDateString === '-' || utcDateString === ' - ') {
+        return '-';
+    }
+    
+    try {
+        const date = new Date(utcDateString);
+        
+        // 日付が無効な場合は元の文字列を返す
+        if (isNaN(date.getTime())) {
+            return utcDateString;
+        }
+        
+        // ローカルタイムゾーンで日時をフォーマット
+        // YYYY-MM-DD HH:mm:ss 形式
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    } catch (error) {
+        console.warn('Failed to parse UTC date:', utcDateString, error);
+        return utcDateString;
+    }
 }
 
 // =====================

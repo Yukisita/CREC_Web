@@ -8,6 +8,7 @@ using CREC_Web.Extensions;
 using CREC_Web.Models;
 using System.Runtime.Serialization.Json;
 using System.Text;
+using System.Text.Json;
 
 namespace CREC_Web.Services
 {
@@ -100,74 +101,45 @@ namespace CREC_Web.Services
             {
                 _logger.LogDebug($"Loading collection from: {directoryPath}");
 
-                // index.txtまたはIndex.txtを探す（大文字小文字を区別しない）
-                var indexFilePath = Path.Combine(directoryPath, "index.txt");
-                if (!File.Exists(indexFilePath))
-                {
-                    indexFilePath = Path.Combine(directoryPath, "Index.txt");
-                }
+                // SystemData/index.json を探す
+                var indexFilePath = Path.Combine(directoryPath, "SystemData", "index.json");
 
                 if (!File.Exists(indexFilePath))
                 {
-                    // index.txtが存在しない場合、フォルダ名をIDとして基本的なデータを作成
-                    _logger.LogWarning($"No index file found in {directoryPath}, creating basic collection data");
+                    // index.jsonが存在しない場合、フォルダ名をIDとして基本的なデータを作成
+                    _logger.LogWarning($"No index.json found in {indexFilePath}, creating basic collection data");
                     return CreateBasicCollectionData(directoryPath);
                 }
 
                 _logger.LogDebug($"Found index file: {indexFilePath}");
 
+                // index.jsonを読み込み
+                var jsonContent = await File.ReadAllTextAsync(indexFilePath, Encoding.UTF8);
+                var indexData = JsonSerializer.Deserialize<IndexData>(jsonContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (indexData == null)
+                {
+                    _logger.LogWarning($"Failed to parse index.json in {indexFilePath}");
+                    return CreateBasicCollectionData(directoryPath);
+                }
+
                 var collection = new CollectionData
                 {
                     CollectionFolderPath = directoryPath,
-                    CollectionID = Path.GetFileName(directoryPath)
+                    CollectionID = indexData.SystemData?.Id ?? Path.GetFileName(directoryPath),
+                    SystemCreateDate = indexData.SystemData?.SystemCreateDate ?? string.Empty,
+                    CollectionName = indexData.Values?.Name ?? string.Empty,
+                    CollectionMC = indexData.Values?.ManagementCode ?? string.Empty,
+                    CollectionRegistrationDate = indexData.Values?.RegistrationDate ?? string.Empty,
+                    CollectionCategory = indexData.Values?.Category ?? string.Empty,
+                    CollectionTag1 = indexData.Values?.FirstTag ?? string.Empty,
+                    CollectionTag2 = indexData.Values?.SecondTag ?? string.Empty,
+                    CollectionTag3 = indexData.Values?.ThirdTag ?? string.Empty,
+                    CollectionRealLocation = indexData.Values?.Location ?? string.Empty
                 };
-
-                // index.txtを読み込み
-                var lines = await File.ReadAllLinesAsync(indexFilePath, Encoding.GetEncoding("UTF-8"));
-
-                foreach (var line in lines)
-                {
-                    if (string.IsNullOrWhiteSpace(line)) continue;
-
-                    // カンマで分割して最初の要素をキーとして扱う
-                    var commaIndex = line.IndexOf(',');
-                    if (commaIndex < 0) continue;  // カンマがない行はスキップ
-
-                    var key = line.Substring(0, commaIndex);
-                    var value = commaIndex + 1 < line.Length ? line.Substring(commaIndex + 1) : string.Empty;
-
-                    // CRECのLoadCollectionIndexDataに準拠した処理
-                    switch (key)
-                    {
-                        case "名称": // Collection Name
-                            collection.CollectionName = value;
-                            break;
-                        case "ID":
-                            collection.CollectionID = value;
-                            break;
-                        case "MC":
-                            collection.CollectionMC = value;
-                            break;
-                        case "登録日": // Registration Date
-                            collection.CollectionRegistrationDate = value;
-                            break;
-                        case "カテゴリ": // Category
-                            collection.CollectionCategory = value;
-                            break;
-                        case "タグ1": // Tag1
-                            collection.CollectionTag1 = value;
-                            break;
-                        case "タグ2": // Tag2
-                            collection.CollectionTag2 = value;
-                            break;
-                        case "タグ3": // Tag3
-                            collection.CollectionTag3 = value;
-                            break;
-                        case "場所1(Real)": // Real Location
-                            collection.CollectionRealLocation = value;
-                            break;
-                    }
-                }
 
                 // 在庫情報を読み込み
                 LoadInventoryData(collection, directoryPath);
