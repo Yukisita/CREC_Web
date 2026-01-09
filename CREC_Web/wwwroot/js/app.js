@@ -868,35 +868,35 @@ function createCollectionRow(collection) {
     nameCell.title = collection.indexData?.values?.name;
 
     const idCell = document.createElement('td');
-    idCell.innerHTML = `<small class="text-muted">${escapeHtml(collection.indexData.systemData.id)}</small>`;
-    idCell.title = collection.indexData.systemData.id;
+    idCell.innerHTML = `<small class="text-muted">${escapeHtml(collection.indexData?.systemData?.id)}</small>`;
+    idCell.title = collection.indexData?.systemData?.id;
 
     const mcCell = document.createElement('td');
-    mcCell.textContent = collection.indexData.values.managementCode || '-';
-    mcCell.title = collection.indexData.values.managementCode || '-';
+    mcCell.textContent = collection.indexData?.values?.managementCode || '-';
+    mcCell.title = collection.indexData?.values?.managementCode || '-';
 
     const categoryCell = document.createElement('td');
-    categoryCell.textContent = collection.indexData.values.category || '-';
-    categoryCell.title = collection.indexData.values.category || '-';
+    categoryCell.textContent = collection.indexData?.values?.category || '-';
+    categoryCell.title = collection.indexData?.values?.category || '-';
 
     const tag1Cell = document.createElement('td');
-    tag1Cell.textContent = (collection.indexData.values.firstTag && collection.indexData.values.firstTag !== ' - ') ? collection.indexData.values.firstTag : '-';
+    tag1Cell.textContent = (collection.indexData?.values?.firstTag && collection.indexData?.values?.firstTag !== ' - ') ? collection.indexData?.values?.firstTag : '-';
     tag1Cell.title = tag1Cell.textContent;
 
     const tag2Cell = document.createElement('td');
-    tag2Cell.textContent = (collection.indexData.values.secondTag && collection.indexData.values.secondTag !== ' - ') ? collection.indexData.values.secondTag : '-';
+    tag2Cell.textContent = (collection.indexData?.values?.secondTag && collection.indexData?.values?.secondTag !== ' - ') ? collection.indexData?.values?.secondTag : '-';
     tag2Cell.title = tag2Cell.textContent;
 
     const tag3Cell = document.createElement('td');
-    tag3Cell.textContent = (collection.indexData.values.thirdTag && collection.indexData.values.thirdTag !== ' - ') ? collection.indexData.values.thirdTag : '-';
+    tag3Cell.textContent = (collection.indexData?.values?.thirdTag && collection.indexData?.values?.thirdTag !== ' - ') ? collection.indexData?.values?.thirdTag : '-';
     tag3Cell.title = tag3Cell.textContent;
 
     const locationCell = document.createElement('td');
-    locationCell.textContent = collection.indexData.values.location || '-';
-    locationCell.title = collection.indexData.values.location || '-';
+    locationCell.textContent = collection.indexData?.values?.location || '-';
+    locationCell.title = collection.indexData?.values?.location || '-';
 
     const dateCell = document.createElement('td');
-    const formattedDate = formatUtcToLocal(collection.indexData.values.registrationDate);
+    const formattedDate = formatUtcToLocal(collection.indexData?.values?.registrationDate);
     dateCell.textContent = formattedDate;
     dateCell.title = formattedDate;
 
