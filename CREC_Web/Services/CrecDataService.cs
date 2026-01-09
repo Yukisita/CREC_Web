@@ -169,7 +169,7 @@ namespace CREC_Web.Services
         }
 
         /// <summary>
-        /// 基本的なコレクションデータを作成（index.txtが存在しない場合）
+        /// 基本的なコレクションデータを作成（index.jsonが存在しない場合）
         /// </summary>
         private CollectionData CreateBasicCollectionData(string directoryPath)
         {
