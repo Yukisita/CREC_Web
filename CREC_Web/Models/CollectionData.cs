@@ -350,64 +350,10 @@ namespace CREC_Web.Models
         public string CollectionFolderPath { get; set; } = string.Empty;
 
         /// <summary>
-        /// コレクション名
+        /// インデックスデータ
         /// </summary>
-        [DataMember(Name = "collectionName")]
-        public string CollectionName { get; set; } = string.Empty;
-
-        /// <summary>
-        /// コレクションID
-        /// </summary>
-        [DataMember(Name = "collectionID")]
-        public string CollectionID { get; set; } = string.Empty;
-
-        /// <summary>
-        /// システム作成日 (UTC)
-        /// </summary>
-        [DataMember(Name = "systemCreateDate")]
-        public string SystemCreateDate { get; set; } = string.Empty;
-
-        /// <summary>
-        /// 管理コード
-        /// </summary>
-        [DataMember(Name = "collectionMC")]
-        public string CollectionMC { get; set; } = string.Empty;
-
-        /// <summary>
-        /// 登録日
-        /// </summary>
-        [DataMember(Name = "collectionRegistrationDate")]
-        public string CollectionRegistrationDate { get; set; } = string.Empty;
-
-        /// <summary>
-        /// カテゴリ
-        /// </summary>
-        [DataMember(Name = "collectionCategory")]
-        public string CollectionCategory { get; set; } = string.Empty;
-
-        /// <summary>
-        /// タグ1
-        /// </summary>
-        [DataMember(Name = "collectionTag1")]
-        public string CollectionTag1 { get; set; } = string.Empty;
-
-        /// <summary>
-        /// タグ2
-        /// </summary>
-        [DataMember(Name = "collectionTag2")]
-        public string CollectionTag2 { get; set; } = string.Empty;
-
-        /// <summary>
-        /// タグ3
-        /// </summary>
-        [DataMember(Name = "collectionTag3")]
-        public string CollectionTag3 { get; set; } = string.Empty;
-
-        /// <summary>
-        /// 場所(Real)
-        /// </summary>
-        [DataMember(Name = "collectionRealLocation")]
-        public string CollectionRealLocation { get; set; } = string.Empty;
+        [DataMember(Name = "indexData")]
+        public IndexData IndexData { get; set; } = new IndexData();
 
         /// <summary>
         /// コレクションの在庫管理データ
