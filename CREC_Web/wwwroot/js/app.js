@@ -896,7 +896,7 @@ function createCollectionRow(collection) {
     locationCell.title = collection.indexData.values.location || '-';
 
     const dateCell = document.createElement('td');
-    const formattedDate = formatUtcToLocal(collection.collectionRegistrationDate);
+    const formattedDate = formatUtcToLocal(collection.indexData.values.registrationDate);
     dateCell.textContent = formattedDate;
     dateCell.title = formattedDate;
 
@@ -1156,7 +1156,7 @@ function displayCollectionPanel(collection) {
             
         <div class="detail-section">
             <h6>${t('registration-date')}</h6>
-            <p>${escapeHtml(formatUtcToLocal(collection.collectionRegistrationDate))}</p>
+            <p>${escapeHtml(formatUtcToLocal(collection.indexData.values.registrationDate))}</p>
         </div>
             
         <div class="detail-section">
