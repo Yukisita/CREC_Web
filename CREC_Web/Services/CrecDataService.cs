@@ -245,7 +245,6 @@ namespace CREC_Web.Services
 
                 // picturesフォルダから画像を読み込む
                 // CREC構造: {dataPath}\{collectionId}\pictures\
-                var collectionId = collection.IndexData.SystemData.Id;
                 var picturesPath = Path.Combine(directoryPath, "pictures");
                 if (Directory.Exists(picturesPath))
                 {
