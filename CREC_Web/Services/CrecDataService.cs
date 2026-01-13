@@ -137,13 +137,11 @@ namespace CREC_Web.Services
                     return CreateBasicCollectionData(directoryPath);
                 }
 
-                collection.CollectionFolderPath = directoryPath;
+                collection.CollectionFolderPath = directoryPath;// コレクションフォルダパスを設定
 
-                // 在庫情報を読み込み
-                LoadInventoryData(collection, directoryPath);
-
-                // 画像ファイルとその他のファイルを検索
-                LoadFileList(collection, directoryPath);
+                LoadInventoryData(collection, directoryPath);// 在庫情報を読み込み
+                
+                LoadFileList(collection, directoryPath);// 画像ファイルとその他のファイルを検索
 
                 return collection;
             }
