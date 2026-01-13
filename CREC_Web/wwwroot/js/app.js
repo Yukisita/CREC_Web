@@ -829,7 +829,7 @@ function handleWindowResize() {
 
 function createCollectionRow(collection) {
     const row = document.createElement('tr');
-    row.addEventListener('click', () => showCollectionDetails(collection.collectionID));
+    row.addEventListener('click', () => showCollectionDetails(collection.indexData?.systemData?.id));
 
     const inventoryStatusText = getInventoryStatusText(
         collection.collectionInventoryStatus,
@@ -840,7 +840,7 @@ function createCollectionRow(collection) {
     );
     const inventoryBadgeClass = getInventoryStatusBadgeClass(collection.collectionInventoryStatus);
 
-    const collectionId = collection.collectionID || 'unknown';
+    const collectionId = collection.indexData.systemData.id || 'unknown';
     const thumbnailUrl = `/api/Files/thumbnail/${encodeURIComponent(collectionId)}`;
 
     const thumbnailImg = document.createElement('img');
@@ -864,40 +864,41 @@ function createCollectionRow(collection) {
     thumbnailCell.appendChild(thumbnailPlaceholder);
 
     const nameCell = document.createElement('td');
-    nameCell.innerHTML = `<strong>${escapeHtml(collection.collectionName)}</strong>`;
-    nameCell.title = collection.collectionName;
+    nameCell.innerHTML = `<strong>${escapeHtml(collection.indexData?.values?.name)}</strong>`;
+    nameCell.title = collection.indexData?.values?.name;
 
     const idCell = document.createElement('td');
-    idCell.innerHTML = `<small class="text-muted">${escapeHtml(collection.collectionID)}</small>`;
-    idCell.title = collection.collectionID;
+    idCell.innerHTML = `<small class="text-muted">${escapeHtml(collection.indexData?.systemData?.id)}</small>`;
+    idCell.title = collection.indexData?.systemData?.id;
 
     const mcCell = document.createElement('td');
-    mcCell.textContent = collection.collectionMC || '-';
-    mcCell.title = collection.collectionMC || '-';
+    mcCell.textContent = collection.indexData?.values?.managementCode || '-';
+    mcCell.title = collection.indexData?.values?.managementCode || '-';
 
     const categoryCell = document.createElement('td');
-    categoryCell.textContent = collection.collectionCategory || '-';
-    categoryCell.title = collection.collectionCategory || '-';
+    categoryCell.textContent = collection.indexData?.values?.category || '-';
+    categoryCell.title = collection.indexData?.values?.category || '-';
 
     const tag1Cell = document.createElement('td');
-    tag1Cell.textContent = (collection.collectionTag1 && collection.collectionTag1 !== ' - ') ? collection.collectionTag1 : '-';
+    tag1Cell.textContent = (collection.indexData?.values?.firstTag && collection.indexData?.values?.firstTag !== ' - ') ? collection.indexData?.values?.firstTag : '-';
     tag1Cell.title = tag1Cell.textContent;
 
     const tag2Cell = document.createElement('td');
-    tag2Cell.textContent = (collection.collectionTag2 && collection.collectionTag2 !== ' - ') ? collection.collectionTag2 : '-';
+    tag2Cell.textContent = (collection.indexData?.values?.secondTag && collection.indexData?.values?.secondTag !== ' - ') ? collection.indexData?.values?.secondTag : '-';
     tag2Cell.title = tag2Cell.textContent;
 
     const tag3Cell = document.createElement('td');
-    tag3Cell.textContent = (collection.collectionTag3 && collection.collectionTag3 !== ' - ') ? collection.collectionTag3 : '-';
+    tag3Cell.textContent = (collection.indexData?.values?.thirdTag && collection.indexData?.values?.thirdTag !== ' - ') ? collection.indexData?.values?.thirdTag : '-';
     tag3Cell.title = tag3Cell.textContent;
 
     const locationCell = document.createElement('td');
-    locationCell.textContent = collection.collectionRealLocation || '-';
-    locationCell.title = collection.collectionRealLocation || '-';
+    locationCell.textContent = collection.indexData?.values?.location || '-';
+    locationCell.title = collection.indexData?.values?.location || '-';
 
     const dateCell = document.createElement('td');
-    dateCell.textContent = collection.collectionRegistrationDate || '-';
-    dateCell.title = collection.collectionRegistrationDate || '-';
+    const formattedDate = formatUtcToLocal(collection.indexData?.values?.registrationDate);
+    dateCell.textContent = formattedDate;
+    dateCell.title = formattedDate;
 
     const inventoryCell = document.createElement('td');
     inventoryCell.textContent = collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : '-';
@@ -940,21 +941,21 @@ function createCollectionCard(collection) {
 
     // Build tag HTML - display each tag on a separate line like category
     let tagsHtml = '';
-    if (collection.collectionTag1 && collection.collectionTag1 !== ' - ') {
+    if (collection.indexData?.values?.firstTag && collection.indexData?.values?.firstTag !== ' - ') {
         const tag1Label = projectSettings.tag1Name || (currentLanguage === 'ja' ? 'タグ 1' : 'Tag 1');
-        tagsHtml += `<small class="text-muted">${tag1Label}: ${escapeHtml(collection.collectionTag1)}</small><br>`;
+        tagsHtml += `<small class="text-muted">${tag1Label}: ${escapeHtml(collection.indexData?.values?.firstTag)}</small><br>`;
     }
-    if (collection.collectionTag2 && collection.collectionTag2 !== ' - ') {
+    if (collection.indexData?.values?.secondTag && collection.indexData?.values?.secondTag !== ' - ') {
         const tag2Label = projectSettings.tag2Name || (currentLanguage === 'ja' ? 'タグ 2' : 'Tag 2');
-        tagsHtml += `<small class="text-muted">${tag2Label}: ${escapeHtml(collection.collectionTag2)}</small><br>`;
+        tagsHtml += `<small class="text-muted">${tag2Label}: ${escapeHtml(collection.indexData?.values?.secondTag)}</small><br>`;
     }
-    if (collection.collectionTag3 && collection.collectionTag3 !== ' - ') {
+    if (collection.indexData?.values?.thirdTag && collection.indexData?.values?.thirdTag !== ' - ') {
         const tag3Label = projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3');
-        tagsHtml += `<small class="text-muted">${tag3Label}: ${escapeHtml(collection.collectionTag3)}</small><br>`;
+        tagsHtml += `<small class="text-muted">${tag3Label}: ${escapeHtml(collection.indexData?.values?.thirdTag)}</small><br>`;
     }
 
     // Use the collection ID (which is the folder name) for the thumbnail URL
-    const collectionId = collection.collectionID || 'unknown';
+    const collectionId = collection.indexData.systemData.id || 'unknown';
     const thumbnailUrl = `/api/Files/thumbnail/${encodeURIComponent(collectionId)}`;
     
     const thumbnailImg = document.createElement('img');
@@ -981,10 +982,10 @@ function createCollectionCard(collection) {
     const cardBody = document.createElement('div');
     cardBody.className = 'card-body';
     cardBody.innerHTML = `
-        <h6 class="card-title">${escapeHtml(collection.collectionName)}</h6>
+        <h6 class="card-title">${escapeHtml(collection.indexData.values.name)}</h6>
         <p class="card-text">
-            <small class="text-muted">${projectSettings.uuidName}: ${escapeHtml(collection.collectionID)}</small><br>
-            <small class="text-muted">${projectSettings.categoryName}: ${escapeHtml(collection.collectionCategory)}</small><br>
+            <small class="text-muted">${projectSettings.uuidName}: ${escapeHtml(collection.indexData.systemData.id)}</small><br>
+            <small class="text-muted">${projectSettings.categoryName}: ${escapeHtml(collection.indexData.values.category)}</small><br>
             ${tagsHtml}
             ${collection.collectionCurrentInventory !== null ? 
                 `<small class="text-muted">${t('inventory')}: ${collection.collectionCurrentInventory}</small><br>` : ''}
@@ -995,7 +996,7 @@ function createCollectionCard(collection) {
     const detailsBtn = document.createElement('button');
     detailsBtn.className = 'btn btn-primary btn-sm w-100';
     detailsBtn.innerHTML = `<i class="bi bi-eye"></i> ${t('view-details')}`;
-    detailsBtn.addEventListener('click', () => showCollectionDetails(collection.collectionID));
+    detailsBtn.addEventListener('click', () => showCollectionDetails(collection.indexData.systemData.id));
 
     const cardFooter = document.createElement('div');
     cardFooter.className = 'card-footer';
@@ -1094,7 +1095,7 @@ function displayCollectionPanel(collection) {
     // 新しいリスナを設定する前に既存のイベントリスナをクリーンアップ
     cleanupPanelEventListeners(panel);
 
-    panelTitle.textContent = collection.collectionName;
+    panelTitle.textContent = collection.indexData.values.name;
 
     const inventoryStatusText = getInventoryStatusText(
         collection.collectionInventoryStatus,
@@ -1111,7 +1112,7 @@ function displayCollectionPanel(collection) {
     const imagesHtml = images.length > 0
         ? `
             <div class="image-carousel">
-                <img id="carouselImage" src="/api/File/${encodeURIComponent(collection.collectionID)}/${encodeURIComponent(images[0])}" 
+                <img id="carouselImage" src="/api/File/${encodeURIComponent(collection.indexData.systemData.id)}/${encodeURIComponent(images[0])}" 
                         class="detail-image" 
                         alt="${escapeHtml(images[0])}"
                         onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\'%3E%3Crect width=\'200\' height=\'200\' fill=\'%23ddd\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-family=\'sans-serif\' font-size=\'16\' fill=\'%23999\'%3EImage not found%3C/text%3E%3C/svg%3E';">
@@ -1129,7 +1130,7 @@ function displayCollectionPanel(collection) {
         ? collection.otherFiles.map(file => `
             <li class="list-group-item d-flex justify-content-between align-items-center">
                 ${escapeHtml(file)}
-                <a href="/api/File/data/${encodeURIComponent(collection.collectionID)}/${encodeURIComponent(file)}" 
+                <a href="/api/File/data/${encodeURIComponent(collection.indexData.systemData.id)}/${encodeURIComponent(file)}" 
                     class="btn btn-sm btn-outline-primary" target="_blank">
                     <i class="bi bi-download"></i>
                 </a>
@@ -1140,27 +1141,27 @@ function displayCollectionPanel(collection) {
     panelBody.innerHTML = `
         <div class="detail-section">
             <h6>${projectSettings.uuidName}</h6>
-            <p>${escapeHtml(collection.collectionID)}</p>
+            <p>${escapeHtml(collection.indexData.systemData.id)}</p>
         </div>
 
         <div class="detail-section">
             <h6>${projectSettings.managementCodeName}</h6>
-            <p>${escapeHtml(collection.collectionMC)}</p>
+            <p>${escapeHtml(collection.indexData.values.managementCode)}</p>
         </div>
             
         <div class="detail-section">
             <h6>${projectSettings.categoryName}</h6>
-            <p>${escapeHtml(collection.collectionCategory)}</p>
+            <p>${escapeHtml(collection.indexData.values.category)}</p>
         </div>
             
         <div class="detail-section">
             <h6>${t('registration-date')}</h6>
-            <p>${escapeHtml(collection.collectionRegistrationDate)}</p>
+            <p>${escapeHtml(formatUtcToLocal(collection.indexData.values.registrationDate))}</p>
         </div>
             
         <div class="detail-section">
             <h6>${t('location')}</h6>
-            <p>${escapeHtml(collection.collectionRealLocation)}</p>
+            <p>${escapeHtml(collection.indexData.values.location)}</p>
         </div>
             
         <div class="detail-section">
@@ -1186,12 +1187,12 @@ function displayCollectionPanel(collection) {
         <div class="detail-section">
             <h6>${t('tags')}</h6>
             <div>
-                ${collection.collectionTag1 && collection.collectionTag1 !== ' - ' ? `<p>${projectSettings.tag1Name || (currentLanguage === 'ja' ? 'タグ 1' : 'Tag 1')}: ${escapeHtml(collection.collectionTag1)}</p>` : ''}
-                ${collection.collectionTag2 && collection.collectionTag2 !== ' - ' ? `<p>${projectSettings.tag2Name || (currentLanguage === 'ja' ? 'タグ 2' : 'Tag 2')}: ${escapeHtml(collection.collectionTag2)}</p>` : ''}
-                ${collection.collectionTag3 && collection.collectionTag3 !== ' - ' ? `<p>${projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3')}: ${escapeHtml(collection.collectionTag3)}</p>` : ''}
-                ${(!collection.collectionTag1 || collection.collectionTag1 === ' - ') &&
-            (!collection.collectionTag2 || collection.collectionTag2 === ' - ') &&
-            (!collection.collectionTag3 || collection.collectionTag3 === ' - ') ? `<p>${t('not-set')}</p>` : ''}
+                ${collection.indexData?.values?.firstTag && collection.indexData?.values?.firstTag !== ' - ' ? `<p>${projectSettings.tag1Name || (currentLanguage === 'ja' ? 'タグ 1' : 'Tag 1')}: ${escapeHtml(collection.indexData?.values?.firstTag)}</p>` : ''}
+                ${collection.indexData?.values?.secondTag && collection.indexData?.values?.secondTag !== ' - ' ? `<p>${projectSettings.tag2Name || (currentLanguage === 'ja' ? 'タグ 2' : 'Tag 2')}: ${escapeHtml(collection.indexData?.values?.secondTag)}</p>` : ''}
+                ${collection.indexData?.values?.thirdTag && collection.indexData?.values?.thirdTag !== ' - ' ? `<p>${projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3')}: ${escapeHtml(collection.indexData?.values?.thirdTag)}</p>` : ''}
+                ${(!collection.indexData?.values?.firstTag || collection.indexData?.values?.firstTag === ' - ') &&
+                    (!collection.indexData?.values?.secondTag || collection.indexData?.values?.secondTag === ' - ') &&
+                    (!collection.indexData?.values?.thirdTag || collection.indexData?.values?.thirdTag === ' - ') ? `<p>${t('not-set')}</p>` : ''}
             </div>
         </div>
             
@@ -1251,7 +1252,12 @@ function displayCollectionPanel(collection) {
             }
 
             function updateImage() {
-                carouselImage.src = `/api/File/${encodeURIComponent(collection.collectionID)}/${encodeURIComponent(images[currentImageIndex])}`;
+                const collectionID = collection?.indexData?.systemData?.id;
+                if (!collectionID) {
+                    console.error('Collection ID is missing.');
+                    return;
+                }
+                carouselImage.src = `/api/File/${encodeURIComponent(collectionID)}/${encodeURIComponent(images[currentImageIndex])}`;
                 carouselImage.alt = images[currentImageIndex];
                 imageCounter.textContent = `${currentImageIndex + 1} / ${images.length}`;
                 imageName.textContent = images[currentImageIndex];
@@ -1426,6 +1432,46 @@ function stripHtmlToText(html) {
     div.innerHTML = html || '';
     // textContent はタグを取り除いた生テキストを返す
     return (div.textContent || div.innerText || '').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * UTC日時文字列をローカル日時文字列に変換
+ * @param {string} utcDateString - UTC形式の日時文字列 (例: "2024-11-08T18:13:37.0000000+00:00")
+ * @returns {string} - ローカルタイムゾーンでフォーマットされた日時文字列、または元の文字列（パース失敗時）
+ */
+function formatUtcToLocal(utcDateString) {
+    if (!utcDateString || utcDateString === '-' || utcDateString === ' - ') {
+        return '-';
+    }
+    
+    try {
+        // ISO 8601形式の基本的な検証（簡易チェック）
+        // 最低限、日付部分（YYYY-MM-DD）と時刻のT区切りがあることを確認
+        if (typeof utcDateString !== 'string' || !utcDateString.includes('T')) {
+            return utcDateString;
+        }
+        
+        const date = new Date(utcDateString);
+        
+        // 日付が無効な場合は元の文字列を返す
+        if (isNaN(date.getTime())) {
+            return utcDateString;
+        }
+        
+        // ローカルタイムゾーンで日時をフォーマット
+        // YYYY-MM-DD HH:mm:ss 形式
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    } catch (error) {
+        console.warn('Failed to parse UTC date:', utcDateString, error);
+        return utcDateString;
+    }
 }
 
 // =====================
@@ -1681,7 +1727,7 @@ let currentInventoryCollectionId = null;
  * 在庫操作モーダルを開く
  */
 function openInventoryOperationModal(collection) {
-    currentInventoryCollectionId = collection.collectionID;
+    currentInventoryCollectionId = collection.indexData.systemData.id;
     
     const modal = document.getElementById('inventoryOperationModal');
     const overlay = document.getElementById('inventoryOperationOverlay');
@@ -1842,13 +1888,20 @@ const inventoryManagementSettingsModalHandlers = {
  * 在庫管理設定モーダルを開く
  */
 function openInventoryManagementSettingsModal(collection) {
-    currentInventoryCollectionId = collection.collectionID;
+    // コレクションIDを取得
+    currentInventoryCollectionId = collection?.indexData?.systemData?.id;
+    // コレクションIDが存在しない場合はエラー
+    if (!currentInventoryCollectionId) {
+        console.error('Collection ID is missing for inventory management settings');
+        return;
+    }
 
+    // モーダル要素を取得
     const modal = document.getElementById('inventoryManagementSettingsModal');
     const overlay = document.getElementById('inventoryManagementSettingsOverlay');
     const form = document.getElementById('inventoryManagementSettingsForm');
     const errorElement = document.getElementById('inventoryManagementSettingsError');
-
+    // 要素の存在を確認
     if (!modal || !overlay || !form) {
         console.error('Inventory management settings modal elements not found');
         return;

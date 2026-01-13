@@ -5,9 +5,115 @@ This software is released under the MIT License.
 */
 
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace CREC_Web.Models
 {
+    /// <summary>
+    /// Index.json のシステムデータ
+    /// </summary>
+    [DataContract]
+    public class IndexSystemData
+    {
+        /// <summary>
+        /// コレクションID (UUID)
+        /// </summary>
+        [DataMember(Name = "id")]
+        [JsonPropertyName("id")]
+        public string Id { get; set; } = string.Empty;
+
+        /// <summary>
+        /// システム作成日時 (UTC)
+        /// </summary>
+        [DataMember(Name = "systemCreateDate")]
+        [JsonPropertyName("systemCreateDate")]
+        public string SystemCreateDate { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Index.json の値データ
+    /// </summary>
+    [DataContract]
+    public class IndexValues
+    {
+        /// <summary>
+        /// 名称
+        /// </summary>
+        [DataMember(Name = "name")]
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 管理コード
+        /// </summary>
+        [DataMember(Name = "managementCode")]
+        [JsonPropertyName("managementCode")]
+        public string ManagementCode { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 登録日 (UTC)
+        /// </summary>
+        [DataMember(Name = "registrationDate")]
+        [JsonPropertyName("registrationDate")]
+        public string RegistrationDate { get; set; } = string.Empty;
+
+        /// <summary>
+        /// カテゴリ
+        /// </summary>
+        [DataMember(Name = "category")]
+        [JsonPropertyName("category")]
+        public string Category { get; set; } = string.Empty;
+
+        /// <summary>
+        /// タグ1
+        /// </summary>
+        [DataMember(Name = "firstTag")]
+        [JsonPropertyName("firstTag")]
+        public string FirstTag { get; set; } = string.Empty;
+
+        /// <summary>
+        /// タグ2
+        /// </summary>
+        [DataMember(Name = "secondTag")]
+        [JsonPropertyName("secondTag")]
+        public string SecondTag { get; set; } = string.Empty;
+
+        /// <summary>
+        /// タグ3
+        /// </summary>
+        [DataMember(Name = "thirdTag")]
+        [JsonPropertyName("thirdTag")]
+        public string ThirdTag { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 場所
+        /// </summary>
+        [DataMember(Name = "location")]
+        [JsonPropertyName("location")]
+        public string Location { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Index.json の全体構造
+    /// </summary>
+    [DataContract]
+    public class IndexData
+    {
+        /// <summary>
+        /// システムデータ
+        /// </summary>
+        [DataMember(Name = "systemData")]
+        [JsonPropertyName("systemData")]
+        public IndexSystemData SystemData { get; set; } = new IndexSystemData();
+
+        /// <summary>
+        /// 値データ
+        /// </summary>
+        [DataMember(Name = "values")]
+        [JsonPropertyName("values")]
+        public IndexValues Values { get; set; } = new IndexValues();
+    }
+
     /// <summary>
     /// 在庫状況の種類
     /// </summary>
@@ -244,58 +350,10 @@ namespace CREC_Web.Models
         public string CollectionFolderPath { get; set; } = string.Empty;
 
         /// <summary>
-        /// コレクション名
+        /// インデックスデータ
         /// </summary>
-        [DataMember(Name = "collectionName")]
-        public string CollectionName { get; set; } = string.Empty;
-
-        /// <summary>
-        /// コレクションID
-        /// </summary>
-        [DataMember(Name = "collectionID")]
-        public string CollectionID { get; set; } = string.Empty;
-
-        /// <summary>
-        /// 管理コード
-        /// </summary>
-        [DataMember(Name = "collectionMC")]
-        public string CollectionMC { get; set; } = string.Empty;
-
-        /// <summary>
-        /// 登録日
-        /// </summary>
-        [DataMember(Name = "collectionRegistrationDate")]
-        public string CollectionRegistrationDate { get; set; } = string.Empty;
-
-        /// <summary>
-        /// カテゴリ
-        /// </summary>
-        [DataMember(Name = "collectionCategory")]
-        public string CollectionCategory { get; set; } = string.Empty;
-
-        /// <summary>
-        /// タグ1
-        /// </summary>
-        [DataMember(Name = "collectionTag1")]
-        public string CollectionTag1 { get; set; } = string.Empty;
-
-        /// <summary>
-        /// タグ2
-        /// </summary>
-        [DataMember(Name = "collectionTag2")]
-        public string CollectionTag2 { get; set; } = string.Empty;
-
-        /// <summary>
-        /// タグ3
-        /// </summary>
-        [DataMember(Name = "collectionTag3")]
-        public string CollectionTag3 { get; set; } = string.Empty;
-
-        /// <summary>
-        /// 場所(Real)
-        /// </summary>
-        [DataMember(Name = "collectionRealLocation")]
-        public string CollectionRealLocation { get; set; } = string.Empty;
+        [DataMember(Name = "indexData")]
+        public IndexData IndexData { get; set; } = new IndexData();
 
         /// <summary>
         /// コレクションの在庫管理データ

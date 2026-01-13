@@ -8,6 +8,7 @@ using CREC_Web.Extensions;
 using CREC_Web.Models;
 using System.Runtime.Serialization.Json;
 using System.Text;
+using System.Text.Json;
 
 namespace CREC_Web.Services
 {
@@ -21,6 +22,12 @@ namespace CREC_Web.Services
         private readonly List<CollectionData> _collectionsCache = new();
         private DateTime _lastCacheUpdate = DateTime.MinValue;
         private readonly TimeSpan _cacheExpiry = TimeSpan.FromMinutes(5);
+
+        // クラススコープにキャッシュ用JsonSerializerOptionsを追加
+        private static readonly JsonSerializerOptions _indexDataJsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
 
         public CrecDataService(ILogger<CrecDataService> logger, IConfiguration configuration)
         {
@@ -100,82 +107,41 @@ namespace CREC_Web.Services
             {
                 _logger.LogDebug($"Loading collection from: {directoryPath}");
 
-                // index.txtまたはIndex.txtを探す（大文字小文字を区別しない）
-                var indexFilePath = Path.Combine(directoryPath, "index.txt");
-                if (!File.Exists(indexFilePath))
-                {
-                    indexFilePath = Path.Combine(directoryPath, "Index.txt");
-                }
+                // SystemData/index.json を探す
+                var indexFilePath = Path.Combine(directoryPath, "SystemData", "index.json");
 
                 if (!File.Exists(indexFilePath))
                 {
-                    // index.txtが存在しない場合、フォルダ名をIDとして基本的なデータを作成
-                    _logger.LogWarning($"No index file found in {directoryPath}, creating basic collection data");
+                    // index.jsonが存在しない場合、フォルダ名をIDとして基本的なデータを作成
+                    _logger.LogWarning($"No index.json found in {indexFilePath}, creating basic collection data");
                     return CreateBasicCollectionData(directoryPath);
                 }
 
-                _logger.LogDebug($"Found index file: {indexFilePath}");
-
-                var collection = new CollectionData
+                // index.jsonを読み込み
+                var collection = new CollectionData();
+                var jsonContent = await File.ReadAllTextAsync(indexFilePath, Encoding.UTF8);
+                try
                 {
-                    CollectionFolderPath = directoryPath,
-                    CollectionID = Path.GetFileName(directoryPath)
-                };
-
-                // index.txtを読み込み
-                var lines = await File.ReadAllLinesAsync(indexFilePath, Encoding.GetEncoding("UTF-8"));
-
-                foreach (var line in lines)
-                {
-                    if (string.IsNullOrWhiteSpace(line)) continue;
-
-                    // カンマで分割して最初の要素をキーとして扱う
-                    var commaIndex = line.IndexOf(',');
-                    if (commaIndex < 0) continue;  // カンマがない行はスキップ
-
-                    var key = line.Substring(0, commaIndex);
-                    var value = commaIndex + 1 < line.Length ? line.Substring(commaIndex + 1) : string.Empty;
-
-                    // CRECのLoadCollectionIndexDataに準拠した処理
-                    switch (key)
+                    var indexData = JsonSerializer.Deserialize<IndexData>(jsonContent, _indexDataJsonOptions);
+                    if (indexData is null)
                     {
-                        case "名称": // Collection Name
-                            collection.CollectionName = value;
-                            break;
-                        case "ID":
-                            collection.CollectionID = value;
-                            break;
-                        case "MC":
-                            collection.CollectionMC = value;
-                            break;
-                        case "登録日": // Registration Date
-                            collection.CollectionRegistrationDate = value;
-                            break;
-                        case "カテゴリ": // Category
-                            collection.CollectionCategory = value;
-                            break;
-                        case "タグ1": // Tag1
-                            collection.CollectionTag1 = value;
-                            break;
-                        case "タグ2": // Tag2
-                            collection.CollectionTag2 = value;
-                            break;
-                        case "タグ3": // Tag3
-                            collection.CollectionTag3 = value;
-                            break;
-                        case "場所1(Real)": // Real Location
-                            collection.CollectionRealLocation = value;
-                            break;
+                        _logger.LogWarning($"Failed to deserialize index.json in {indexFilePath}: Null result");
+                        return CreateBasicCollectionData(directoryPath);
                     }
+                    collection.IndexData = indexData;
+                    _logger.LogDebug($"Successfully deserialized index.json in {indexFilePath}");
+                }
+                catch (JsonException jsonEx)
+                {
+                    _logger.LogError(jsonEx, $"Failed to parse index.json in {indexFilePath}: Invalid JSON format");
+                    return CreateBasicCollectionData(directoryPath);
                 }
 
-                // 在庫情報を読み込み
-                LoadInventoryData(collection, directoryPath);
+                collection.CollectionFolderPath = directoryPath;// コレクションフォルダパスを設定
 
-                // 画像ファイルとその他のファイルを検索
-                LoadFileList(collection, directoryPath);
-
-                _logger.LogInformation($"Successfully loaded collection: ID={collection.CollectionID}, Name={collection.CollectionName}");
+                LoadInventoryData(collection, directoryPath);// 在庫情報を読み込み
+                
+                LoadFileList(collection, directoryPath);// 画像ファイルとその他のファイルを検索
 
                 return collection;
             }
@@ -187,22 +153,31 @@ namespace CREC_Web.Services
         }
 
         /// <summary>
-        /// 基本的なコレクションデータを作成（index.txtが存在しない場合）
+        /// 基本的なコレクションデータを作成（index.jsonが存在しない場合）
         /// </summary>
         private CollectionData CreateBasicCollectionData(string directoryPath)
         {
             var collection = new CollectionData
             {
                 CollectionFolderPath = directoryPath,
-                CollectionID = Path.GetFileName(directoryPath),
-                CollectionName = " - ",
-                CollectionMC = " - ",
-                CollectionRegistrationDate = " - ",
-                CollectionCategory = " - ",
-                CollectionTag1 = " - ",
-                CollectionTag2 = " - ",
-                CollectionTag3 = " - ",
-                CollectionRealLocation = " - "
+                IndexData = new IndexData
+                {
+                    SystemData = new IndexSystemData
+                    {
+                        Id = Path.GetFileName(directoryPath)
+                    },
+                    Values = new IndexValues
+                    {
+                        Name = " - ",
+                        ManagementCode = " - ",
+                        RegistrationDate = " - ",
+                        Category = " - ",
+                        FirstTag = " - ",
+                        SecondTag = " - ",
+                        ThirdTag = " - ",
+                        Location = " - "
+                    }
+                }
             };
 
             LoadFileList(collection, directoryPath);
@@ -267,7 +242,6 @@ namespace CREC_Web.Services
 
                 // picturesフォルダから画像を読み込む
                 // CREC構造: {dataPath}\{collectionId}\pictures\
-                var collectionId = collection.CollectionID;
                 var picturesPath = Path.Combine(directoryPath, "pictures");
                 if (Directory.Exists(picturesPath))
                 {
@@ -381,43 +355,43 @@ namespace CREC_Web.Services
             switch (searchField)
             {
                 case SearchField.All:
-                    fieldsToSearch.Add(collection.CollectionID);
-                    fieldsToSearch.Add(collection.CollectionName);
-                    fieldsToSearch.Add(collection.CollectionMC);
-                    fieldsToSearch.Add(collection.CollectionCategory);
-                    fieldsToSearch.Add(collection.CollectionTag1);
-                    fieldsToSearch.Add(collection.CollectionTag2);
-                    fieldsToSearch.Add(collection.CollectionTag3);
-                    fieldsToSearch.Add(collection.CollectionRealLocation);
+                    fieldsToSearch.Add(collection.IndexData.SystemData.Id);
+                    fieldsToSearch.Add(collection.IndexData.Values.Name);
+                    fieldsToSearch.Add(collection.IndexData.Values.ManagementCode);
+                    fieldsToSearch.Add(collection.IndexData.Values.Category);
+                    fieldsToSearch.Add(collection.IndexData.Values.FirstTag);
+                    fieldsToSearch.Add(collection.IndexData.Values.SecondTag);
+                    fieldsToSearch.Add(collection.IndexData.Values.ThirdTag);
+                    fieldsToSearch.Add(collection.IndexData.Values.Location);
                     break;
                 case SearchField.ID:
-                    fieldsToSearch.Add(collection.CollectionID);
+                    fieldsToSearch.Add(collection.IndexData.SystemData.Id);
                     break;
                 case SearchField.Name:
-                    fieldsToSearch.Add(collection.CollectionName);
+                    fieldsToSearch.Add(collection.IndexData.Values.Name);
                     break;
                 case SearchField.ManagementCode:
-                    fieldsToSearch.Add(collection.CollectionMC);
+                    fieldsToSearch.Add(collection.IndexData.Values.ManagementCode);
                     break;
                 case SearchField.Category:
-                    fieldsToSearch.Add(collection.CollectionCategory);
+                    fieldsToSearch.Add(collection.IndexData.Values.Category);
                     break;
                 case SearchField.Tag:
-                    fieldsToSearch.Add(collection.CollectionTag1);
-                    fieldsToSearch.Add(collection.CollectionTag2);
-                    fieldsToSearch.Add(collection.CollectionTag3);
+                    fieldsToSearch.Add(collection.IndexData.Values.FirstTag);
+                    fieldsToSearch.Add(collection.IndexData.Values.SecondTag);
+                    fieldsToSearch.Add(collection.IndexData.Values.ThirdTag);
                     break;
                 case SearchField.Tag1:
-                    fieldsToSearch.Add(collection.CollectionTag1);
+                    fieldsToSearch.Add(collection.IndexData.Values.FirstTag);
                     break;
                 case SearchField.Tag2:
-                    fieldsToSearch.Add(collection.CollectionTag2);
+                    fieldsToSearch.Add(collection.IndexData.Values.SecondTag);
                     break;
                 case SearchField.Tag3:
-                    fieldsToSearch.Add(collection.CollectionTag3);
+                    fieldsToSearch.Add(collection.IndexData.Values.ThirdTag);
                     break;
                 case SearchField.Location:
-                    fieldsToSearch.Add(collection.CollectionRealLocation);
+                    fieldsToSearch.Add(collection.IndexData.Values.Location);
                     break;
             }
 
@@ -447,7 +421,7 @@ namespace CREC_Web.Services
         public async Task<CollectionData?> GetCollectionByIdAsync(string id)
         {
             var collections = await GetAllCollectionsAsync();
-            return collections.FirstOrDefault(c => c.CollectionID.Equals(id, StringComparison.OrdinalIgnoreCase));
+            return collections.FirstOrDefault(c => c.IndexData.SystemData.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>
@@ -457,7 +431,7 @@ namespace CREC_Web.Services
         {
             var collections = await GetAllCollectionsAsync();
             return collections
-                .Select(c => c.CollectionCategory)
+                .Select(c => c.IndexData.Values.Category)
                 .Where(cat => !string.IsNullOrWhiteSpace(cat) && cat != " - ")
                 .Distinct()
                 .OrderBy(cat => cat)
@@ -472,9 +446,9 @@ namespace CREC_Web.Services
             var collections = await GetAllCollectionsAsync();
             var tags = new List<string>();
 
-            tags.AddRange(collections.Select(c => c.CollectionTag1));
-            tags.AddRange(collections.Select(c => c.CollectionTag2));
-            tags.AddRange(collections.Select(c => c.CollectionTag3));
+            tags.AddRange(collections.Select(c => c.IndexData.Values.FirstTag));
+            tags.AddRange(collections.Select(c => c.IndexData.Values.SecondTag));
+            tags.AddRange(collections.Select(c => c.IndexData.Values.ThirdTag));
 
             return tags
                 .Where(tag => !string.IsNullOrWhiteSpace(tag) && tag != " - ")
