@@ -23,6 +23,12 @@ namespace CREC_Web.Services
         private DateTime _lastCacheUpdate = DateTime.MinValue;
         private readonly TimeSpan _cacheExpiry = TimeSpan.FromMinutes(5);
 
+        // クラススコープにキャッシュ用JsonSerializerOptionsを追加
+        private static readonly JsonSerializerOptions _indexDataJsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
         public CrecDataService(ILogger<CrecDataService> logger, IConfiguration configuration)
         {
             _logger = logger;
@@ -111,28 +117,23 @@ namespace CREC_Web.Services
                     return CreateBasicCollectionData(directoryPath);
                 }
 
-                _logger.LogDebug($"Found index file: {indexFilePath}");
-
-                var collection = new CollectionData();
-
                 // index.jsonを読み込み
+                var collection = new CollectionData();
                 var jsonContent = await File.ReadAllTextAsync(indexFilePath, Encoding.UTF8);
                 try
                 {
-                    collection.IndexData = JsonSerializer.Deserialize<IndexData>(jsonContent, new JsonSerializerOptions
+                    var indexData = JsonSerializer.Deserialize<IndexData>(jsonContent, _indexDataJsonOptions);
+                    if (indexData is null)
                     {
-                        PropertyNameCaseInsensitive = true
-                    });
+                        _logger.LogWarning($"Failed to deserialize index.json in {indexFilePath}: Null result");
+                        return CreateBasicCollectionData(directoryPath);
+                    }
+                    collection.IndexData = indexData;
+                    _logger.LogDebug($"Successfully deserialized index.json in {indexFilePath}");
                 }
                 catch (JsonException jsonEx)
                 {
                     _logger.LogError(jsonEx, $"Failed to parse index.json in {indexFilePath}: Invalid JSON format");
-                    return CreateBasicCollectionData(directoryPath);
-                }
-
-                if (collection.IndexData == null)
-                {
-                    _logger.LogWarning($"Failed to deserialize index.json in {indexFilePath}: Null result");
                     return CreateBasicCollectionData(directoryPath);
                 }
 
@@ -143,8 +144,6 @@ namespace CREC_Web.Services
 
                 // 画像ファイルとその他のファイルを検索
                 LoadFileList(collection, directoryPath);
-
-                _logger.LogInformation($"Successfully loaded collection: ID={collection.IndexData.SystemData.Id}, Name={collection.IndexData.Values.Name}");
 
                 return collection;
             }
