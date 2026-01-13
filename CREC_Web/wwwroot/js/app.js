@@ -1252,7 +1252,12 @@ function displayCollectionPanel(collection) {
             }
 
             function updateImage() {
-                carouselImage.src = `/api/File/${encodeURIComponent(collection.indexData.systemData.id)}/${encodeURIComponent(images[currentImageIndex])}`;
+                const collectionID = collection?.indexData?.systemData?.id;
+                if (!collectionID) {
+                    console.error('Collection ID is missing.');
+                    return;
+                }
+                carouselImage.src = `/api/File/${encodeURIComponent(collectionID)}/${encodeURIComponent(images[currentImageIndex])}`;
                 carouselImage.alt = images[currentImageIndex];
                 imageCounter.textContent = `${currentImageIndex + 1} / ${images.length}`;
                 imageName.textContent = images[currentImageIndex];
