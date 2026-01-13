@@ -1888,13 +1888,20 @@ const inventoryManagementSettingsModalHandlers = {
  * 在庫管理設定モーダルを開く
  */
 function openInventoryManagementSettingsModal(collection) {
-    currentInventoryCollectionId = collection.indexData.systemData.id;
+    // コレクションIDを取得
+    currentInventoryCollectionId = collection?.indexData?.systemData?.id;
+    // コレクションIDが存在しない場合はエラー
+    if (!currentInventoryCollectionId) {
+        console.error('Collection ID is missing for inventory management settings');
+        return;
+    }
 
+    // モーダル要素を取得
     const modal = document.getElementById('inventoryManagementSettingsModal');
     const overlay = document.getElementById('inventoryManagementSettingsOverlay');
     const form = document.getElementById('inventoryManagementSettingsForm');
     const errorElement = document.getElementById('inventoryManagementSettingsError');
-
+    // 要素の存在を確認
     if (!modal || !overlay || !form) {
         console.error('Inventory management settings modal elements not found');
         return;
