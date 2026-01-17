@@ -74,7 +74,36 @@ builder.Services.AddCors(options =>
 });
 
 // URL設定 (HTTPSはカメラアクセスに必要)
-builder.WebHost.UseUrls("https://0.0.0.0:5001", "http://0.0.0.0:5000");
+bool isPortAvailable = false;
+int port = 5000;
+while (!isPortAvailable)
+{
+    port = 5000; // デフォルトポート
+    // port番号をコマンドラインに入力
+    Console.WriteLine("Please enter the project port number:");
+    var inputPort = Console.ReadLine()?.Trim();
+    if (int.TryParse(inputPort, out int parsedPort))
+    {
+        port = parsedPort;
+    }
+    else
+    {
+        Console.WriteLine($"Invalid port input. Using default port: {port}");
+    }
+    // ポートが利用可能か確認
+    try
+    {
+        var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, port);
+        listener.Start();
+        listener.Stop();
+        isPortAvailable = true;
+    }
+    catch
+    {
+        isPortAvailable = false;
+    }
+}
+builder.WebHost.UseUrls($"https://0.0.0.0:{port + 1}", $"http://0.0.0.0:{port}");
 
 var app = builder.Build();
 
@@ -111,10 +140,10 @@ logger.LogInformation("Executable directory: {ExecutablePath}", executablePath);
 logger.LogInformation("Web root path: {WebRootPath}", webRootPath);
 logger.LogInformation("wwwroot exists: {WebRootExists}", Directory.Exists(webRootPath));
 logger.LogInformation("Web interface will be available at:");
-logger.LogInformation("  - https://localhost:5001 (HTTPS - required for camera access)");
-logger.LogInformation("  - http://localhost:5000 (HTTP)");
-logger.LogInformation("  - https://[your-ip]:5001");
-logger.LogInformation("API documentation available at: https://localhost:5001/swagger");
+logger.LogInformation("  - https://localhost:{} (HTTPS - required for camera access)", port + 1);
+logger.LogInformation("  - http://localhost:{} (HTTP)", port);
+logger.LogInformation("  - https://[your-ip]:{}", port + 1);
+logger.LogInformation("API documentation available at: https://localhost:{}/swagger", port + 1);
 
 // Helper method to parse .crec file and extract project settings
 static ProjectSettings? ParseCrecFile(string crecFilePath)
