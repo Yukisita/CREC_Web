@@ -90,17 +90,13 @@ while (!isPortAvailable)
     {
         Console.WriteLine($"Invalid port input. Using default port: {port}");
     }
-    // ポートが利用可能か確認
-    try
+    if (IsPortAvailable(port) && IsPortAvailable(port + 1))
     {
-        var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, port);
-        listener.Start();
-        listener.Stop();
         isPortAvailable = true;
     }
-    catch
+    else
     {
-        isPortAvailable = false;
+        Console.WriteLine($"Port {port} or {port + 1} is already in use. Please enter a different port.");
     }
 }
 builder.WebHost.UseUrls($"https://0.0.0.0:{port + 1}", $"http://0.0.0.0:{port}");
@@ -255,6 +251,22 @@ static ProjectSettings? ParseCrecFile(string crecFilePath)
     {
         Console.WriteLine($"Error parsing .crec file: {ex.Message}");
         return null;
+    }
+}
+
+// ポートが利用可能か確認する関数
+static bool IsPortAvailable(int port)
+{
+    try
+    {
+        var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Any, port);
+        listener.Start();
+        listener.Stop();
+        return true;
+    }
+    catch
+    {
+        return false;
     }
 }
 
