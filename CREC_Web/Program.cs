@@ -135,10 +135,10 @@ logger.LogInformation("Executable directory: {ExecutablePath}", executablePath);
 logger.LogInformation("Web root path: {WebRootPath}", webRootPath);
 logger.LogInformation("wwwroot exists: {WebRootExists}", Directory.Exists(webRootPath));
 logger.LogInformation("Web interface will be available at:");
-logger.LogInformation("  - https://localhost:{} (HTTPS - required for camera access)", port);
-logger.LogInformation("  - http://localhost:{} (HTTP)", port + 1);
-logger.LogInformation("  - https://[your-ip]:{}", port);
-logger.LogInformation("API documentation available at: https://localhost:{}/swagger", port);
+logger.LogInformation("  - https://localhost:{Port} (HTTPS - required for camera access)", port);
+logger.LogInformation("  - http://localhost:{Port} (HTTP)", port + 1);
+logger.LogInformation("  - https://[your-ip]:{Port}", port);
+logger.LogInformation("API documentation available at: https://localhost:{Port}/swagger", port);
 
 // Helper method to parse .crec file and extract project settings
 static ProjectSettings? ParseCrecFile(string crecFilePath)
