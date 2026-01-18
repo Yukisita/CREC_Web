@@ -80,7 +80,7 @@ while (!isPortAvailable)
 {
     port = 5000; // デフォルトポート
     // port番号をコマンドラインに入力
-    Console.WriteLine("Please enter the project port number:");
+    Console.Write("Please enter the project port number:");
     var inputPort = Console.ReadLine()?.Trim();
     if (int.TryParse(inputPort, out int parsedPort))
     {
@@ -88,18 +88,17 @@ while (!isPortAvailable)
     }
     else
     {
-        Console.WriteLine($"Invalid port input. Using default port: {port}");
+        Console.WriteLine($"Invalid port input. Use default port.");
     }
+    // ポート番号の規則をコンソール表示（HTTPSは入力値、HTTPは入力値+1）
+    Console.WriteLine($"Using ports: HTTPS={port}, HTTP={port + 1}");
+    // ポートが利用可能か確認
     if (IsPortAvailable(port) && IsPortAvailable(port + 1))
     {
         isPortAvailable = true;
     }
-    else
-    {
-        Console.WriteLine($"Port {port} or {port + 1} is already in use. Please enter a different port.");
-    }
 }
-builder.WebHost.UseUrls($"https://0.0.0.0:{port + 1}", $"http://0.0.0.0:{port}");
+builder.WebHost.UseUrls($"https://0.0.0.0:{port}", $"http://0.0.0.0:{port + 1}");
 
 var app = builder.Build();
 
@@ -136,10 +135,10 @@ logger.LogInformation("Executable directory: {ExecutablePath}", executablePath);
 logger.LogInformation("Web root path: {WebRootPath}", webRootPath);
 logger.LogInformation("wwwroot exists: {WebRootExists}", Directory.Exists(webRootPath));
 logger.LogInformation("Web interface will be available at:");
-logger.LogInformation("  - https://localhost:{} (HTTPS - required for camera access)", port + 1);
-logger.LogInformation("  - http://localhost:{} (HTTP)", port);
-logger.LogInformation("  - https://[your-ip]:{}", port + 1);
-logger.LogInformation("API documentation available at: https://localhost:{}/swagger", port + 1);
+logger.LogInformation("  - https://localhost:{} (HTTPS - required for camera access)", port);
+logger.LogInformation("  - http://localhost:{} (HTTP)", port + 1);
+logger.LogInformation("  - https://[your-ip]:{}", port);
+logger.LogInformation("API documentation available at: https://localhost:{}/swagger", port);
 
 // Helper method to parse .crec file and extract project settings
 static ProjectSettings? ParseCrecFile(string crecFilePath)
@@ -266,6 +265,7 @@ static bool IsPortAvailable(int port)
     }
     catch
     {
+        Console.WriteLine($"Port {port} is already in use. Please enter a different port.");
         return false;
     }
 }
