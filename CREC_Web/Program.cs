@@ -263,9 +263,14 @@ static bool IsPortAvailable(int port)
         listener.Stop();
         return true;
     }
-    catch
+    catch (System.Net.Sockets.SocketException)// ポートが使用中の場合
     {
         Console.WriteLine($"Port {port} is already in use. Please enter a different port.");
+        return false;
+    }
+    catch (Exception ex)// その他の例外処理
+    {
+        Console.WriteLine($"Unexpected error when checking port {port}: {ex.Message}");
         return false;
     }
 }
