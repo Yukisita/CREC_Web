@@ -74,7 +74,31 @@ builder.Services.AddCors(options =>
 });
 
 // URL設定 (HTTPSはカメラアクセスに必要)
-builder.WebHost.UseUrls("https://0.0.0.0:5001", "http://0.0.0.0:5000");
+bool isPortAvailable = false;
+int port = 5000;
+while (!isPortAvailable)
+{
+    port = 5000; // デフォルトポート
+    // port番号をコマンドラインに入力
+    Console.Write("Please enter the project port number:");
+    var inputPort = Console.ReadLine()?.Trim();
+    if (int.TryParse(inputPort, out int parsedPort))
+    {
+        port = parsedPort;
+    }
+    else
+    {
+        Console.WriteLine($"Invalid port input. Use default port.");
+    }
+    // ポート番号の規則をコンソール表示（HTTPSは入力値、HTTPは入力値+1）
+    Console.WriteLine($"Using ports: HTTPS={port}, HTTP={port + 1}");
+    // ポートが利用可能か確認
+    if (IsPortAvailable(port) && IsPortAvailable(port + 1))
+    {
+        isPortAvailable = true;
+    }
+}
+builder.WebHost.UseUrls($"https://0.0.0.0:{port}", $"http://0.0.0.0:{port + 1}");
 
 var app = builder.Build();
 
@@ -111,10 +135,10 @@ logger.LogInformation("Executable directory: {ExecutablePath}", executablePath);
 logger.LogInformation("Web root path: {WebRootPath}", webRootPath);
 logger.LogInformation("wwwroot exists: {WebRootExists}", Directory.Exists(webRootPath));
 logger.LogInformation("Web interface will be available at:");
-logger.LogInformation("  - https://localhost:5001 (HTTPS - required for camera access)");
-logger.LogInformation("  - http://localhost:5000 (HTTP)");
-logger.LogInformation("  - https://[your-ip]:5001");
-logger.LogInformation("API documentation available at: https://localhost:5001/swagger");
+logger.LogInformation("  - https://localhost:{Port} (HTTPS - required for camera access)", port);
+logger.LogInformation("  - http://localhost:{Port} (HTTP)", port + 1);
+logger.LogInformation("  - https://[your-ip]:{Port}", port);
+logger.LogInformation("API documentation available at: https://localhost:{Port}/swagger", port);
 
 // Helper method to parse .crec file and extract project settings
 static ProjectSettings? ParseCrecFile(string crecFilePath)
@@ -226,6 +250,36 @@ static ProjectSettings? ParseCrecFile(string crecFilePath)
     {
         Console.WriteLine($"Error parsing .crec file: {ex.Message}");
         return null;
+    }
+}
+
+// ポートが利用可能か確認する関数
+static bool IsPortAvailable(int port)
+{
+    // ポートが設定可能範囲な数値内か確認
+    if (port < 1 || port > 65535)
+    {
+        Console.WriteLine($"Port {port} is out of valid range (1-65535).");
+        return false;
+    }
+
+    // ポートが使用中か確認
+    try
+    {
+        using var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Any, port);
+        listener.Start();
+        listener.Stop();
+        return true;
+    }
+    catch (System.Net.Sockets.SocketException)// ポートが使用中の場合
+    {
+        Console.WriteLine($"Port {port} is already in use.");
+        return false;
+    }
+    catch (Exception ex)// その他の例外処理
+    {
+        Console.WriteLine($"Unexpected error when checking port {port}: {ex.Message}");
+        return false;
     }
 }
 
