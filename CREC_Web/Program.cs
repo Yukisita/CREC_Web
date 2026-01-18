@@ -265,7 +265,7 @@ static bool IsPortAvailable(int port)
     }
     catch (System.Net.Sockets.SocketException)// ポートが使用中の場合
     {
-        Console.WriteLine($"Port {port} is already in use. Please enter a different port.");
+        Console.WriteLine($"Port {port} is already in use.");
         return false;
     }
     catch (Exception ex)// その他の例外処理
