@@ -258,7 +258,7 @@ static bool IsPortAvailable(int port)
 {
     try
     {
-        var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Any, port);
+        using var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Any, port);
         listener.Start();
         listener.Stop();
         return true;
