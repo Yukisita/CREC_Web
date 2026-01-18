@@ -256,6 +256,14 @@ static ProjectSettings? ParseCrecFile(string crecFilePath)
 // ポートが利用可能か確認する関数
 static bool IsPortAvailable(int port)
 {
+    // ポートが設定可能範囲な数値内か確認
+    if (port < 1 || port > 65535)
+    {
+        Console.WriteLine($"Port {port} is out of valid range (1-65535).");
+        return false;
+    }
+
+    // ポートが使用中か確認
     try
     {
         using var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Any, port);
