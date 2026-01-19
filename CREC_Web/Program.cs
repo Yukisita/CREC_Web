@@ -152,11 +152,16 @@ logger.LogInformation("API documentation available at: https://localhost:{Port}/
 
 // Ctrl+C (SIGINT) ハンドラの設定
 var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
+var isShuttingDown = false; // シャットダウン処理の重複実行を防ぐフラグ
 Console.CancelKeyPress += (sender, eventArgs) =>
 {
-    Console.WriteLine("\nCtrl+C detected. Shutting down the server gracefully...");
-    eventArgs.Cancel = true; // デフォルトの終了処理をキャンセルして、アプリケーションの適切なシャットダウンを実行
-    lifetime.StopApplication(); // アプリケーションの適切なシャットダウンを要求
+    if (!isShuttingDown)
+    {
+        isShuttingDown = true;
+        Console.WriteLine("\nCtrl+C detected. Shutting down the server gracefully...");
+        eventArgs.Cancel = true; // デフォルトの終了処理をキャンセルして、アプリケーションの適切なシャットダウンを実行
+        lifetime.StopApplication(); // アプリケーションの適切なシャットダウンを要求
+    }
 };
 
 // Helper method to parse .crec file and extract project settings
