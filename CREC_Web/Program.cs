@@ -269,7 +269,7 @@ static bool IsPortAvailable(int port)
     // ポートが設定可能範囲内の数値か確認
     if (port < 1 || port > 65535)
     {
-        Console.WriteLine($"Port {port} is out of valid range (1-65535).");
+        Console.WriteLine($"Port {port} is out of valid range (1-65535). Please enter a port between 1 and 65534 (to allow for HTTP port + 1).");
         return false;
     }
 
