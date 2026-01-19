@@ -151,11 +151,12 @@ logger.LogInformation("  - https://[your-ip]:{Port}", port + 1);
 logger.LogInformation("API documentation available at: https://localhost:{Port}/swagger", port + 1);
 
 // Ctrl+C (SIGINT) ハンドラの設定
+var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
 Console.CancelKeyPress += (sender, eventArgs) =>
 {
     Console.WriteLine("\nCtrl+C detected. Shutting down the server gracefully...");
-    eventArgs.Cancel = true; // デフォルトの終了処理をキャンセル
-    Environment.Exit(0); // アプリケーションを正常終了
+    eventArgs.Cancel = true; // デフォルトの終了処理をキャンセルして、アプリケーションの適切なシャットダウンを実行
+    lifetime.StopApplication(); // アプリケーションの適切なシャットダウンを要求
 };
 
 // Helper method to parse .crec file and extract project settings
