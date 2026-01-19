@@ -101,14 +101,14 @@ while (!isPortAvailable)
     }
 
     // ポート番号の規則をコンソール表示（HTTPSは入力値、HTTPは入力値+1）
-    Console.WriteLine($"Using ports: HTTPS={port}, HTTP={port + 1}");
+    Console.WriteLine($"Using ports: HTTP={port}, HTTPS={port + 1}");
     // ポートが利用可能か確認
     if (IsPortAvailable(port) && IsPortAvailable(port + 1))
     {
         isPortAvailable = true;
     }
 }
-builder.WebHost.UseUrls($"https://0.0.0.0:{port}", $"http://0.0.0.0:{port + 1}");
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}", $"https://0.0.0.0:{port + 1}");
 
 var app = builder.Build();
 
@@ -145,10 +145,10 @@ logger.LogInformation("Executable directory: {ExecutablePath}", executablePath);
 logger.LogInformation("Web root path: {WebRootPath}", webRootPath);
 logger.LogInformation("wwwroot exists: {WebRootExists}", Directory.Exists(webRootPath));
 logger.LogInformation("Web interface will be available at:");
-logger.LogInformation("  - https://localhost:{Port} (HTTPS - required for camera access)", port);
-logger.LogInformation("  - http://localhost:{Port} (HTTP)", port + 1);
-logger.LogInformation("  - https://[your-ip]:{Port}", port);
-logger.LogInformation("API documentation available at: https://localhost:{Port}/swagger", port);
+logger.LogInformation("  - http://localhost:{Port} (HTTP)", port);
+logger.LogInformation("  - https://localhost:{Port} (HTTPS)", port + 1);
+logger.LogInformation("  - https://[your-ip]:{Port}", port + 1);
+logger.LogInformation("API documentation available at: https://localhost:{Port}/swagger", port + 1);
 
 // Helper method to parse .crec file and extract project settings
 static ProjectSettings? ParseCrecFile(string crecFilePath)
