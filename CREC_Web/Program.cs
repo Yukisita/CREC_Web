@@ -80,7 +80,7 @@ while (!isPortAvailable)
 {
     port = 5000; // デフォルトポート
     // port番号をコマンドラインに入力
-    Console.Write("Please enter the project port number:");
+    Console.Write("Please enter the project port number: ");
     var inputPort = Console.ReadLine()?.Trim();
     if (int.TryParse(inputPort, out int parsedPort))
     {
@@ -271,12 +271,12 @@ static bool IsPortAvailable(int port)
         listener.Stop();
         return true;
     }
-    catch (System.Net.Sockets.SocketException)// ポートが使用中の場合
+    catch (System.Net.Sockets.SocketException) // ポートが使用中の場合
     {
         Console.WriteLine($"Port {port} is already in use.");
         return false;
     }
-    catch (Exception ex)// その他の例外処理
+    catch (Exception ex) // その他の例外処理
     {
         Console.WriteLine($"Unexpected error when checking port {port}: {ex.Message}");
         return false;
