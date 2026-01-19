@@ -78,18 +78,28 @@ bool isPortAvailable = false;
 int port = 5000;
 while (!isPortAvailable)
 {
-    port = 5000; // デフォルトポート
     // port番号をコマンドラインに入力
     Console.Write("Please enter the project port number: ");
-    var inputPort = Console.ReadLine()?.Trim();
-    if (int.TryParse(inputPort, out int parsedPort))
+    var inputPort = Console.ReadLine();
+    if (!string.IsNullOrWhiteSpace(inputPort))
     {
-        port = parsedPort;
+        inputPort = inputPort.Trim();
+        if (int.TryParse(inputPort, out int parsedPort))
+        {
+            port = parsedPort;
+        }
+        else
+        {
+            Console.WriteLine($"Invalid port input. Use default port.");
+            port = 5000; // デフォルトポートを指定
+        }
     }
     else
     {
-        Console.WriteLine($"Invalid port input. Use default port.");
+        Console.WriteLine($"No port input. Use default port.");
+        port = 5000; // デフォルトポートを指定
     }
+
     // ポート番号の規則をコンソール表示（HTTPSは入力値、HTTPは入力値+1）
     Console.WriteLine($"Using ports: HTTPS={port}, HTTP={port + 1}");
     // ポートが利用可能か確認
