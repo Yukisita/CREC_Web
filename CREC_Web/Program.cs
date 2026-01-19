@@ -79,7 +79,7 @@ int port = 5000;
 while (!isPortAvailable)
 {
     // port番号をコマンドラインに入力
-    Console.Write("Please enter the project port number: ");
+    Console.Write("Please enter the project port number (1-65534): ");
     var inputPort = Console.ReadLine();
     if (!string.IsNullOrWhiteSpace(inputPort))
     {
