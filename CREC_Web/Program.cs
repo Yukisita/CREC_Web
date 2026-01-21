@@ -153,40 +153,54 @@ logger.LogInformation("Press Ctrl+Q to initiate server shutdown.");
 
 // Ctrl+Q シャットダウンハンドラの設定
 var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
-var isShuttingDown = false; // シャットダウン処理の重複実行を防ぐフラグ
+var isShuttingDown = 0; // シャットダウン処理の重複実行を防ぐフラグ (0=実行中でない, 1=実行中)
 
 // Ctrl+Qの入力を監視するバックグラウンドタスク
-#pragma warning disable CS4014
-Task.Run(() =>
+var monitorTask = Task.Run(() =>
 {
-    while (!lifetime.ApplicationStopping.IsCancellationRequested)
+    try
     {
-        var keyInfo = Console.ReadKey(intercept: true);
-        
-        // Ctrl+Q (Q key with Control modifier)
-        if (keyInfo.Key == ConsoleKey.Q && keyInfo.Modifiers.HasFlag(ConsoleModifiers.Control))
+        while (!lifetime.ApplicationStopping.IsCancellationRequested)
         {
-            if (!isShuttingDown)
+            // Console.KeyAvailable を使用してブロッキングを回避
+            if (Console.KeyAvailable)
             {
-                isShuttingDown = true;
-                Console.WriteLine("\nCtrl+Q detected. Do you want to shut down the server? (Y/N): ");
-                var response = Console.ReadLine()?.Trim().ToUpper();
+                var keyInfo = Console.ReadKey(intercept: true);
                 
-                if (response == "Y")
+                // Ctrl+Q (Q key with Control modifier)
+                if (keyInfo.Key == ConsoleKey.Q && keyInfo.Modifiers.HasFlag(ConsoleModifiers.Control))
                 {
-                    Console.WriteLine("Shutting down the server gracefully...");
-                    lifetime.StopApplication(); // アプリケーションの適切なシャットダウンを要求
+                    // Interlocked.CompareExchange でスレッドセーフな比較と交換
+                    if (Interlocked.CompareExchange(ref isShuttingDown, 1, 0) == 0)
+                    {
+                        Console.WriteLine("\nCtrl+Q detected. Do you want to shut down the server? (Y/N): ");
+                        var response = Console.ReadLine()?.Trim().ToUpper();
+                        
+                        if (response == "Y")
+                        {
+                            Console.WriteLine("Shutting down the server gracefully...");
+                            lifetime.StopApplication(); // アプリケーションの適切なシャットダウンを要求
+                        }
+                        else
+                        {
+                            Console.WriteLine("Shutdown canceled. Server continues running.");
+                            Interlocked.Exchange(ref isShuttingDown, 0); // フラグをリセット
+                        }
+                    }
                 }
-                else
-                {
-                    Console.WriteLine("Shutdown canceled. Server continues running.");
-                    isShuttingDown = false; // シャットダウンをキャンセルしたのでフラグをリセット
-                }
+            }
+            else
+            {
+                // キー入力がない場合は少し待機してCPU使用率を抑える
+                Thread.Sleep(100);
             }
         }
     }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error in shutdown monitor: {ex.Message}");
+    }
 });
-#pragma warning restore CS4014
 
 // Helper method to parse .crec file and extract project settings
 static ProjectSettings? ParseCrecFile(string crecFilePath)
