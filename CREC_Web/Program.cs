@@ -166,7 +166,7 @@ var monitorTask = Task.Run(async () =>
             if (Console.KeyAvailable)
             {
                 var keyInfo = Console.ReadKey(intercept: true);
-                
+
                 // Ctrl+Q (Q key with Control modifier)
                 if (keyInfo.Key == ConsoleKey.Q && keyInfo.Modifiers.HasFlag(ConsoleModifiers.Control))
                 {
@@ -175,7 +175,7 @@ var monitorTask = Task.Run(async () =>
                     {
                         Console.WriteLine("\nCtrl+Q detected. Do you want to shut down the server? (Y/N): ");
                         var response = Console.ReadLine()?.Trim().ToUpper();
-                        
+
                         if (response == "Y")
                         {
                             Console.WriteLine("Shutting down the server gracefully...");
@@ -196,7 +196,7 @@ var monitorTask = Task.Run(async () =>
             }
         }
     }
-    catch(OperationCanceledException)
+    catch (OperationCanceledException)
     {
         Console.WriteLine("Shutdown monitor task was cancelled.");
     }
