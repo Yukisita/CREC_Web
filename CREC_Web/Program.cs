@@ -156,7 +156,7 @@ var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
 var isShuttingDown = 0; // シャットダウン処理の重複実行を防ぐフラグ (0=実行中でない, 1=実行中)
 
 // Ctrl+Qの入力を監視するバックグラウンドタスク
-var monitorTask = Task.Run(async () =>
+var monitorTask = Task.Run(() =>
 {
     try
     {
@@ -192,13 +192,9 @@ var monitorTask = Task.Run(async () =>
             else
             {
                 // キー入力がない場合は少し待機してCPU使用率を抑える
-                await Task.Delay(100, lifetime.ApplicationStopping);
+                Thread.Sleep(100);
             }
         }
-    }
-    catch (OperationCanceledException)
-    {
-        Console.WriteLine("Shutdown monitor task was cancelled.");
     }
     catch (Exception ex)
     {
