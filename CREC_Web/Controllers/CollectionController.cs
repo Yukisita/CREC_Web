@@ -12,6 +12,13 @@ namespace CREC_Web.Controllers
     {
         public IActionResult Index(string id)
         {
+            // Validate and sanitize the collection ID
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                return BadRequest("Collection ID is required");
+            }
+
+            // Store the ID in ViewData - it will be properly encoded when rendered
             ViewData["CollectionId"] = id;
             return View();
         }
