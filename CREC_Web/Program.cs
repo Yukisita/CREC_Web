@@ -149,6 +149,58 @@ logger.LogInformation("  - http://localhost:{Port} (HTTP)", port);
 logger.LogInformation("  - https://localhost:{Port} (HTTPS)", port + 1);
 logger.LogInformation("  - https://[your-ip]:{Port}", port + 1);
 logger.LogInformation("API documentation available at: https://localhost:{Port}/swagger", port + 1);
+logger.LogInformation("Press Ctrl+Q to initiate server shutdown.");
+
+// Ctrl+Q シャットダウンハンドラの設定
+var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
+var isShuttingDown = 0; // シャットダウン処理の重複実行を防ぐフラグ (0=実行中でない, 1=実行中)
+
+// Ctrl+Qの入力を監視するバックグラウンドタスク
+var monitorTask = Task.Run(() =>
+{
+    try
+    {
+        while (!lifetime.ApplicationStopping.IsCancellationRequested)
+        {
+            // Console.KeyAvailable を使用してブロッキングを回避
+            if (Console.KeyAvailable)
+            {
+                var keyInfo = Console.ReadKey(intercept: true);
+
+                // Ctrl+Q (Q key with Control modifier)
+                if (keyInfo.Key == ConsoleKey.Q && keyInfo.Modifiers.HasFlag(ConsoleModifiers.Control))
+                {
+                    // Interlocked.CompareExchange でスレッドセーフな比較と交換
+                    if (Interlocked.CompareExchange(ref isShuttingDown, 1, 0) == 0)
+                    {
+                        Console.WriteLine("\nCtrl+Q detected. Do you want to shut down the server? (Y/N): ");
+                        var response = Console.ReadLine()?.Trim().ToUpper();
+
+                        if (response == "Y")
+                        {
+                            Console.WriteLine("Shutting down the server gracefully...");
+                            lifetime.StopApplication(); // アプリケーションの適切なシャットダウンを要求
+                        }
+                        else
+                        {
+                            Console.WriteLine("Shutdown canceled. Server continues running.");
+                            Interlocked.Exchange(ref isShuttingDown, 0); // フラグをリセット
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // キー入力がない場合は少し待機してCPU使用率を抑える
+                Thread.Sleep(100);
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error in shutdown monitor: {ex.Message}");
+    }
+});
 
 // Helper method to parse .crec file and extract project settings
 static ProjectSettings? ParseCrecFile(string crecFilePath)
