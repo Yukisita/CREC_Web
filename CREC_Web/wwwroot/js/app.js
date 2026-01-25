@@ -136,7 +136,8 @@ const translations = {
         'reorder-point': '発注点',
         'maximum-level': '最大在庫数',
         'invalid-number': '設定値が数値ではありません。',
-        'safe-integer-overflow':'設定値が、設定可能範囲（-9007199254740991 ~ 9007199254740991）を超えています。'
+        'safe-integer-overflow':'設定値が、設定可能範囲（-9007199254740991 ~ 9007199254740991）を超えています。',
+        'open-collection': 'コレクションを開く'
     },
     en: {
         'loading': 'Loading...',
@@ -223,7 +224,8 @@ const translations = {
         'reorder-point': 'Reorder Point',
         'maximum-level': 'Maximum Level',
         'invalid-number': 'The value is not a valid number.',
-        'safe-integer-overflow': 'The value exceeds the configurable range (-9007199254740991 ~ 9007199254740991).'
+        'safe-integer-overflow': 'The value exceeds the configurable range (-9007199254740991 ~ 9007199254740991).',
+        'open-collection': 'Open Collection'
     }
 };
 
@@ -1086,6 +1088,11 @@ async function showCollectionDetails(collectionId) {
     }
 }
 
+function openCollectionWindow(collectionId) {
+    const url = `/Collection/${encodeURIComponent(collectionId)}`;
+    window.open(url, '_blank', 'width=800,height=900,scrollbars=yes,resizable=yes');
+}
+
 function displayCollectionPanel(collection) {
     const panel = document.getElementById('detailPanel');
     const overlay = document.getElementById('detailPanelOverlay');
@@ -1095,7 +1102,13 @@ function displayCollectionPanel(collection) {
     // 新しいリスナを設定する前に既存のイベントリスナをクリーンアップ
     cleanupPanelEventListeners(panel);
 
-    panelTitle.textContent = collection.indexData.values.name;
+    // タイトルとボタンを含むHTMLを作成
+    panelTitle.innerHTML = `
+        ${escapeHtml(collection.indexData.values.name)}
+        <button id="openCollectionWindowBtn" class="btn btn-sm btn-outline-primary ms-2" style="font-size: 0.8em;">
+            <i class="bi bi-box-arrow-up-right"></i> ${t('open-collection')}
+        </button>
+    `;
 
     const inventoryStatusText = getInventoryStatusText(
         collection.collectionInventoryStatus,
@@ -1220,6 +1233,14 @@ function displayCollectionPanel(collection) {
     overlay.classList.add('show');
     setTimeout(() => {
         panel.classList.add('open');
+    }, ANIMATION_DELAY);
+
+    // コレクションを開くボタンのイベントリスナを設定
+    setTimeout(() => {
+        const openCollectionWindowBtn = document.getElementById('openCollectionWindowBtn');
+        if (openCollectionWindowBtn) {
+            openCollectionWindowBtn.addEventListener('click', () => openCollectionWindow(collection.indexData.systemData.id));
+        }
     }, ANIMATION_DELAY);
 
     // 在庫操作ボタンのイベントリスナを設定
