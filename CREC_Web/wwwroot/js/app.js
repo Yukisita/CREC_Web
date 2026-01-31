@@ -1095,7 +1095,7 @@ async function showCollectionDetails(collectionId) {
 }
 
 function openCollectionWindow(collectionId) {
-    const url = `/Collection/${encodeURIComponent(collectionId)}`;
+    const url = `/Collection/Index/${encodeURIComponent(collectionId)}`;
     window.open(url, '_blank', 'width=800,height=900,scrollbars=yes,resizable=yes');
 }
 
