@@ -1111,7 +1111,7 @@ function displayCollectionPanel(collection) {
     // タイトルとボタンを含むHTMLを作成
     panelTitle.innerHTML = `
         ${escapeHtml(collection.indexData.values.name)}
-        <button id="openCollectionWindowBtn" class="btn btn-sm btn-outline-primary ms-2" style="font-size: 0.8em;">
+        <button id="openCollectionWindowBtn" class="btn btn-sm btn-light ms-2" style="font-size: 0.8em;">
             <i class="bi bi-box-arrow-up-right"></i> ${t('open-collection')}
         </button>
     `;
