@@ -10,6 +10,7 @@ namespace CREC_Web.Controllers
 {
     public class CollectionController : Controller
     {
+        [Route("Collection/{id}")]
         public IActionResult Index(string id)
         {
             // Validate and sanitize the collection ID
