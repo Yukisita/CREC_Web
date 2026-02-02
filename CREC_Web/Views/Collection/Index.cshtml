@@ -64,6 +64,7 @@
 
         .detail-section {
             margin-bottom: 1.5rem;
+            text-align: left;
         }
 
         .detail-section h6 {
@@ -71,10 +72,27 @@
             font-size: 0.875rem;
             text-transform: uppercase;
             margin-bottom: 0.5rem;
+            text-align: left;
         }
 
         .detail-section p {
             margin-bottom: 0.5rem;
+            text-align: left;
+        }
+
+        #inventorySummary {
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            margin-bottom: 1rem;
+        }
+
+        #inventorySummary .detail-section {
+            margin-bottom: 1rem;
+        }
+
+        #inventorySummary .detail-section:last-child {
+            margin-bottom: 0;
         }
 
         .loading {
@@ -171,6 +189,7 @@
 
         <!-- Right Panel: Inventory Operation History -->
         <div class="right-panel">
+            <div id="inventorySummary"></div>
             <div class="history-header">
                 <h4 id="historyTitle"></h4>
             </div>
@@ -364,26 +383,6 @@
                 </div>
                     
                 <div class="detail-section">
-                    <h6>
-                        ${t('inventory')}
-                        <button id="inventoryOperationBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
-                            <i class="bi bi-pencil-square"></i> ${t('inventory-operation')}
-                        </button>
-                    </h6>
-                    <p>${collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : t('not-set')}</p>
-                </div>
-                    
-                <div class="detail-section">
-                    <h6>
-                        ${t('inventory-status')}
-                        <button id="inventoryManagementSettingsBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
-                            <i class="bi bi-pencil-square"></i> ${t('inventory-management-settings')}
-                        </button>
-                    </h6>
-                    <p><span class="badge ${inventoryBadgeClass}">${inventoryStatusText}</span></p>
-                </div>
-                    
-                <div class="detail-section">
                     <h6>${t('tags')}</h6>
                     <div>
                         ${collection.indexData?.values?.firstTag && collection.indexData?.values?.firstTag !== ' - ' ? `<p>${projectSettings.tag1Name || (currentLanguage === 'ja' ? 'タグ 1' : 'Tag 1')}: ${escapeHtml(collection.indexData?.values?.firstTag)}</p>` : ''}
@@ -398,7 +397,7 @@
                 ${collection.comment ? `
                     <div class="detail-section">
                         <h6>${t('comment')}</h6>
-                        <div class="border rounded p-3" style="white-space: pre-wrap; background-color: #f8f9fa;">${escapeHtml(collection.comment)}</div>
+                        <div class="border rounded p-3" style="white-space: pre-wrap; background-color: #f8f9fa; text-align: left;">${escapeHtml(collection.comment)}</div>
                     </div>
                 ` : ''}
                     
@@ -415,17 +414,8 @@
                 </div>
             `;
 
-            // 在庫操作ボタンのイベントリスナを設定
-            const inventoryOperationBtn = document.getElementById('inventoryOperationBtn');
-            if (inventoryOperationBtn) {
-                inventoryOperationBtn.addEventListener('click', () => openInventoryOperationModal(collection));
-            }
-
-            // 在庫管理設定ボタンのイベントリスナを設定
-            const inventoryManagementSettingsBtn = document.getElementById('inventoryManagementSettingsBtn');
-            if (inventoryManagementSettingsBtn) {
-                inventoryManagementSettingsBtn.addEventListener('click', () => openInventoryManagementSettingsModal(collection));
-            }
+            // Display inventory summary in right panel
+            displayInventorySummary(collection, inventoryStatusText, inventoryBadgeClass);
 
             // 画像がある場合はカルーセル制御を設定
             if (images.length > 0) {
@@ -458,6 +448,44 @@
                         updateImage();
                     });
                 }
+            }
+        }
+
+        function displayInventorySummary(collection, inventoryStatusText, inventoryBadgeClass) {
+            const inventorySummaryHtml = `
+                <div class="detail-section">
+                    <h6>
+                        ${t('inventory')}
+                        <button id="inventoryOperationBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
+                            <i class="bi bi-pencil-square"></i> ${t('inventory-operation')}
+                        </button>
+                    </h6>
+                    <p>${collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : t('not-set')}</p>
+                </div>
+                    
+                <div class="detail-section">
+                    <h6>
+                        ${t('inventory-status')}
+                        <button id="inventoryManagementSettingsBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
+                            <i class="bi bi-pencil-square"></i> ${t('inventory-management-settings')}
+                        </button>
+                    </h6>
+                    <p><span class="badge ${inventoryBadgeClass}">${inventoryStatusText}</span></p>
+                </div>
+            `;
+
+            document.getElementById('inventorySummary').innerHTML = inventorySummaryHtml;
+
+            // 在庫操作ボタンのイベントリスナを設定
+            const inventoryOperationBtn = document.getElementById('inventoryOperationBtn');
+            if (inventoryOperationBtn) {
+                inventoryOperationBtn.addEventListener('click', () => openInventoryOperationModal(collection));
+            }
+
+            // 在庫管理設定ボタンのイベントリスナを設定
+            const inventoryManagementSettingsBtn = document.getElementById('inventoryManagementSettingsBtn');
+            if (inventoryManagementSettingsBtn) {
+                inventoryManagementSettingsBtn.addEventListener('click', () => openInventoryManagementSettingsModal(collection));
             }
         }
 
