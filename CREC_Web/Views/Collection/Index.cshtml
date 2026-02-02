@@ -397,7 +397,7 @@
                 ${collection.comment ? `
                     <div class="detail-section">
                         <h6>${t('comment')}</h6>
-                        <div class="border rounded p-3" style="white-space: pre-wrap; background-color: #f8f9fa; text-align: left;">${escapeHtml(collection.comment)}</div>
+                        <div class="border rounded p-3" style="white-space: pre-wrap; background-color: #f8f9fa;">${escapeHtml(collection.comment)}</div>
                     </div>
                 ` : ''}
                     
@@ -451,6 +451,12 @@
             }
         }
 
+        // Displays inventory summary at the top of the right panel
+        // Shows inventory count, status, and operation/settings buttons
+        // Parameters:
+        //   collection - The collection object containing inventory data
+        //   inventoryStatusText - Formatted inventory status text
+        //   inventoryBadgeClass - CSS class for inventory status badge
         function displayInventorySummary(collection, inventoryStatusText, inventoryBadgeClass) {
             const inventorySummaryHtml = `
                 <div class="detail-section">
