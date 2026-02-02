@@ -159,7 +159,7 @@
         <div class="left-panel">
             <div class="collection-container">
                 <div class="collection-header">
-                    <h3 id="collectionTitle">読み込み中...</h3>
+                    <h3 id="collectionTitle"></h3>
                 </div>
                 <div id="collectionBody" class="loading">
                     <div class="spinner-border text-primary" role="status">
@@ -688,6 +688,10 @@
 
         // ページ読み込み時の処理
         document.addEventListener('DOMContentLoaded', async () => {
+            // Set initial loading text
+            document.getElementById('collectionTitle').textContent = t('loading');
+            document.getElementById('historyTitle').textContent = t('loading');
+            
             await loadProjectSettings();
             await loadCollectionDetails();
         });
