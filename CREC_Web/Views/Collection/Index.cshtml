@@ -459,24 +459,26 @@
         //   inventoryBadgeClass - CSS class for inventory status badge
         function displayInventorySummary(collection, inventoryStatusText, inventoryBadgeClass) {
             const inventorySummaryHtml = `
-                <div class="detail-section">
-                    <h6>
-                        ${t('inventory')}
-                        <button id="inventoryOperationBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
-                            <i class="bi bi-pencil-square"></i> ${t('inventory-operation')}
-                        </button>
-                    </h6>
-                    <p>${collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : t('not-set')}</p>
-                </div>
-                    
-                <div class="detail-section">
-                    <h6>
-                        ${t('inventory-status')}
-                        <button id="inventoryManagementSettingsBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
-                            <i class="bi bi-pencil-square"></i> ${t('inventory-management-settings')}
-                        </button>
-                    </h6>
-                    <p><span class="badge ${inventoryBadgeClass}">${inventoryStatusText}</span></p>
+                <div style="display: flex; gap: 1rem;">
+                    <div class="detail-section" style="flex: 1;">
+                        <h6>
+                            ${t('inventory')}
+                            <button id="inventoryOperationBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
+                                <i class="bi bi-pencil-square"></i> ${t('inventory-operation')}
+                            </button>
+                        </h6>
+                        <p>${collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : t('not-set')}</p>
+                    </div>
+                        
+                    <div class="detail-section" style="flex: 1;">
+                        <h6>
+                            ${t('inventory-status')}
+                            <button id="inventoryManagementSettingsBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
+                                <i class="bi bi-pencil-square"></i> ${t('inventory-management-settings')}
+                            </button>
+                        </h6>
+                        <p><span class="badge ${inventoryBadgeClass}">${inventoryStatusText}</span></p>
+                    </div>
                 </div>
             `;
 
