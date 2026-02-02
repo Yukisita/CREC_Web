@@ -140,7 +140,14 @@ const translations = {
         'maximum-level': '最大在庫数',
         'invalid-number': '設定値が数値ではありません。',
         'safe-integer-overflow':'設定値が、設定可能範囲（-9007199254740991 ~ 9007199254740991）を超えています。',
-        'open-collection': 'コレクションを開く'
+        'open-collection': 'コレクションを開く',
+        'inventory-history': '在庫操作履歴',
+        'no-inventory-history': '在庫操作履歴がありません',
+        'date-time': '日時',
+        'operation-type-header': '操作種別',
+        'quantity-header': '数量',
+        'comment-header': 'コメント',
+        'unknown': '不明'
     },
     en: {
         'loading': 'Loading...',
@@ -231,7 +238,14 @@ const translations = {
         'maximum-level': 'Maximum Level',
         'invalid-number': 'The value is not a valid number.',
         'safe-integer-overflow': 'The value exceeds the configurable range (-9007199254740991 ~ 9007199254740991).',
-        'open-collection': 'Open Collection'
+        'open-collection': 'Open Collection',
+        'inventory-history': 'Inventory Operation History',
+        'no-inventory-history': 'No inventory operation history',
+        'date-time': 'Date/Time',
+        'operation-type-header': 'Operation Type',
+        'quantity-header': 'Quantity',
+        'comment-header': 'Comment',
+        'unknown': 'Unknown'
     }
 };
 

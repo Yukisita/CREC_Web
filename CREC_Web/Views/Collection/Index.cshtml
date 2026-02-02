@@ -172,7 +172,7 @@
         <!-- Right Panel: Inventory Operation History -->
         <div class="right-panel">
             <div class="history-header">
-                <h4 id="historyTitle">在庫操作履歴</h4>
+                <h4 id="historyTitle"></h4>
             </div>
             <div id="historyTableContainer">
                 <div class="loading">
@@ -462,6 +462,9 @@
         }
 
         function displayInventoryHistory(collection) {
+            // Set the history title
+            document.getElementById('historyTitle').textContent = t('inventory-history');
+            
             const operations = collection.inventoryData?.operations || [];
             const historyContainer = document.getElementById('historyTableContainer');
             
@@ -469,20 +472,20 @@
                 historyContainer.innerHTML = `
                     <div class="no-history">
                         <i class="bi bi-inbox" style="font-size: 3rem; color: #dee2e6;"></i>
-                        <p class="mt-3">在庫操作履歴がありません</p>
+                        <p class="mt-3">${t('no-inventory-history')}</p>
                     </div>
                 `;
                 return;
             }
 
-            // 操作タイプを日本語に変換
+            // 操作タイプを変換
             function getOperationTypeText(operationType) {
                 const typeMap = {
                     0: t('operation-entry'),    // 入庫
                     1: t('operation-exit'),      // 出庫
                     2: t('operation-stocktaking') // 棚卸し
                 };
-                return typeMap[operationType] || '不明';
+                return typeMap[operationType] || t('unknown');
             }
 
             function getOperationTypeBadgeClass(operationType) {
@@ -501,10 +504,10 @@
                 <table class="history-table">
                     <thead>
                         <tr>
-                            <th>日時</th>
-                            <th>操作種別</th>
-                            <th>数量</th>
-                            <th>コメント</th>
+                            <th>${t('date-time')}</th>
+                            <th>${t('operation-type-header')}</th>
+                            <th>${t('quantity-header')}</th>
+                            <th>${t('comment-header')}</th>
                         </tr>
                     </thead>
                     <tbody>
