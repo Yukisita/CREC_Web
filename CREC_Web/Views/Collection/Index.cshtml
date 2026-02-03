@@ -578,9 +578,9 @@
             // ドロップダウンのオプション設定
             const operationTypeSelect = document.getElementById('operationType');
             operationTypeSelect.innerHTML = `
-                <option value="entry">${t('operation-entry')}</option>
-                <option value="exit">${t('operation-exit')}</option>
-                <option value="stocktaking">${t('operation-stocktaking')}</option>
+                <option value="0">${t('operation-entry')}</option>
+                <option value="1">${t('operation-exit')}</option>
+                <option value="2">${t('operation-stocktaking')}</option>
             `;
             
             // ボタンのテキスト設定
@@ -595,7 +595,7 @@
             
             // 保存ボタンのイベントリスナ
             document.getElementById('saveInventoryOperation').onclick = async () => {
-                const operationType = document.getElementById('operationType').value;
+                const type = parseInt(document.getElementById('operationType').value);
                 const quantity = parseInt(document.getElementById('operationQuantity').value);
                 const comment = document.getElementById('operationComment').value;
                 
@@ -610,12 +610,12 @@
                     return;
                 }
                 
-                if (operationType === 'entry' && quantity <= 0) {
+                if (type === 0 && quantity <= 0) {
                     alert(t('quantity-validation-entry'));
                     return;
                 }
                 
-                if (operationType === 'exit' && quantity >= 0) {
+                if (type === 1 && quantity >= 0) {
                     alert(t('quantity-validation-exit'));
                     return;
                 }
@@ -627,9 +627,9 @@
                             'Content-Type': 'application/json',
                         },
                         body: JSON.stringify({
-                            operationType,
-                            quantity,
-                            comment
+                            operationType: type,
+                            quantity: quantity,
+                            note: comment
                         })
                     });
                     
