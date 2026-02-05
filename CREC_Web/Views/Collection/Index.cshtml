@@ -176,6 +176,25 @@
             overflow-y: auto;
             padding: 0 1rem 1rem 1rem;
         }
+
+        /* Responsive layout: switch to vertical layout on narrow screens */
+        @@media (max-width: 992px) {
+            .split-container {
+                flex-direction: column;
+            }
+
+            .left-panel {
+                flex: none;
+                border-right: none;
+                border-bottom: 2px solid #dee2e6;
+                max-height: 50vh;
+            }
+
+            .right-panel {
+                flex: none;
+                height: 50vh;
+            }
+        }
     </style>
 </head>
 <body>
