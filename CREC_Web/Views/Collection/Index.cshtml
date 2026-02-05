@@ -466,25 +466,29 @@
         //   inventoryBadgeClass - CSS class for inventory status badge
         function displayInventorySummary(collection, inventoryStatusText, inventoryBadgeClass) {
             const inventorySummaryHtml = `
-                <div style="display: flex; gap: 1rem;">
+                <div style="display: flex; gap: 0.5rem;">
                     <div class="detail-section" style="flex: 1;">
                         <h6>
-                            ${t('inventory')}
-                            <button id="inventoryOperationBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
-                                <i class="bi bi-pencil-square"></i> ${t('inventory-operation')}
-                            </button>
+                            <div style="display: flex; gap: 0.5rem; align-items: baseline;">
+                                <p style="font-size: 1.5rem; font-weight: 600; margin: 0;">${t('inventory')}</p>
+                                <p style="font-size: 1.5rem; font-weight: 600; margin: 0;">${collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : t('not-set')}</p>
+                            </div>
                         </h6>
-                        <p>${collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : t('not-set')}</p>
+                        <button id="inventoryOperationBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
+                            <i class="bi bi-pencil-square"></i> ${t('inventory-operation')}
+                        </button>
                     </div>
                         
                     <div class="detail-section" style="flex: 1;">
                         <h6>
-                            ${t('inventory-status')}
-                            <button id="inventoryManagementSettingsBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
-                                <i class="bi bi-pencil-square"></i> ${t('inventory-management-settings')}
-                            </button>
+                            <div style="display: flex; gap: 0.5rem; align-items: baseline;">
+                                <p style="font-size: 1.5rem; font-weight: 600;">${t('inventory-status')}
+                                <p><span class="badge ${inventoryBadgeClass}">${inventoryStatusText}</span></p>
+							</div>
                         </h6>
-                        <p><span class="badge ${inventoryBadgeClass}">${inventoryStatusText}</span></p>
+                        <button id="inventoryManagementSettingsBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
+                            <i class="bi bi-pencil-square"></i> ${t('inventory-management-settings')}
+                        </button>
                     </div>
                 </div>
             `;
