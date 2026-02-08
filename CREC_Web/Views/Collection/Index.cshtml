@@ -298,17 +298,8 @@
         // Collection ID from server - properly encoded to prevent XSS
         const collectionId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewData["CollectionId"]));
 
-        async function loadProjectSettings() {
-            try {
-                const response = await fetch('/api/ProjectSettings');
-                if (response.ok) {
-                    const settings = await response.json();
-                    projectSettings = settings;
-                }
-            } catch (error) {
-                console.error('Error loading project settings:', error);
-            }
-        }
+        // Note: loadProjectSettings() is already called by app.js during initialization
+        // No need to duplicate it here to avoid loading project settings twice
 
         async function loadCollectionDetails() {
             try {
@@ -752,7 +743,7 @@
             document.getElementById('collectionTitle').textContent = t('loading');
             document.getElementById('historyTitle').textContent = t('loading');
             
-            await loadProjectSettings();
+            // Project settings are already loaded by app.js, so just load collection details
             await loadCollectionDetails();
         });
     </script>
