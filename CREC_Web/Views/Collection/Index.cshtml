@@ -488,10 +488,8 @@
                 <div style="display: flex; gap: 0.5rem;">
                     <div class="detail-section" style="flex: 1.5;">
                         <h6>
-                            <div style="display: flex; gap: 0.5rem; align-items: baseline;">
-                                <p style="font-size: 1.5rem; font-weight: 600; margin: 0;">${t('inventory')}</p>
-                                <p style="font-size: 1.5rem; font-weight: 600; margin: 0;">${collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : t('not-set')}</p>
-                            </div>
+                            <p style="font-size: 1.5rem; font-weight: 600; margin: 0;">${t('inventory')}</p>
+                            <p style="font-size: 1.5rem; font-weight: 600; margin: 0;">${collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : t('not-set')}</p>
                         </h6>
                         <button id="inventoryOperationBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
                             <i class="bi bi-pencil-square"></i> ${t('inventory-operation')}
@@ -500,10 +498,8 @@
                         
                     <div class="detail-section" style="flex: 1;">
                         <h6>
-                            <div style="display: flex; gap: 0.5rem; align-items: baseline;">
-                                <p style="font-size: 1.5rem; font-weight: 600;">${t('inventory-status')}
-                                <p><span class="badge ${inventoryBadgeClass}">${inventoryStatusText}</span></p>
-							</div>
+                            <p style="font-size: 1.5rem; font-weight: 600;">${t('inventory-status')}
+                            <p><span class="badge ${inventoryBadgeClass}">${inventoryStatusText}</span></p>
                         </h6>
                         <button id="inventoryManagementSettingsBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
                             <i class="bi bi-pencil-square"></i> ${t('inventory-management-settings')}
