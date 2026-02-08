@@ -314,75 +314,93 @@ async function initializeApp() {
         // 言語適用
         updateUILanguage();
 
-        // Enter キーで検索
-        const searchTextElement = document.getElementById('searchText');
-        if (searchTextElement) {
-            searchTextElement.addEventListener('keypress', function (e) {
-                if (e.key === 'Enter') {
-                    searchCollections();
+        // Check if we're on the main search page by looking for key elements
+        const isMainSearchPage = document.getElementById('searchButton') !== null;
+
+        if (isMainSearchPage) {
+            // Main search page specific initialization
+            // Enter キーで検索
+            const searchTextElement = document.getElementById('searchText');
+            if (searchTextElement) {
+                searchTextElement.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter') {
+                        searchCollections();
+                    }
+                });
+            }
+
+            // イベントリスナの一括設定
+            setupEventListeners([
+                { id: 'searchButton', event: 'click', handler: () => searchCollections() },// 検索ボタンのイベントリスナ
+                { id: 'qrScanButton', event: 'click', handler: openQrScanner },// QRスキャンボタンのイベントリスナ
+                { id: 'clearFiltersButton', event: 'click', handler: clearFilters },// フィルタクリアボタンのイベントリスナ
+                { id: 'languageToggle', event: 'click', handler: toggleLanguage },// 言語切り替えボタンのイベントリスナ
+                { id: 'detailPanelOverlay', event: 'click', handler: closeDetailPanel },// 詳細パネルオープンのイベントリスナ
+                { id: 'detailPanelClose', event: 'click', handler: closeDetailPanel },// 詳細パネルクローズのイベントリスナ
+                { id: 'gridViewBtn', event: 'click', handler: switchToGridView },// グリッド表示ボタンのイベントリスナ
+                { id: 'tableViewBtn', event: 'click', handler: switchToTableView },// テーブル表示ボタンのイベントリスナ
+                { id: 'toggleAdvancedFiltersButton', event: 'click', handler: toggleAdvancedFilters },// 詳細フィルタ表示切り替えボタンのイベントリスナ
+                { id: 'qrScannerClose', event: 'click', handler: closeQrScanner },// QRスキャナークローズのイベントリスナ
+                { id: 'qrScannerOverlay', event: 'click', handler: closeQrScanner }// QRスキャナーオーバーレイクローズのイベントリスナ
+            ]);
+
+            // 保存された表示モードの読み込み
+            const savedViewMode = localStorage.getItem('crec_view_mode');
+            if (savedViewMode === 'grid' || savedViewMode === 'table') {
+                currentViewMode = savedViewMode;
+            }
+            else {
+                // 保存された表示モードが無効または存在しない場合、画面幅に基づいて決定
+                const isMobile = window.innerWidth < getMobileBreakpoint();
+
+                // 画面幅が閾値未満となった場合はグリッド表示に変更
+                if (isMobile && currentViewMode === 'table') {
+                    currentViewMode = 'grid';
                 }
-            });
-        }
-
-        // イベントリスナの一括設定
-        setupEventListeners([
-            { id: 'searchButton', event: 'click', handler: () => searchCollections() },// 検索ボタンのイベントリスナ
-            { id: 'qrScanButton', event: 'click', handler: openQrScanner },// QRスキャンボタンのイベントリスナ
-            { id: 'clearFiltersButton', event: 'click', handler: clearFilters },// フィルタクリアボタンのイベントリスナ
-            { id: 'languageToggle', event: 'click', handler: toggleLanguage },// 言語切り替えボタンのイベントリスナ
-            { id: 'detailPanelOverlay', event: 'click', handler: closeDetailPanel },// 詳細パネルオープンのイベントリスナ
-            { id: 'detailPanelClose', event: 'click', handler: closeDetailPanel },// 詳細パネルクローズのイベントリスナ
-            { id: 'gridViewBtn', event: 'click', handler: switchToGridView },// グリッド表示ボタンのイベントリスナ
-            { id: 'tableViewBtn', event: 'click', handler: switchToTableView },// テーブル表示ボタンのイベントリスナ
-            { id: 'toggleAdvancedFiltersButton', event: 'click', handler: toggleAdvancedFilters },// 詳細フィルタ表示切り替えボタンのイベントリスナ
-            { id: 'qrScannerClose', event: 'click', handler: closeQrScanner },// QRスキャナークローズのイベントリスナ
-            { id: 'qrScannerOverlay', event: 'click', handler: closeQrScanner }// QRスキャナーオーバーレイクローズのイベントリスナ
-        ]);
-
-        // 保存された表示モードの読み込み
-        const savedViewMode = localStorage.getItem('crec_view_mode');
-        if (savedViewMode === 'grid' || savedViewMode === 'table') {
-            currentViewMode = savedViewMode;
-        }
-        else {
-            // 保存された表示モードが無効または存在しない場合、画面幅に基づいて決定
-            const isMobile = window.innerWidth < getMobileBreakpoint();
-
-            // 画面幅が閾値未満となった場合はグリッド表示に変更
-            if (isMobile && currentViewMode === 'table') {
-                currentViewMode = 'grid';
+                // 画面幅が閾値以上となった場合はテーブル表示に変更
+                else if (!isMobile && currentViewMode === 'grid') {
+                    currentViewMode = 'table';
+                }
             }
-            // 画面幅が閾値以上となった場合はテーブル表示に変更
-            else if (!isMobile && currentViewMode === 'grid') {
-                currentViewMode = 'table';
+
+            // 初回の画面サイズからモバイルフラグを設定
+            lastIsMobile = window.innerWidth < getMobileBreakpoint();
+
+            // 保存された詳細フィルタの表示状態を復元
+            const savedAdvancedFiltersVisible = localStorage.getItem('crec_advanced_filters_visible');
+            if (savedAdvancedFiltersVisible === 'true') {
+                // 詳細フィルタを表示状態にする（既に保存されているのでsaveToStorage=false）
+                showAdvancedFilters(false);
             }
+
+            // ウィンドウリサイズイベントハンドラ登録
+            window.addEventListener('resize', handleWindowResize);
+
+            // 列リサイズ機能のセットアップ
+            setupColumnResizers();
+
+            // テーブルヘッダーのテキストを更新
+            updateTableHeaders();
+
+            // 初回検索
+            await searchCollections();
+        } else {
+            // Other pages (like Collection detail page) - only set up common event listeners
+            setupEventListeners([
+                { id: 'languageToggle', event: 'click', handler: toggleLanguage }// 言語切り替えボタンのイベントリスナ
+            ]);
         }
 
-        // 初回の画面サイズからモバイルフラグを設定
-        lastIsMobile = window.innerWidth < getMobileBreakpoint();
-
-        // 保存された詳細フィルタの表示状態を復元
-        const savedAdvancedFiltersVisible = localStorage.getItem('crec_advanced_filters_visible');
-        if (savedAdvancedFiltersVisible === 'true') {
-            // 詳細フィルタを表示状態にする（既に保存されているのでsaveToStorage=false）
-            showAdvancedFilters(false);
-        }
-
-        // ウィンドウリサイズイベントハンドラ登録
-        window.addEventListener('resize', handleWindowResize);
-
-        // 列リサイズ機能のセットアップ
-        setupColumnResizers();
-
-        // テーブルヘッダーのテキストを更新
-        updateTableHeaders();
-
-        // 初回検索
-        await searchCollections();
         console.log('App initialized successfully');
     } catch (error) {
         console.error('Error initializing app:', error);
-        showError('Failed to initialize application: ' + error.message);
+        // Only show error if error element exists
+        const errorElement = document.getElementById('error');
+        if (errorElement) {
+            showError('Failed to initialize application: ' + error.message);
+        } else {
+            console.error('Failed to initialize application:', error.message);
+        }
     }
 }
 
