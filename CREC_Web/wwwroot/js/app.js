@@ -314,8 +314,10 @@ async function initializeApp() {
         // 言語適用
         updateUILanguage();
 
-        // Check if we're on the main search page by looking for key elements
-        const isMainSearchPage = document.getElementById('searchButton') !== null;
+        // Check if we're on the main search page by checking the URL path
+        // This is more robust than checking for UI elements
+        const path = window.location.pathname.toLowerCase();
+        const isMainSearchPage = path === '/' || path === '/home' || path === '/home/index' || path.startsWith('/home/index/');
 
         if (isMainSearchPage) {
             // Main search page specific initialization
