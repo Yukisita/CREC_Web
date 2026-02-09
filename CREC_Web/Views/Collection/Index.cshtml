@@ -297,10 +297,6 @@
     <script>
         // Collection ID from server - properly encoded to prevent XSS
         const collectionId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewData["CollectionId"]));
-
-        // Note: loadProjectSettings() is already called by app.js during initialization
-        // No need to duplicate it here to avoid loading project settings twice
-
         async function loadCollectionDetails() {
             try {
                 const response = await fetch(`/api/collections/${encodeURIComponent(collectionId)}`);
