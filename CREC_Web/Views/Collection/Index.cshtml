@@ -738,8 +738,6 @@
             // Set initial loading text
             document.getElementById('collectionTitle').textContent = t('loading');
             document.getElementById('historyTitle').textContent = t('loading');
-            
-            // Project settings are already loaded by app.js, so just load collection details
             await loadCollectionDetails();
         });
     </script>
