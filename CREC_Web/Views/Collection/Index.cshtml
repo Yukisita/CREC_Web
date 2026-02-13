@@ -290,6 +290,10 @@
     <script>
         // Collection ID from server - properly encoded to prevent XSS
         const collectionId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewData["CollectionId"]));
+        
+        // Store the current collection data so we can re-render on language change
+        let currentCollection = null;
+        
         async function loadCollectionDetails() {
             try {
                 const response = await fetch(`/api/collections/${encodeURIComponent(collectionId)}`);
@@ -298,6 +302,7 @@
                 }
 
                 const collection = await response.json();
+                currentCollection = collection; // Store for language change re-rendering
                 displayCollectionDetails(collection);
                 displayInventoryHistory(collection);
             } catch (error) {
@@ -725,6 +730,24 @@
                 }
             };
         }
+
+        // Custom event listener for language changes on Collection page
+        // When language toggle button is clicked, we need to re-render the collection details
+        document.addEventListener('DOMContentLoaded', () => {
+            const languageToggle = document.getElementById('languageToggle');
+            if (languageToggle) {
+                languageToggle.addEventListener('click', () => {
+                    // Wait a bit for the language to change in app.js
+                    setTimeout(() => {
+                        // Re-render the collection details with new language
+                        if (currentCollection) {
+                            displayCollectionDetails(currentCollection);
+                            displayInventoryHistory(currentCollection);
+                        }
+                    }, 100);
+                });
+            }
+        });
 
         // ページ読み込み時の処理
         document.addEventListener('DOMContentLoaded', async () => {
