@@ -289,12 +289,12 @@
 
 @section Scripts {
     <script>
-        // Collection ID from server - properly encoded to prevent XSS
+		// コレクションのIDをサーバーから取得
         const collectionId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewData["CollectionId"]));
-        
-        // Store the current collection data so we can re-render on language change
+        // コレクションデータを保持する変数
         let currentCollection = null;
         
+		// コレクションの詳細を取得して表示する関数
         async function loadCollectionDetails() {
             try {
                 const response = await fetch(`/api/collections/${encodeURIComponent(collectionId)}`);
@@ -321,6 +321,7 @@
             }
         }
 
+        // コレクションの詳細を表示する関数
         function displayCollectionDetails(collection) {
             document.title = collection.indexData.values.name;
             document.getElementById('collectionTitle').textContent = collection.indexData.values.name;
@@ -461,8 +462,7 @@
             }
         }
 
-        // Displays inventory summary at the top of the right panel
-        // Shows inventory count, status, and operation/settings buttons
+		// 在庫の概要を表示する関数
         // Parameters:
         //   collection - The collection object containing inventory data
         //   inventoryStatusText - Formatted inventory status text
@@ -507,6 +507,7 @@
             }
         }
 
+		// 在庫操作の履歴を表示する関数
         function displayInventoryHistory(collection) {
             // Set the history title
             document.getElementById('historyTitle').textContent = t('inventory-history');
@@ -576,6 +577,7 @@
             historyContainer.innerHTML = tableHtml;
         }
 
+		// 在庫操作モーダルを開く関数
         function openInventoryOperationModal(collection) {
             const modal = new bootstrap.Modal(document.getElementById('inventoryOperationModal'));
             
@@ -658,6 +660,7 @@
             };
         }
 
+		// 在庫管理設定モーダルを開く関数
         function openInventoryManagementSettingsModal(collection) {
             const modal = new bootstrap.Modal(document.getElementById('inventoryManagementSettingsModal'));
             
@@ -732,8 +735,7 @@
             };
         }
 
-        // Custom event listener for language changes on Collection page
-        // When language toggle button is clicked, we need to re-render the collection details
+        // 表示言語を切り替える関数
         document.addEventListener('DOMContentLoaded', () => {
             const languageToggle = document.getElementById('languageToggle');
             if (languageToggle) {
