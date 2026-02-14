@@ -298,13 +298,14 @@
 		// コレクションの詳細を取得して表示する関数
         async function loadCollectionDetails() {
             try {
+				// コレクションの詳細をAPIから取得
                 const response = await fetch(`/api/collections/${encodeURIComponent(collectionId)}`);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-
                 const collection = await response.json();
                 currentCollection = collection;
+
 				// コレクションの詳細を表示(左パネル)
                 displayCollectionDetails(collection);
                 // 在庫履歴を表示(右パネル)
@@ -327,6 +328,7 @@
 
         // コレクションの詳細を表示する関数
         function displayCollectionDetails(collection) {
+			// タイトルを設定
             document.title = collection.indexData.values.name;
             document.getElementById('collectionTitle').textContent = collection.indexData.values.name;
 
@@ -507,7 +509,7 @@
 
 		// 在庫操作の履歴を表示する関数
         function displayInventoryHistory(collection) {
-            // Set the history title
+			// タイトルを設定
             document.getElementById('historyTitle').textContent = t('inventory-history');
             
             const operations = collection.inventoryData?.operations || [];
@@ -533,6 +535,7 @@
                 return typeMap[operationType] || t('unknown');
             }
 
+			// 操作タイプに応じたバッジクラスを取得
             function getOperationTypeBadgeClass(operationType) {
                 const classMap = {
                     0: 'operation-entry',
@@ -545,6 +548,7 @@
             // 操作を日時の新しい順にソート
             const sortedOperations = [...operations].reverse();
 
+            // テーブルのHTMLを生成
             const tableHtml = `
                 <table class="history-table">
                     <thead>
@@ -571,12 +575,13 @@
                     </tbody>
                 </table>
             `;
-
+			// 在庫操作履歴テーブルを更新
             historyContainer.innerHTML = tableHtml;
         }
 
 		// 在庫操作モーダルを開く関数
         function openInventoryOperationModal(collection) {
+			// モーダルの初期化
             const modal = new bootstrap.Modal(document.getElementById('inventoryOperationModal'));
             
             // モーダルのタイトルとラベルを設定
@@ -660,6 +665,7 @@
 
 		// 在庫管理設定モーダルを開く関数
         function openInventoryManagementSettingsModal(collection) {
+			// モーダルの初期化
             const modal = new bootstrap.Modal(document.getElementById('inventoryManagementSettingsModal'));
             
             // モーダルのタイトルとラベルを設定
@@ -735,14 +741,15 @@
 
         // 表示言語を切り替える関数
         document.addEventListener('DOMContentLoaded', () => {
+			// 言語切り替えボタンのイベントリスナを設定
             const languageToggle = document.getElementById('languageToggle');
             if (languageToggle) {
                 languageToggle.addEventListener('click', () => {
-                    // Wait a bit for the language to change in app.js
                     setTimeout(() => {
-                        // Re-render the collection details with new language
+                        // 再描画し、言語設定を反映
                         if (currentCollection) {
                             displayCollectionDetails(currentCollection);
+							displayInventorySummary(currentCollection);
                             displayInventoryHistory(currentCollection);
                         }
                     }, 100);
@@ -752,7 +759,7 @@
 
         // ページ読み込み時の処理
         document.addEventListener('DOMContentLoaded', async () => {
-            // Set initial loading text
+			// タイトルを読み込み中として設定
             document.getElementById('collectionTitle').textContent = t('loading');
             document.getElementById('historyTitle').textContent = t('loading');
             await loadCollectionDetails();
