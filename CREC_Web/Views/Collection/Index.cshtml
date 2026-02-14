@@ -193,99 +193,100 @@
 }
 
 <div class="split-container">
-        <!-- Left Panel: Collection Details -->
-        <div class="left-panel">
-            <div class="collection-container">
-                <div class="collection-header">
-                    <h3 id="collectionTitle"></h3>
-                </div>
-                <div id="collectionBody" class="loading">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                </div>
+    <!-- Left Panel: Collection Details -->
+    <div class="left-panel">
+        <div class="collection-container">
+            <div class="collection-header">
+                <h3 id="collectionTitle"></h3>
             </div>
-        </div>
-
-        <!-- Right Panel: Inventory Operation History -->
-        <div class="right-panel">
-            <div id="inventorySummary"></div>
-            <div class="history-header">
-                <h4 id="historyTitle"></h4>
-            </div>
-            <div id="historyTableContainer">
-                <div class="loading">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
+            <div id="collectionBody" class="loading">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Inventory Operation Modal -->
-    <div class="modal fade" id="inventoryOperationModal" tabindex="-1" aria-labelledby="inventoryOperationModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="inventoryOperationModalLabel"></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="operationType" class="form-label"></label>
-                        <select class="form-select" id="operationType">
-                            <option value="entry"></option>
-                            <option value="exit"></option>
-                            <option value="stocktaking"></option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="operationQuantity" class="form-label"></label>
-                        <input type="number" class="form-control" id="operationQuantity" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="operationComment" class="form-label"></label>
-                        <textarea class="form-control" id="operationComment" rows="3"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"></button>
-                    <button type="button" class="btn btn-primary" id="saveInventoryOperation"></button>
+    <!-- Right Panel: Inventory Operation History -->
+    <div class="right-panel">
+        <div id="inventorySummary"></div>
+        <div class="history-header">
+            <h4 id="historyTitle"></h4>
+        </div>
+        <div id="historyTableContainer">
+            <div class="loading">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Inventory Management Settings Modal -->
-    <div class="modal fade" id="inventoryManagementSettingsModal" tabindex="-1" aria-labelledby="inventoryManagementSettingsModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="inventoryManagementSettingsModalLabel"></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<!-- Inventory Operation Modal -->
+<div class="modal fade" id="inventoryOperationModal" tabindex="-1" aria-labelledby="inventoryOperationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="inventoryOperationModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="operationType" class="form-label"></label>
+                    <select class="form-select" id="operationType">
+                        <option value="entry"></option>
+                        <option value="exit"></option>
+                        <option value="stocktaking"></option>
+                    </select>
                 </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="safetyStock" class="form-label"></label>
-                        <input type="number" class="form-control" id="safetyStock">
-                    </div>
-                    <div class="mb-3">
-                        <label for="reorderPoint" class="form-label"></label>
-                        <input type="number" class="form-control" id="reorderPoint">
-                    </div>
-                    <div class="mb-3">
-                        <label for="maximumLevel" class="form-label"></label>
-                        <input type="number" class="form-control" id="maximumLevel">
-                    </div>
+                <div class="mb-3">
+                    <label for="operationQuantity" class="form-label"></label>
+                    <input type="number" class="form-control" id="operationQuantity" required>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"></button>
-                    <button type="button" class="btn btn-primary" id="saveInventoryManagementSettings"></button>
+                <div class="mb-3">
+                    <label for="operationComment" class="form-label"></label>
+                    <textarea class="form-control" id="operationComment" rows="3"></textarea>
                 </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn btn-primary" id="saveInventoryOperation"></button>
             </div>
         </div>
     </div>
+</div>
+
+<!-- Inventory Management Settings Modal -->
+<div class="modal fade" id="inventoryManagementSettingsModal" tabindex="-1" aria-labelledby="inventoryManagementSettingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="inventoryManagementSettingsModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="safetyStock" class="form-label"></label>
+                    <input type="number" class="form-control" id="safetyStock">
+                </div>
+                <div class="mb-3">
+                    <label for="reorderPoint" class="form-label"></label>
+                    <input type="number" class="form-control" id="reorderPoint">
+                </div>
+                <div class="mb-3">
+                    <label for="maximumLevel" class="form-label"></label>
+                    <input type="number" class="form-control" id="maximumLevel">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn btn-primary" id="saveInventoryManagementSettings"></button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         // Collection ID from server - properly encoded to prevent XSS
