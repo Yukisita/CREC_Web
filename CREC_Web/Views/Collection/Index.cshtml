@@ -192,6 +192,7 @@
     </style>
 }
 
+<!-- Main Container -->
 <div class="split-container">
     <!-- Left Panel: Collection Details -->
     <div class="left-panel">
@@ -303,8 +304,11 @@
                 }
 
                 const collection = await response.json();
-                currentCollection = collection; // Store for language change re-rendering
+                currentCollection = collection;
+				// コレクションの詳細を表示(左パネル)
                 displayCollectionDetails(collection);
+                // 在庫履歴を表示(右パネル)
+				displayInventorySummary(collection);
                 displayInventoryHistory(collection);
             } catch (error) {
                 console.error('Error loading collection details:', error);
@@ -325,15 +329,6 @@
         function displayCollectionDetails(collection) {
             document.title = collection.indexData.values.name;
             document.getElementById('collectionTitle').textContent = collection.indexData.values.name;
-
-            const inventoryStatusText = getInventoryStatusText(
-                collection.collectionInventoryStatus,
-                collection.collectionCurrentInventory,
-                collection.inventoryData?.setting?.safetyStock,
-                collection.inventoryData?.setting?.reorderPoint,
-                collection.inventoryData?.setting?.maximumLevel
-            );
-            const inventoryBadgeClass = getInventoryStatusBadgeClass(collection.collectionInventoryStatus);
 
             const images = collection.imageFiles || [];
             let currentImageIndex = 0;
@@ -425,9 +420,6 @@
                 </div>
             `;
 
-            // Display inventory summary in right panel
-            displayInventorySummary(collection, inventoryStatusText, inventoryBadgeClass);
-
             // 画像がある場合はカルーセル制御を設定
             if (images.length > 0) {
                 const carouselImage = document.getElementById('carouselImage');
@@ -463,11 +455,17 @@
         }
 
 		// 在庫の概要を表示する関数
-        // Parameters:
-        //   collection - The collection object containing inventory data
-        //   inventoryStatusText - Formatted inventory status text
-        //   inventoryBadgeClass - CSS class for inventory status badge
-        function displayInventorySummary(collection, inventoryStatusText, inventoryBadgeClass) {
+        function displayInventorySummary(collection) {
+			// 在庫ステータスのテキストとバッジクラスを取得
+            const inventoryStatusText = getInventoryStatusText(
+                collection.collectionInventoryStatus,
+                collection.collectionCurrentInventory,
+                collection.inventoryData?.setting?.safetyStock,
+                collection.inventoryData?.setting?.reorderPoint,
+                collection.inventoryData?.setting?.maximumLevel
+            );
+            const inventoryBadgeClass = getInventoryStatusBadgeClass(collection.collectionInventoryStatus);
+
             const inventorySummaryHtml = `
                 <div style="display: flex; gap: 0.5rem;">
                     <div class="detail-section" style="flex: 1.5;">
