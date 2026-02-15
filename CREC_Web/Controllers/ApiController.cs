@@ -590,10 +590,11 @@ namespace CREC_Web.Controllers
                     return BadRequest("Access denied");
                 }
 
-                // SystemDataフォルダが存在しない場合はエラー
+                // SystemDataフォルダが存在しない場合は警告を出して作成
                 if (!Directory.Exists(systemDataFolder))
                 {
-                    return NotFound("SystemData folder not found");
+                    _logger.LogWarning("SystemData folder not found for collection {CollectionId}, creating it", collectionId.SanitizeForLog());
+                    Directory.CreateDirectory(systemDataFolder);
                 }
 
                 // index.jsonが存在しない場合はエラー
