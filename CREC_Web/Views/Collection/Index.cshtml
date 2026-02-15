@@ -568,7 +568,7 @@
                                         ${getOperationTypeText(op.operationType)}
                                     </span>
                                 </td>
-                                <td>${op.quantity > 0 ? '+' : ''}${op.quantity}</td>
+                                <td>${op.quantity > 0 ? '+' : ''}${Number(op.quantity) || 0}</td>
                                 <td>${escapeHtml(op.note || '-')}</td>
                             </tr>
                         `).join('')}
