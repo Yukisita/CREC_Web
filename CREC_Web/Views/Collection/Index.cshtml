@@ -1,0 +1,768 @@
+@{
+    ViewData["Title"] = "Collection Details";
+    Layout = "_Layout";
+}
+
+@section Styles {
+    <style>
+        body {
+            padding: 0rem;
+            background-color: #fff;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .split-container {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+        }
+
+        .left-panel {
+            flex: 1;
+            overflow-y: auto;
+            border-right: 2px solid #dee2e6;
+        }
+
+        .right-panel {
+            flex: 1;
+            overflow-y: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .collection-container {
+            max-width: 100%;
+            margin: 0;
+            background: white;
+            padding: 1rem;
+        }
+
+        .collection-header {
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .collection-header h3 {
+            margin: 0;
+            color: #212529;
+            font-size: 1.5rem;
+        }
+
+        .detail-image {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            border-radius: 0.5rem;
+        }
+
+        .detail-section {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .detail-section h6 {
+            color: #6c757d;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+            text-align: left;
+        }
+
+        .detail-section p {
+            margin-bottom: 0.5rem;
+            text-align: left;
+        }
+
+        #inventorySummary {
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            flex-shrink: 0;
+        }
+
+        #inventorySummary .detail-section {
+            margin-bottom: 1rem;
+        }
+
+        #inventorySummary .detail-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .history-header {
+            border-bottom: 2px solid #dee2e6;
+            padding: 0.5rem 1rem;
+            flex-shrink: 0;
+        }
+
+        .history-header h4 {
+            margin: 0;
+            color: #212529;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+
+        .history-table thead {
+            background-color: #f8f9fa;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .history-table th,
+        .history-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .history-table th {
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .history-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .operation-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .operation-entry {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .operation-exit {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .operation-stocktaking {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .no-history {
+            text-align: center;
+            padding: 2rem;
+            color: #6c757d;
+        }
+
+        #historyTableContainer {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 1rem 1rem 1rem;
+        }
+
+        /* Responsive layout: switch to vertical layout on narrow screens */
+        @@media (max-width: 992px) {
+            .split-container {
+                flex-direction: column;
+            }
+
+            .left-panel {
+                flex: none;
+                border-right: none;
+                border-bottom: 2px solid #dee2e6;
+                max-height: 50vh;
+            }
+
+            .right-panel {
+                flex: none;
+                height: 50vh;
+            }
+        }
+    </style>
+}
+
+<!-- Main Container -->
+<div class="split-container">
+    <!-- Left Panel: Collection Details -->
+    <div class="left-panel" role="region" aria-label="Collection Details">
+        <div class="collection-container">
+            <div class="collection-header">
+                <h3 id="collectionTitle"></h3>
+            </div>
+            <div id="collectionBody" class="loading">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Panel: Inventory Operation History -->
+    <div class="right-panel" role="region" aria-label="Inventory Information">
+        <div id="inventorySummary"></div>
+        <div class="history-header">
+            <h4 id="historyTitle"></h4>
+        </div>
+        <div id="historyTableContainer">
+            <div class="loading">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Inventory Operation Modal -->
+<div class="modal fade" id="inventoryOperationModal" tabindex="-1" aria-labelledby="inventoryOperationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="inventoryOperationModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="operationType" class="form-label"></label>
+                    <select class="form-select" id="operationType">
+                        <option value="entry"></option>
+                        <option value="exit"></option>
+                        <option value="stocktaking"></option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="operationQuantity" class="form-label"></label>
+                    <input type="number" class="form-control" id="operationQuantity" required>
+                </div>
+                <div class="mb-3">
+                    <label for="operationComment" class="form-label"></label>
+                    <textarea class="form-control" id="operationComment" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn btn-primary" id="saveInventoryOperation"></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Inventory Management Settings Modal -->
+<div class="modal fade" id="inventoryManagementSettingsModal" tabindex="-1" aria-labelledby="inventoryManagementSettingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="inventoryManagementSettingsModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="safetyStock" class="form-label"></label>
+                    <input type="number" class="form-control" id="safetyStock">
+                </div>
+                <div class="mb-3">
+                    <label for="reorderPoint" class="form-label"></label>
+                    <input type="number" class="form-control" id="reorderPoint">
+                </div>
+                <div class="mb-3">
+                    <label for="maximumLevel" class="form-label"></label>
+                    <input type="number" class="form-control" id="maximumLevel">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn btn-primary" id="saveInventoryManagementSettings"></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+		// コレクションのIDをサーバーから取得
+        const collectionId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewData["CollectionId"]));
+        // コレクションデータを保持する変数
+        let currentCollection = null;
+        
+		// コレクションの詳細を取得して表示する関数
+        async function loadCollectionDetails() {
+            try {
+				// コレクションの詳細をAPIから取得
+                const response = await fetch(`/api/collections/${encodeURIComponent(collectionId)}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const collection = await response.json();
+                currentCollection = collection;
+
+				// コレクションの詳細を表示(左パネル)
+                displayCollectionDetails(collection);
+                // 在庫履歴を表示(右パネル)
+				displayInventorySummary(collection);
+                displayInventoryHistory(collection);
+            } catch (error) {
+                console.error('Error loading collection details:', error);
+                document.getElementById('collectionBody').innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        ${t('error-loading')}: ${escapeHtml(error.message)}
+                    </div>
+                `;
+                document.getElementById('historyTableContainer').innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        ${t('error-loading')}: ${escapeHtml(error.message)}
+                    </div>
+                `;
+            }
+        }
+
+        // コレクションの詳細を表示する関数
+        function displayCollectionDetails(collection) {
+			// タイトルを設定
+            document.title = collection.indexData.values.name;
+            document.getElementById('collectionTitle').textContent = collection.indexData.values.name;
+
+            const images = collection.imageFiles || [];
+            let currentImageIndex = 0;
+
+            const imagesHtml = images.length > 0
+                ? `
+                    <div class="image-carousel">
+                        <img id="carouselImage" src="/api/File/${encodeURIComponent(collection.indexData.systemData.id)}/${encodeURIComponent(images[0])}" 
+                                class="detail-image" 
+                                alt="${escapeHtml(images[0])}"
+                                onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'200\\' height=\\'200\\'%3E%3Crect width=\\'200\\' height=\\'200\\' fill=\\'%23ddd\\'/%3E%3Ctext x=\\'50%25\\' y=\\'50%25\\' dominant-baseline=\\'middle\\' text-anchor=\\'middle\\' font-family=\\'sans-serif\\' font-size=\\'16\\' fill=\\'%23999\\'%3EImage not found%3C/text%3E%3C/svg%3E';">
+                        <div class="text-center mt-3" style="display: flex; justify-content: center; align-items: center; gap: 15px;">
+                            <button id="prevImage" class="btn btn-outline-secondary btn-sm">◀</button>
+                            <span id="imageCounter" style="font-size: 14px; min-width: 60px;">${currentImageIndex + 1} / ${images.length}</span>
+                            <button id="nextImage" class="btn btn-outline-secondary btn-sm">▶</button>
+                        </div>
+                        <p id="imageName" class="small text-muted text-center mt-2">${escapeHtml(images[0])}</p>
+                    </div>
+                    `
+                : `<p class="text-muted">${t('no-images')}</p>`;
+
+            const filesHtml = collection.otherFiles.length > 0
+                ? collection.otherFiles.map(file => `
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        ${escapeHtml(file)}
+                        <a href="/api/File/data/${encodeURIComponent(collection.indexData.systemData.id)}/${encodeURIComponent(file)}" 
+                            class="btn btn-sm btn-outline-primary" target="_blank">
+                            <i class="bi bi-download"></i>
+                        </a>
+                    </li>
+                    `).join('')
+                : `<p class="text-muted">${t('no-files')}</p>`;
+
+            document.getElementById('collectionBody').innerHTML = `
+                <div class="detail-section">
+                    <h6>${projectSettings.uuidName}</h6>
+                    <p>${escapeHtml(collection.indexData.systemData.id)}</p>
+                </div>
+
+                <div class="detail-section">
+                    <h6>${projectSettings.managementCodeName}</h6>
+                    <p>${escapeHtml(collection.indexData.values.managementCode)}</p>
+                </div>
+                    
+                <div class="detail-section">
+                    <h6>${projectSettings.categoryName}</h6>
+                    <p>${escapeHtml(collection.indexData.values.category)}</p>
+                </div>
+                    
+                <div class="detail-section">
+                    <h6>${t('registration-date')}</h6>
+                    <p>${escapeHtml(formatUtcToLocal(collection.indexData.values.registrationDate))}</p>
+                </div>
+                    
+                <div class="detail-section">
+                    <h6>${t('location')}</h6>
+                    <p>${escapeHtml(collection.indexData.values.location)}</p>
+                </div>
+                    
+                <div class="detail-section">
+                    <h6>${t('tags')}</h6>
+                    <div>
+                        ${collection.indexData?.values?.firstTag && collection.indexData?.values?.firstTag !== ' - ' ? `<p>${escapeHtml(projectSettings.tag1Name || (currentLanguage === 'ja' ? 'タグ 1' : 'Tag 1'))}: ${escapeHtml(collection.indexData?.values?.firstTag)}</p>` : ''}
+                        ${collection.indexData?.values?.secondTag && collection.indexData?.values?.secondTag !== ' - ' ? `<p>${escapeHtml(projectSettings.tag2Name || (currentLanguage === 'ja' ? 'タグ 2' : 'Tag 2'))}: ${escapeHtml(collection.indexData?.values?.secondTag)}</p>` : ''}
+                        ${collection.indexData?.values?.thirdTag && collection.indexData?.values?.thirdTag !== ' - ' ? `<p>${escapeHtml(projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3'))}: ${escapeHtml(collection.indexData?.values?.thirdTag)}</p>` : ''}
+                        ${(!collection.indexData?.values?.firstTag || collection.indexData?.values?.firstTag === ' - ') &&
+                            (!collection.indexData?.values?.secondTag || collection.indexData?.values?.secondTag === ' - ') &&
+                            (!collection.indexData?.values?.thirdTag || collection.indexData?.values?.thirdTag === ' - ') ? `<p>${t('not-set')}</p>` : ''}
+                    </div>
+                </div>
+                    
+                ${collection.comment ? `
+                    <div class="detail-section">
+                        <h6>${t('comment')}</h6>
+                        <div class="border rounded p-3" style="white-space: pre-wrap; background-color: #f8f9fa;">${escapeHtml(collection.comment)}</div>
+                    </div>
+                ` : ''}
+                    
+                <div class="detail-section">
+                    <h6>${t('images')}</h6>
+                    ${imagesHtml}
+                </div>
+                    
+                <div class="detail-section">
+                    <h6>${t('files')}</h6>
+                    <ul class="list-group">
+                        ${filesHtml}
+                    </ul>
+                </div>
+            `;
+
+            // 画像がある場合はカルーセル制御を設定
+            if (images.length > 0) {
+                const carouselImage = document.getElementById('carouselImage');
+                const imageCounter = document.getElementById('imageCounter');
+                const imageName = document.getElementById('imageName');
+                const prevBtn = document.getElementById('prevImage');
+                const nextBtn = document.getElementById('nextImage');
+
+                if (carouselImage && imageCounter && imageName && prevBtn && nextBtn) {
+                    function updateImage() {
+                        const collectionID = collection?.indexData?.systemData?.id;
+                        if (!collectionID) {
+                            console.error('Collection ID is missing.');
+                            return;
+                        }
+                        carouselImage.src = `/api/File/${encodeURIComponent(collectionID)}/${encodeURIComponent(images[currentImageIndex])}`;
+                        carouselImage.alt = images[currentImageIndex];
+                        imageCounter.textContent = `${currentImageIndex + 1} / ${images.length}`;
+                        imageName.textContent = images[currentImageIndex];
+                    }
+
+                    prevBtn.addEventListener('click', () => {
+                        currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
+                        updateImage();
+                    });
+
+                    nextBtn.addEventListener('click', () => {
+                        currentImageIndex = (currentImageIndex + 1) % images.length;
+                        updateImage();
+                    });
+                }
+            }
+        }
+
+		// 在庫の概要を表示する関数
+        function displayInventorySummary(collection) {
+			// 在庫ステータスのテキストとバッジクラスを取得
+            const inventoryStatusText = getInventoryStatusText(
+                collection.collectionInventoryStatus,
+                collection.collectionCurrentInventory,
+                collection.inventoryData?.setting?.safetyStock,
+                collection.inventoryData?.setting?.reorderPoint,
+                collection.inventoryData?.setting?.maximumLevel
+            );
+            const inventoryBadgeClass = getInventoryStatusBadgeClass(collection.collectionInventoryStatus);
+
+            const inventorySummaryHtml = `
+                <div style="display: flex; gap: 0.5rem;">
+                    <div class="detail-section" style="flex: 1.5;">
+                        <h6>
+                            <p style="font-size: 1.5rem; font-weight: 600; margin: 0;">${t('inventory')}</p>
+                            <p style="font-size: 1.5rem; font-weight: 600; margin: 0;">${collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : t('not-set')}</p>
+                        </h6>
+                        <button id="inventoryOperationBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
+                            <i class="bi bi-pencil-square"></i> ${t('inventory-operation')}
+                        </button>
+                    </div>
+                        
+                    <div class="detail-section" style="flex: 1;">
+                        <h6>
+                            <p style="font-size: 1.5rem; font-weight: 600;">${t('inventory-status')}
+                            <p><span class="badge ${inventoryBadgeClass}">${inventoryStatusText}</span></p>
+                        </h6>
+                        <button id="inventoryManagementSettingsBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
+                            <i class="bi bi-pencil-square"></i> ${t('inventory-management-settings')}
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('inventorySummary').innerHTML = inventorySummaryHtml;
+
+            // 在庫操作ボタンのイベントリスナを設定
+            const inventoryOperationBtn = document.getElementById('inventoryOperationBtn');
+            if (inventoryOperationBtn) {
+                inventoryOperationBtn.addEventListener('click', () => openInventoryOperationModal(collection));
+            }
+
+            // 在庫管理設定ボタンのイベントリスナを設定
+            const inventoryManagementSettingsBtn = document.getElementById('inventoryManagementSettingsBtn');
+            if (inventoryManagementSettingsBtn) {
+                inventoryManagementSettingsBtn.addEventListener('click', () => openInventoryManagementSettingsModal(collection));
+            }
+        }
+
+		// 在庫操作の履歴を表示する関数
+        function displayInventoryHistory(collection) {
+			// タイトルを設定
+            document.getElementById('historyTitle').textContent = t('inventory-history');
+            
+            const operations = collection.inventoryData?.operations || [];
+            const historyContainer = document.getElementById('historyTableContainer');
+            
+            if (operations.length === 0) {
+                historyContainer.innerHTML = `
+                    <div class="no-history">
+                        <i class="bi bi-inbox" style="font-size: 3rem; color: #dee2e6;"></i>
+                        <p class="mt-3">${t('no-inventory-history')}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // 操作タイプを変換
+            function getOperationTypeText(operationType) {
+                const typeMap = {
+                    0: t('operation-entry'),    // 入庫
+                    1: t('operation-exit'),      // 出庫
+                    2: t('operation-stocktaking') // 棚卸し
+                };
+                return typeMap[operationType] || t('unknown');
+            }
+
+			// 操作タイプに応じたバッジクラスを取得
+            function getOperationTypeBadgeClass(operationType) {
+                const classMap = {
+                    0: 'operation-entry',
+                    1: 'operation-exit',
+                    2: 'operation-stocktaking'
+                };
+                return classMap[operationType] || '';
+            }
+
+            // 操作を日時の新しい順にソート
+            const sortedOperations = [...operations].reverse();
+
+            // テーブルのHTMLを生成
+            const tableHtml = `
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>${t('date-time')}</th>
+                            <th>${t('operation-type-header')}</th>
+                            <th>${t('quantity-header')}</th>
+                            <th>${t('comment-header')}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sortedOperations.map(op => `
+                            <tr>
+                                <td>${escapeHtml(formatUtcToLocal(op.dateTime))}</td>
+                                <td>
+                                    <span class="operation-badge ${getOperationTypeBadgeClass(op.operationType)}">
+                                        ${getOperationTypeText(op.operationType)}
+                                    </span>
+                                </td>
+                                <td>${op.quantity > 0 ? '+' : ''}${Number(op.quantity) || 0}</td>
+                                <td>${escapeHtml(op.note || '-')}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+			// 在庫操作履歴テーブルを更新
+            historyContainer.innerHTML = tableHtml;
+        }
+
+		// 在庫操作モーダルを開く関数
+        function openInventoryOperationModal(collection) {
+			// モーダルの初期化
+            const modal = new bootstrap.Modal(document.getElementById('inventoryOperationModal'));
+            
+            // モーダルのタイトルとラベルを設定
+            document.getElementById('inventoryOperationModalLabel').textContent = t('inventory-operation-title');
+            document.querySelector('label[for="operationType"]').textContent = t('operation-type');
+            document.querySelector('label[for="operationQuantity"]').textContent = t('operation-quantity');
+            document.querySelector('label[for="operationComment"]').textContent = t('operation-comment');
+            
+            // ドロップダウンのオプション設定
+            const operationTypeSelect = document.getElementById('operationType');
+            operationTypeSelect.innerHTML = `
+                <option value="0">${t('operation-entry')}</option>
+                <option value="1">${t('operation-exit')}</option>
+                <option value="2">${t('operation-stocktaking')}</option>
+            `;
+            
+            // ボタンのテキスト設定
+            document.querySelector('#inventoryOperationModal .btn-secondary').textContent = t('cancel');
+            document.getElementById('saveInventoryOperation').textContent = t('save');
+            
+            // フォームをリセット
+            document.getElementById('operationQuantity').value = '';
+            document.getElementById('operationComment').value = '';
+            
+            modal.show();
+            
+            // 保存ボタンのイベントリスナ
+            document.getElementById('saveInventoryOperation').onclick = async () => {
+                const type = parseInt(document.getElementById('operationType').value);
+                const quantity = parseInt(document.getElementById('operationQuantity').value);
+                const comment = document.getElementById('operationComment').value;
+                
+                // バリデーション
+                if (isNaN(quantity)) {
+                    alert(t('invalid-number'));
+                    return;
+                }
+                
+                if (!Number.isSafeInteger(quantity)) {
+                    alert(t('quantity-validation-overflow'));
+                    return;
+                }
+                
+                if (type === 0 && quantity <= 0) {
+                    alert(t('quantity-validation-entry'));
+                    return;
+                }
+                
+                if (type === 1 && quantity >= 0) {
+                    alert(t('quantity-validation-exit'));
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/api/Inventory/${encodeURIComponent(collection.indexData.systemData.id)}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            operationType: type,
+                            quantity: quantity,
+                            note: comment
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        alert(t('operation-success'));
+                        modal.hide();
+                        // ページをリロードして最新の在庫を表示
+                        loadCollectionDetails();
+                    } else {
+                        alert(t('operation-error'));
+                    }
+                } catch (error) {
+                    console.error('Error saving inventory operation:', error);
+                    alert(t('operation-error'));
+                }
+            };
+        }
+
+		// 在庫管理設定モーダルを開く関数
+        function openInventoryManagementSettingsModal(collection) {
+			// モーダルの初期化
+            const modal = new bootstrap.Modal(document.getElementById('inventoryManagementSettingsModal'));
+            
+            // モーダルのタイトルとラベルを設定
+            document.getElementById('inventoryManagementSettingsModalLabel').textContent = t('inventory-management-settings');
+            document.querySelector('label[for="safetyStock"]').textContent = t('safety-stock');
+            document.querySelector('label[for="reorderPoint"]').textContent = t('reorder-point');
+            document.querySelector('label[for="maximumLevel"]').textContent = t('maximum-level');
+            
+            // ボタンのテキスト設定
+            document.querySelector('#inventoryManagementSettingsModal .btn-secondary').textContent = t('cancel');
+            document.getElementById('saveInventoryManagementSettings').textContent = t('save');
+            
+            // 現在の設定値を表示
+            document.getElementById('safetyStock').value = collection.inventoryData?.setting?.safetyStock ?? '';
+            document.getElementById('reorderPoint').value = collection.inventoryData?.setting?.reorderPoint ?? '';
+            document.getElementById('maximumLevel').value = collection.inventoryData?.setting?.maximumLevel ?? '';
+            
+            modal.show();
+            
+            // 保存ボタンのイベントリスナ
+            document.getElementById('saveInventoryManagementSettings').onclick = async () => {
+                const safetyStock = document.getElementById('safetyStock').value;
+                const reorderPoint = document.getElementById('reorderPoint').value;
+                const maximumLevel = document.getElementById('maximumLevel').value;
+                
+                // 空文字列をnullに変換、それ以外は数値に変換
+                const safetyStockValue = safetyStock === '' ? null : Number(safetyStock);
+                const reorderPointValue = reorderPoint === '' ? null : Number(reorderPoint);
+                const maximumLevelValue = maximumLevel === '' ? null : Number(maximumLevel);
+                
+                // バリデーション
+                if ((safetyStockValue !== null && isNaN(safetyStockValue)) ||
+                    (reorderPointValue !== null && isNaN(reorderPointValue)) ||
+                    (maximumLevelValue !== null && isNaN(maximumLevelValue))) {
+                    alert(t('invalid-number'));
+                    return;
+                }
+                
+                if ((safetyStockValue !== null && !Number.isSafeInteger(safetyStockValue)) ||
+                    (reorderPointValue !== null && !Number.isSafeInteger(reorderPointValue)) ||
+                    (maximumLevelValue !== null && !Number.isSafeInteger(maximumLevelValue))) {
+                    alert(t('safe-integer-overflow'));
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/api/Inventory/Settings/${encodeURIComponent(collection.indexData.systemData.id)}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            safetyStock: safetyStockValue,
+                            reorderPoint: reorderPointValue,
+                            maximumLevel: maximumLevelValue
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        alert(t('operation-success'));
+                        modal.hide();
+                        // ページをリロードして最新の在庫状況を表示
+                        loadCollectionDetails();
+                    } else {
+                        alert(t('operation-error'));
+                    }
+                } catch (error) {
+                    console.error('Error saving inventory settings:', error);
+                    alert(t('operation-error'));
+                }
+            };
+        }
+
+        // 表示言語を切り替える関数
+        document.addEventListener('DOMContentLoaded', () => {
+			// 言語切り替えボタンのイベントリスナを設定
+            const languageToggle = document.getElementById('languageToggle');
+            if (languageToggle) {
+                languageToggle.addEventListener('click', () => {
+                    setTimeout(() => {
+                        // 再描画し、言語設定を反映
+                        if (currentCollection) {
+                            displayCollectionDetails(currentCollection);
+							displayInventorySummary(currentCollection);
+                            displayInventoryHistory(currentCollection);
+                        }
+                    }, 100);
+                });
+            }
+        });
+
+        // ページ読み込み時の処理
+        document.addEventListener('DOMContentLoaded', async () => {
+			// タイトルを読み込み中として設定
+            document.getElementById('collectionTitle').textContent = t('loading');
+            document.getElementById('historyTitle').textContent = t('loading');
+            await loadCollectionDetails();
+        });
+    </script>
+}
