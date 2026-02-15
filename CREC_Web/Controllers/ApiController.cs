@@ -519,4 +519,142 @@ namespace CREC_Web.Controllers
             }
         }
     }
+
+    [ApiController]
+    [Route("api/[controller]")]
+    public class CollectionIndexController : ControllerBase
+    {
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<CollectionIndexController> _logger;
+        private readonly CrecDataService _crecDataService;
+
+        public CollectionIndexController(IConfiguration configuration, ILogger<CollectionIndexController> logger, CrecDataService crecDataService)
+        {
+            _configuration = configuration;
+            _logger = logger;
+            _crecDataService = crecDataService;
+        }
+
+        /// <summary>
+        /// コレクションインデックス更新リクエスト
+        /// </summary>
+        public class UpdateIndexRequest
+        {
+            public string Name { get; set; } = string.Empty;
+            public string ManagementCode { get; set; } = string.Empty;
+            public string RegistrationDate { get; set; } = string.Empty;
+            public string Category { get; set; } = string.Empty;
+            public string FirstTag { get; set; } = string.Empty;
+            public string SecondTag { get; set; } = string.Empty;
+            public string ThirdTag { get; set; } = string.Empty;
+            public string Location { get; set; } = string.Empty;
+        }
+
+        /// <summary>
+        /// コレクションのindex.jsonを更新
+        /// </summary>
+        [HttpPost("{collectionId}")]
+        public async Task<IActionResult> UpdateCollectionIndex(string collectionId, [FromBody] UpdateIndexRequest request)
+        {
+            try
+            {
+                // コレクションIDの評価
+                if (string.IsNullOrWhiteSpace(collectionId) ||
+                    collectionId.Contains("..") || collectionId.Contains("/") || collectionId.Contains("\\"))
+                {
+                    return BadRequest("Invalid collection ID");
+                }
+
+                // 名前は必須
+                if (string.IsNullOrWhiteSpace(request.Name))
+                {
+                    return BadRequest("Name is required");
+                }
+
+                // コレクションが存在するか確認
+                var collection = await _crecDataService.GetCollectionByIdAsync(collectionId);
+                if (collection == null)
+                {
+                    return NotFound($"Collection with ID '{collectionId}' not found");
+                }
+
+                var dataFolder = _configuration["ProjectDataPath"] ?? Directory.GetCurrentDirectory();
+                var collectionFolder = Path.GetFullPath(Path.Combine(dataFolder, collectionId));
+                var systemDataFolder = Path.Combine(collectionFolder, "SystemData");
+                var indexFilePath = Path.Combine(systemDataFolder, "index.json");
+                var backupFilePath = Path.Combine(systemDataFolder, "backup_index.json");
+
+                // パストラバーサル防止
+                if (!collectionFolder.StartsWith(dataFolder, StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest("Access denied");
+                }
+
+                // SystemDataフォルダが存在しない場合はエラー
+                if (!Directory.Exists(systemDataFolder))
+                {
+                    return NotFound("SystemData folder not found");
+                }
+
+                // index.jsonが存在しない場合はエラー
+                if (!System.IO.File.Exists(indexFilePath))
+                {
+                    return NotFound("index.json not found");
+                }
+
+                // 現在のindex.jsonをbackup_index.jsonとしてバックアップ
+                System.IO.File.Copy(indexFilePath, backupFilePath, overwrite: true);
+                _logger.LogInformation("Backed up index.json to backup_index.json for collection {CollectionId}", collectionId.SanitizeForLog());
+
+                // 既存のindex.jsonを読み込み
+                var jsonContent = await System.IO.File.ReadAllTextAsync(indexFilePath, System.Text.Encoding.UTF8);
+                var indexData = System.Text.Json.JsonSerializer.Deserialize<IndexData>(jsonContent, new System.Text.Json.JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (indexData == null)
+                {
+                    return StatusCode(500, "Failed to parse index.json");
+                }
+
+                // 値を更新
+                indexData.Values.Name = request.Name;
+                indexData.Values.ManagementCode = request.ManagementCode ?? string.Empty;
+                indexData.Values.RegistrationDate = request.RegistrationDate ?? string.Empty;
+                indexData.Values.Category = request.Category ?? string.Empty;
+                indexData.Values.FirstTag = request.FirstTag ?? string.Empty;
+                indexData.Values.SecondTag = request.SecondTag ?? string.Empty;
+                indexData.Values.ThirdTag = request.ThirdTag ?? string.Empty;
+                indexData.Values.Location = request.Location ?? string.Empty;
+
+                // index.jsonを保存
+                var options = new System.Text.Json.JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                };
+                var updatedJson = System.Text.Json.JsonSerializer.Serialize(indexData, options);
+                await System.IO.File.WriteAllTextAsync(indexFilePath, updatedJson, System.Text.Encoding.UTF8);
+
+                // 更新ログを出力
+                _logger.LogInformation("Index updated for collection {CollectionId}: Name={Name}",
+                    collectionId.SanitizeForLog(), request.Name.SanitizeForLog());
+
+                // コレクションリストのキャッシュをクリア
+                _crecDataService.ClearCollectionsListCache();
+
+                // 成功を返す
+                return Ok(new { message = "Collection index updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                // エラーログを出力
+                _logger.LogError(ex, "Error updating collection index for {CollectionId}", collectionId.SanitizeForLog());
+
+                // 500エラーを返す
+                return StatusCode(500, "Internal server error: " + ex.Message);
+            }
+        }
+    }
 }
