@@ -597,26 +597,42 @@ namespace CREC_Web.Controllers
                     Directory.CreateDirectory(systemDataFolder);
                 }
 
-                // index.jsonが存在しない場合はエラー
+                // index.jsonが存在しない場合は警告を出して空のindex.jsonを作成
+                IndexData indexData;
                 if (!System.IO.File.Exists(indexFilePath))
                 {
-                    return NotFound("index.json not found");
+                    _logger.LogWarning("index.json not found for collection {CollectionId}, creating new one", collectionId.SanitizeForLog());
+                    indexData = new IndexData
+                    {
+                        SystemData = new IndexSystemData
+                        {
+                            Id = collectionId,
+                            SystemCreateDate = DateTimeOffset.UtcNow.ToString("o")
+                        },
+                        Values = new IndexValues()
+                    };
                 }
-
-                // 現在のindex.jsonをbackup_index.jsonとしてバックアップ
-                System.IO.File.Copy(indexFilePath, backupFilePath, overwrite: true);
-                _logger.LogInformation("Backed up index.json to backup_index.json for collection {CollectionId}", collectionId.SanitizeForLog());
-
-                // 既存のindex.jsonを読み込み
-                var jsonContent = await System.IO.File.ReadAllTextAsync(indexFilePath, System.Text.Encoding.UTF8);
-                var indexData = System.Text.Json.JsonSerializer.Deserialize<IndexData>(jsonContent, new System.Text.Json.JsonSerializerOptions
+                else
                 {
-                    PropertyNameCaseInsensitive = true
-                });
+                    // 現在のindex.jsonをbackup_index.jsonとしてバックアップ
+                    System.IO.File.Copy(indexFilePath, backupFilePath, overwrite: true);
+                    _logger.LogInformation("Backed up index.json to backup_index.json for collection {CollectionId}", collectionId.SanitizeForLog());
 
-                if (indexData == null)
-                {
-                    return StatusCode(500, "Failed to parse index.json");
+                    // 既存のindex.jsonを読み込み
+                    var jsonContent = await System.IO.File.ReadAllTextAsync(indexFilePath, System.Text.Encoding.UTF8);
+                    indexData = System.Text.Json.JsonSerializer.Deserialize<IndexData>(jsonContent, new System.Text.Json.JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    }) ?? new IndexData();
+
+                    if (indexData.SystemData == null)
+                    {
+                        indexData.SystemData = new IndexSystemData
+                        {
+                            Id = collectionId,
+                            SystemCreateDate = DateTimeOffset.UtcNow.ToString("o")
+                        };
+                    }
                 }
 
                 // 値を更新
