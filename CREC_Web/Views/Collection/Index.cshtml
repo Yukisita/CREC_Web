@@ -315,12 +315,12 @@
                 console.error('Error loading collection details:', error);
                 document.getElementById('collectionBody').innerHTML = `
                     <div class="alert alert-danger" role="alert">
-                        ${t('error-loading')}: ${error.message}
+                        ${t('error-loading')}: ${escapeHtml(error.message)}
                     </div>
                 `;
                 document.getElementById('historyTableContainer').innerHTML = `
                     <div class="alert alert-danger" role="alert">
-                        ${t('error-loading')}: ${error.message}
+                        ${t('error-loading')}: ${escapeHtml(error.message)}
                     </div>
                 `;
             }
