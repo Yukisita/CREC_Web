@@ -312,7 +312,7 @@
                 </div>
                 <div class="mb-3">
                     <label for="editRegistrationDate" class="form-label"></label>
-                    <input type="date" class="form-control" id="editRegistrationDate">
+                    <input type="datetime-local" class="form-control" id="editRegistrationDate" step="1">
                 </div>
                 <div class="mb-3">
                     <label for="editCategory" class="form-label"></label>
@@ -543,13 +543,19 @@
             // 現在の値を表示
             document.getElementById('editName').value = collection.indexData.values.name || '';
             document.getElementById('editManagementCode').value = collection.indexData.values.managementCode || '';
-            // 登録日の処理（UTC ISO文字列をローカル日付に変換）
+            // 登録日の処理（UTC ISO文字列をローカル日時に変換）
             const registrationDate = collection.indexData.values.registrationDate;
             if (registrationDate) {
                 try {
-                    const date = new Date(registrationDate);
-                    const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-                    document.getElementById('editRegistrationDate').value = localDate.toISOString().split('T')[0];
+                    const dateTime = new Date(registrationDate);
+                    // datetime-local用にローカル時刻でYYYY-MM-DDTHH:MM:SS形式に変換
+                    const year = dateTime.getFullYear();
+                    const month = String(dateTime.getMonth() + 1).padStart(2, '0');
+                    const day = String(dateTime.getDate()).padStart(2, '0');
+                    const hours = String(dateTime.getHours()).padStart(2, '0');
+                    const minutes = String(dateTime.getMinutes()).padStart(2, '0');
+                    const seconds = String(dateTime.getSeconds()).padStart(2, '0');
+                    document.getElementById('editRegistrationDate').value = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
                 } catch (e) {
                     document.getElementById('editRegistrationDate').value = '';
                 }
