@@ -510,7 +510,7 @@
                 }
             }
             
-            // Set edit button text
+			// 編集ボタンのテキストを設定
             document.getElementById('editBtnText').textContent = t('edit');
             
             // 編集ボタンのイベントリスナを設定
@@ -543,7 +543,6 @@
             // 現在の値を表示
             document.getElementById('editName').value = collection.indexData.values.name || '';
             document.getElementById('editManagementCode').value = collection.indexData.values.managementCode || '';
-            
             // 登録日の処理（UTC ISO文字列をローカル日付に変換）
             const registrationDate = collection.indexData.values.registrationDate;
             if (registrationDate) {
@@ -557,7 +556,6 @@
             } else {
                 document.getElementById('editRegistrationDate').value = '';
             }
-            
             document.getElementById('editCategory').value = collection.indexData.values.category || '';
             document.getElementById('editFirstTag').value = collection.indexData.values.firstTag || '';
             document.getElementById('editSecondTag').value = collection.indexData.values.secondTag || '';
@@ -576,6 +574,7 @@
                 const secondTag = document.getElementById('editSecondTag').value;
                 const thirdTag = document.getElementById('editThirdTag').value;
                 const location = document.getElementById('editLocation').value;
+                
                 
                 // バリデーション: 名前は必須
                 if (!name || name.trim() === '') {
