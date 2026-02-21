@@ -147,7 +147,20 @@ const translations = {
         'operation-type-header': '操作種別',
         'quantity-header': '数量',
         'comment-header': 'コメント',
-        'unknown': '不明'
+        'unknown': '不明',
+        'edit': '編集',
+        'edit-index': 'インデックス編集',
+        'collection-name': '名称',
+        'management-code': '管理コード',
+        'registration-date-label': '登録日',
+        'category': 'カテゴリ',
+        'first-tag': 'タグ1',
+        'second-tag': 'タグ2',
+        'third-tag': 'タグ3',
+        'name-required': '名称は必須です',
+        'invalid-date': '無効な日付です',
+        'edit-success': 'インデックスを保存しました',
+        'edit-error': 'インデックスの保存に失敗しました'
     },
     en: {
         'loading': 'Loading...',
@@ -245,7 +258,20 @@ const translations = {
         'operation-type-header': 'Operation Type',
         'quantity-header': 'Quantity',
         'comment-header': 'Comment',
-        'unknown': 'Unknown'
+        'unknown': 'Unknown',
+        'edit': 'Edit',
+        'edit-index': 'Edit Index',
+        'collection-name': 'Name',
+        'management-code': 'Management Code',
+        'registration-date-label': 'Registration Date',
+        'category': 'Category',
+        'first-tag': 'Tag 1',
+        'second-tag': 'Tag 2',
+        'third-tag': 'Tag 3',
+        'name-required': 'Name is required',
+        'invalid-date': 'Invalid date',
+        'edit-success': 'Index saved successfully',
+        'edit-error': 'Failed to save index'
     }
 };
 
