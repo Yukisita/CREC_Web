@@ -157,6 +157,8 @@ const translations = {
         'first-tag': 'タグ1',
         'second-tag': 'タグ2',
         'third-tag': 'タグ3',
+        'name-required': '名称は必須です',
+        'invalid-date': '無効な日付です',
         'edit-success': 'インデックスを保存しました',
         'edit-error': 'インデックスの保存に失敗しました'
     },
@@ -266,6 +268,8 @@ const translations = {
         'first-tag': 'Tag 1',
         'second-tag': 'Tag 2',
         'third-tag': 'Tag 3',
+        'name-required': 'Name is required',
+        'invalid-date': 'Invalid date',
         'edit-success': 'Index saved successfully',
         'edit-error': 'Failed to save index'
     }

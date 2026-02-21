@@ -584,7 +584,7 @@
                 
                 // バリデーション: 名前は必須
                 if (!name || name.trim() === '') {
-                    alert(currentLanguage === 'ja' ? '名称は必須です' : 'Name is required');
+                    alert(t('name-required'));
                     return;
                 }
                 
@@ -595,7 +595,7 @@
                         const date = new Date(registrationDateInput);
                         registrationDate = date.toISOString();
                     } catch (e) {
-                        alert(currentLanguage === 'ja' ? '無効な日付です' : 'Invalid date');
+                        alert(t('invalid-date'));
                         return;
                     }
                 }
