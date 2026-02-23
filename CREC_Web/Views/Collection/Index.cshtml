@@ -513,10 +513,10 @@
 			// 編集ボタンのテキストを設定
             document.getElementById('editBtnText').textContent = t('edit');
             
-            // 編集ボタンのイベントリスナを設定
+            // 編集ボタンのイベントリスナを設定（既存のハンドラを上書きして重複を防ぐ）
             const editIndexBtn = document.getElementById('editIndexBtn');
             if (editIndexBtn) {
-                editIndexBtn.addEventListener('click', () => openEditIndexModal(collection));
+                editIndexBtn.onclick = () => openEditIndexModal(collection);
             }
         }
 
