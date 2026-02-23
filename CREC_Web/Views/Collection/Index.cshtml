@@ -541,10 +541,10 @@
             document.getElementById('saveIndexEdit').textContent = t('save');
             
             // 現在の値を表示
-            document.getElementById('editName').value = collection.indexData.values.name || '';
-            document.getElementById('editManagementCode').value = collection.indexData.values.managementCode || '';
+            document.getElementById('editName').value = collection.indexData?.values?.name || '';
+            document.getElementById('editManagementCode').value = collection.indexData?.values?.managementCode || '';
             // 登録日の処理（UTC ISO文字列をローカル日時に変換）
-            const registrationDate = collection.indexData.values.registrationDate;
+            const registrationDate = collection.indexData?.values?.registrationDate;
             if (registrationDate) {
                 try {
                     const dateTime = new Date(registrationDate);
@@ -562,11 +562,11 @@
             } else {
                 document.getElementById('editRegistrationDate').value = '';
             }
-            document.getElementById('editCategory').value = collection.indexData.values.category || '';
-            document.getElementById('editFirstTag').value = collection.indexData.values.firstTag || '';
-            document.getElementById('editSecondTag').value = collection.indexData.values.secondTag || '';
-            document.getElementById('editThirdTag').value = collection.indexData.values.thirdTag || '';
-            document.getElementById('editLocation').value = collection.indexData.values.location || '';
+            document.getElementById('editCategory').value = collection.indexData?.values?.category || '';
+            document.getElementById('editFirstTag').value = collection.indexData?.values?.firstTag || '';
+            document.getElementById('editSecondTag').value = collection.indexData?.values?.secondTag || '';
+            document.getElementById('editThirdTag').value = collection.indexData?.values?.thirdTag || '';
+            document.getElementById('editLocation').value = collection.indexData?.values?.location || '';
             
             modal.show();
             
