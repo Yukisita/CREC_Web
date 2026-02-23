@@ -522,8 +522,8 @@
 
 		// コレクションインデックス編集モーダルを開く関数
         function openEditIndexModal(collection) {
-			// モーダルの初期化
-            const modal = new bootstrap.Modal(document.getElementById('editIndexModal'));
+			// モーダルのインスタンスを取得または作成（既存インスタンスを再利用）
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editIndexModal'));
             
             // モーダルのタイトルとラベルを設定
             document.getElementById('editIndexModalLabel').textContent = t('edit-index');
@@ -760,8 +760,8 @@
 
 		// 在庫操作モーダルを開く関数
         function openInventoryOperationModal(collection) {
-			// モーダルの初期化
-            const modal = new bootstrap.Modal(document.getElementById('inventoryOperationModal'));
+			// モーダルのインスタンスを取得または作成（既存インスタンスを再利用）
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('inventoryOperationModal'));
             
             // モーダルのタイトルとラベルを設定
             document.getElementById('inventoryOperationModalLabel').textContent = t('inventory-operation-title');
@@ -844,8 +844,8 @@
 
 		// 在庫管理設定モーダルを開く関数
         function openInventoryManagementSettingsModal(collection) {
-			// モーダルの初期化
-            const modal = new bootstrap.Modal(document.getElementById('inventoryManagementSettingsModal'));
+			// モーダルのインスタンスを取得または作成（既存インスタンスを再利用）
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('inventoryManagementSettingsModal'));
             
             // モーダルのタイトルとラベルを設定
             document.getElementById('inventoryManagementSettingsModalLabel').textContent = t('inventory-management-settings');
