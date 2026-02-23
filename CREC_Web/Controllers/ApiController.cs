@@ -578,7 +578,8 @@ namespace CREC_Web.Controllers
                     return NotFound($"Collection with ID '{collectionId}' not found");
                 }
 
-                var dataFolder = _configuration["ProjectDataPath"] ?? Directory.GetCurrentDirectory();
+                var configuredDataFolder = _configuration["ProjectDataPath"] ?? Directory.GetCurrentDirectory();
+                var dataFolder = Path.GetFullPath(configuredDataFolder);
                 var collectionFolder = Path.GetFullPath(Path.Combine(dataFolder, collectionId));
                 var systemDataFolder = Path.Combine(collectionFolder, "SystemData");
                 var indexFilePath = Path.Combine(systemDataFolder, "index.json");
