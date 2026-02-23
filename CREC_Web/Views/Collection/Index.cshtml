@@ -571,7 +571,9 @@
             modal.show();
             
             // 保存ボタンのイベントリスナ
-            document.getElementById('saveIndexEdit').onclick = async () => {
+            const saveButton = document.getElementById('saveIndexEdit');
+            saveButton.onclick = null;
+            saveButton.onclick = async () => {
                 const name = document.getElementById('editName').value;
                 const managementCode = document.getElementById('editManagementCode').value;
                 const registrationDateInput = document.getElementById('editRegistrationDate').value;
