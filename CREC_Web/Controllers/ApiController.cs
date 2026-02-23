@@ -586,7 +586,11 @@ namespace CREC_Web.Controllers
                 var backupFilePath = Path.Combine(systemDataFolder, "backup_index.json");
 
                 // パストラバーサル防止
-                if (!collectionFolder.StartsWith(dataFolder, StringComparison.OrdinalIgnoreCase))
+                var dataFolderWithSeparator =
+                    dataFolder.EndsWith(Path.DirectorySeparatorChar) || dataFolder.EndsWith(Path.AltDirectorySeparatorChar)
+                        ? dataFolder
+                        : dataFolder + Path.DirectorySeparatorChar;
+                if (!collectionFolder.StartsWith(dataFolderWithSeparator, StringComparison.OrdinalIgnoreCase))
                 {
                     return BadRequest("Access denied");
                 }
