@@ -33,6 +33,33 @@
 
         .navbar-brand {
             font-weight: bold;
+            color: white !important;
+            margin: 0;
+        }
+
+        .navbar-layout {
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+
+        .navbar-layout-left {
+            flex: 1;
+        }
+
+        .navbar-layout-right {
+            flex: 1;
+            text-align: right;
+        }
+
+        .navbar-btn {
+            cursor: pointer;
+            color: white;
+            font-size: 1rem;
+        }
+
+        .navbar-btn:hover {
+            opacity: 0.85;
         }
 
         .pagination-container {
@@ -484,19 +511,19 @@
 <body>
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container position-relative">
-            <div class="navbar-nav">
-                <span class="navbar-text" id="adminPanelToggle" style="cursor: pointer;">
+        <div class="navbar-layout">
+            <div class="navbar-layout-left">
+                <span class="navbar-btn" id="adminPanelToggle">
                     <i class="bi bi-gear"></i>
                     <span data-lang="admin-panel"></span>
                 </span>
             </div>
-            <a class="navbar-brand position-absolute start-50 translate-middle-x" href="#">
+            <a class="navbar-brand" href="#">
                 <i class="bi bi-collection"></i>
                 CREC Web
             </a>
-            <div class="navbar-nav ms-auto">
-                <span class="navbar-text language-toggle" id="languageToggle">
+            <div class="navbar-layout-right">
+                <span class="navbar-btn language-toggle" id="languageToggle">
                     <i class="bi bi-translate"></i>
                     <span id="languageLabel">日本語 / English</span>
                 </span>
