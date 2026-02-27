@@ -583,7 +583,6 @@
                 const thirdTag = document.getElementById('editThirdTag').value;
                 const location = document.getElementById('editLocation').value;
                 
-                
                 // バリデーション: 名前は必須
                 if (!name || name.trim() === '') {
                     alert(t('name-required'));
@@ -600,7 +599,6 @@
                     }
                     registrationDate = date.toISOString();
                 }
-                
                 
                 try {
                     const response = await fetch(`/api/CollectionIndex/${encodeURIComponent(collection.indexData.systemData.id)}`, {
