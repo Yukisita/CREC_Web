@@ -198,7 +198,12 @@
     <div class="left-panel" role="region" aria-label="Collection Details">
         <div class="collection-container">
             <div class="collection-header">
-                <h3 id="collectionTitle"></h3>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 id="collectionTitle"></h3>
+                    <button id="editIndexBtn" class="btn btn-sm btn-outline-primary" style="font-size: 0.8em;">
+                        <i class="bi bi-pencil-square"></i> <span id="editBtnText"></span>
+                    </button>
+                </div>
             </div>
             <div id="collectionBody" class="loading">
                 <div class="spinner-border text-primary" role="status">
@@ -283,6 +288,56 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"></button>
                 <button type="button" class="btn btn-primary" id="saveInventoryManagementSettings"></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Collection Index Edit Modal -->
+<div class="modal fade" id="editIndexModal" tabindex="-1" aria-labelledby="editIndexModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editIndexModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="editName" class="form-label"></label>
+                    <input type="text" class="form-control" id="editName" required>
+                </div>
+                <div class="mb-3">
+                    <label for="editManagementCode" class="form-label"></label>
+                    <input type="text" class="form-control" id="editManagementCode">
+                </div>
+                <div class="mb-3">
+                    <label for="editRegistrationDate" class="form-label"></label>
+                    <input type="datetime-local" class="form-control" id="editRegistrationDate" step="1">
+                </div>
+                <div class="mb-3">
+                    <label for="editCategory" class="form-label"></label>
+                    <input type="text" class="form-control" id="editCategory">
+                </div>
+                <div class="mb-3">
+                    <label for="editFirstTag" class="form-label"></label>
+                    <input type="text" class="form-control" id="editFirstTag">
+                </div>
+                <div class="mb-3">
+                    <label for="editSecondTag" class="form-label"></label>
+                    <input type="text" class="form-control" id="editSecondTag">
+                </div>
+                <div class="mb-3">
+                    <label for="editThirdTag" class="form-label"></label>
+                    <input type="text" class="form-control" id="editThirdTag">
+                </div>
+                <div class="mb-3">
+                    <label for="editLocation" class="form-label"></label>
+                    <input type="text" class="form-control" id="editLocation">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn btn-primary" id="saveIndexEdit"></button>
             </div>
         </div>
     </div>
@@ -454,6 +509,128 @@
                     });
                 }
             }
+            
+			// 編集ボタンのテキストを設定
+            document.getElementById('editBtnText').textContent = t('edit');
+            
+            // 編集ボタンのイベントリスナを設定（既存のハンドラを上書きして重複を防ぐ）
+            const editIndexBtn = document.getElementById('editIndexBtn');
+            if (editIndexBtn) {
+                editIndexBtn.onclick = () => openEditIndexModal(collection);
+            }
+        }
+
+		// コレクションインデックス編集モーダルを開く関数
+        function openEditIndexModal(collection) {
+			// モーダルのインスタンスを取得または作成（既存インスタンスを再利用）
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editIndexModal'));
+            
+            // モーダルのタイトルとラベルを設定
+            document.getElementById('editIndexModalLabel').textContent = t('edit-index');
+            document.querySelector('label[for="editName"]').textContent = t('collection-name');
+            document.querySelector('label[for="editManagementCode"]').textContent = t('management-code');
+            document.querySelector('label[for="editRegistrationDate"]').textContent = t('registration-date-label');
+            document.querySelector('label[for="editCategory"]').textContent = t('category');
+            document.querySelector('label[for="editFirstTag"]').textContent = t('first-tag');
+            document.querySelector('label[for="editSecondTag"]').textContent = t('second-tag');
+            document.querySelector('label[for="editThirdTag"]').textContent = t('third-tag');
+            document.querySelector('label[for="editLocation"]').textContent = t('location');
+            
+            // ボタンのテキスト設定
+            document.querySelector('#editIndexModal .btn-secondary').textContent = t('cancel');
+            document.getElementById('saveIndexEdit').textContent = t('save');
+            
+            // 現在の値を表示
+            document.getElementById('editName').value = collection.indexData?.values?.name || '';
+            document.getElementById('editManagementCode').value = collection.indexData?.values?.managementCode || '';
+            // 登録日の処理（UTC ISO文字列をローカル日時に変換）
+            const registrationDate = collection.indexData?.values?.registrationDate;
+            if (registrationDate) {
+                try {
+                    const dateTime = new Date(registrationDate);
+                    // datetime-local用にローカル時刻でYYYY-MM-DDTHH:MM:SS形式に変換
+                    const year = dateTime.getFullYear();
+                    const month = String(dateTime.getMonth() + 1).padStart(2, '0');
+                    const day = String(dateTime.getDate()).padStart(2, '0');
+                    const hours = String(dateTime.getHours()).padStart(2, '0');
+                    const minutes = String(dateTime.getMinutes()).padStart(2, '0');
+                    const seconds = String(dateTime.getSeconds()).padStart(2, '0');
+                    document.getElementById('editRegistrationDate').value = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+                } catch (e) {
+                    document.getElementById('editRegistrationDate').value = '';
+                }
+            } else {
+                document.getElementById('editRegistrationDate').value = '';
+            }
+            document.getElementById('editCategory').value = collection.indexData?.values?.category || '';
+            document.getElementById('editFirstTag').value = collection.indexData?.values?.firstTag || '';
+            document.getElementById('editSecondTag').value = collection.indexData?.values?.secondTag || '';
+            document.getElementById('editThirdTag').value = collection.indexData?.values?.thirdTag || '';
+            document.getElementById('editLocation').value = collection.indexData?.values?.location || '';
+            
+            modal.show();
+            
+            // 保存ボタンのイベントリスナ
+            const saveButton = document.getElementById('saveIndexEdit');
+            saveButton.onclick = null;
+            saveButton.onclick = async () => {
+                const name = document.getElementById('editName').value;
+                const managementCode = document.getElementById('editManagementCode').value;
+                const registrationDateInput = document.getElementById('editRegistrationDate').value;
+                const category = document.getElementById('editCategory').value;
+                const firstTag = document.getElementById('editFirstTag').value;
+                const secondTag = document.getElementById('editSecondTag').value;
+                const thirdTag = document.getElementById('editThirdTag').value;
+                const location = document.getElementById('editLocation').value;
+                
+                // バリデーション: 名前は必須
+                if (!name || name.trim() === '') {
+                    alert(t('name-required'));
+                    return;
+                }
+                
+                // 日付をUTC ISO文字列に変換
+                let registrationDate = '';
+                if (registrationDateInput) {
+                    const date = new Date(registrationDateInput);
+                    if (isNaN(date.getTime())) {
+                        alert(t('invalid-date'));
+                        return;
+                    }
+                    registrationDate = date.toISOString();
+                }
+                
+                try {
+                    const response = await fetch(`/api/CollectionIndex/${encodeURIComponent(collection.indexData.systemData.id)}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            name: name,
+                            managementCode: managementCode,
+                            registrationDate: registrationDate,
+                            category: category,
+                            firstTag: firstTag,
+                            secondTag: secondTag,
+                            thirdTag: thirdTag,
+                            location: location
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        alert(t('edit-success'));
+                        modal.hide();
+                        // ページをリロードして最新の情報を表示
+                        loadCollectionDetails();
+                    } else {
+                        alert(t('edit-error'));
+                    }
+                } catch (error) {
+                    console.error('Error saving index:', error);
+                    alert(t('edit-error'));
+                }
+            };
         }
 
 		// 在庫の概要を表示する関数
@@ -581,8 +758,8 @@
 
 		// 在庫操作モーダルを開く関数
         function openInventoryOperationModal(collection) {
-			// モーダルの初期化
-            const modal = new bootstrap.Modal(document.getElementById('inventoryOperationModal'));
+			// モーダルのインスタンスを取得または作成（既存インスタンスを再利用）
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('inventoryOperationModal'));
             
             // モーダルのタイトルとラベルを設定
             document.getElementById('inventoryOperationModalLabel').textContent = t('inventory-operation-title');
@@ -665,8 +842,8 @@
 
 		// 在庫管理設定モーダルを開く関数
         function openInventoryManagementSettingsModal(collection) {
-			// モーダルの初期化
-            const modal = new bootstrap.Modal(document.getElementById('inventoryManagementSettingsModal'));
+			// モーダルのインスタンスを取得または作成（既存インスタンスを再利用）
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('inventoryManagementSettingsModal'));
             
             // モーダルのタイトルとラベルを設定
             document.getElementById('inventoryManagementSettingsModalLabel').textContent = t('inventory-management-settings');
