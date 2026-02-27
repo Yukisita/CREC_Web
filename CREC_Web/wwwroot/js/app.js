@@ -160,7 +160,10 @@ const translations = {
         'name-required': '名称は必須です',
         'invalid-date': '無効な日付です',
         'edit-success': 'インデックスを保存しました',
-        'edit-error': 'インデックスの保存に失敗しました'
+        'edit-error': 'インデックスの保存に失敗しました',
+        'admin-panel': '管理画面',
+        'add-new-collection': '新規コレクション追加',
+        'add-collection-error': '新規コレクションの作成に失敗しました'
     },
     en: {
         'loading': 'Loading...',
@@ -271,9 +274,21 @@ const translations = {
         'name-required': 'Name is required',
         'invalid-date': 'Invalid date',
         'edit-success': 'Index saved successfully',
-        'edit-error': 'Failed to save index'
+        'edit-error': 'Failed to save index',
+        'admin-panel': 'Admin Panel',
+        'add-new-collection': 'Add New Collection',
+        'add-collection-error': 'Failed to create new collection'
     }
 };
+
+/**
+ * メイン検索ページかどうかを判定する
+ * @returns {boolean}
+ */
+function isMainSearchPage() {
+    const path = window.location.pathname.toLowerCase();
+    return path === '/' || path === '/home' || path === '/home/index' || path.startsWith('/home/index/');
+}
 
 // DOMContentLoaded イベントで初期化
 document.addEventListener('DOMContentLoaded', function () {
@@ -342,10 +357,7 @@ async function initializeApp() {
 
         // Check if we're on the main search page by checking the URL path
         // This is more robust than checking for UI elements
-        const path = window.location.pathname.toLowerCase();
-        const isMainSearchPage = path === '/' || path === '/home' || path === '/home/index' || path.startsWith('/home/index/');
-
-        if (isMainSearchPage) {
+        if (isMainSearchPage()) {
             // Main search page specific initialization
             // Enter キーで検索
             const searchTextElement = document.getElementById('searchText');
@@ -369,7 +381,11 @@ async function initializeApp() {
                 { id: 'tableViewBtn', event: 'click', handler: switchToTableView },// テーブル表示ボタンのイベントリスナ
                 { id: 'toggleAdvancedFiltersButton', event: 'click', handler: toggleAdvancedFilters },// 詳細フィルタ表示切り替えボタンのイベントリスナ
                 { id: 'qrScannerClose', event: 'click', handler: closeQrScanner },// QRスキャナークローズのイベントリスナ
-                { id: 'qrScannerOverlay', event: 'click', handler: closeQrScanner }// QRスキャナーオーバーレイクローズのイベントリスナ
+                { id: 'qrScannerOverlay', event: 'click', handler: closeQrScanner },// QRスキャナーオーバーレイクローズのイベントリスナ
+                { id: 'adminPanelToggle', event: 'click', handler: openAdminPanel },// 管理画面パネル開くのイベントリスナ
+                { id: 'adminPanelClose', event: 'click', handler: closeAdminPanel },// 管理画面パネル閉じるのイベントリスナ
+                { id: 'adminPanelOverlay', event: 'click', handler: closeAdminPanel },// 管理画面パネルオーバーレイクローズのイベントリスナ
+                { id: 'addNewCollectionBtn', event: 'click', handler: addNewCollection }// 新規コレクション追加ボタンのイベントリスナ
             ]);
 
             // 保存された表示モードの読み込み
@@ -415,7 +431,11 @@ async function initializeApp() {
         } else {
             // Other pages (like Collection detail page) - only set up common event listeners
             setupEventListeners([
-                { id: 'languageToggle', event: 'click', handler: toggleLanguage }// 言語切り替えボタンのイベントリスナ
+                { id: 'languageToggle', event: 'click', handler: toggleLanguage },// 言語切り替えボタンのイベントリスナ
+                { id: 'adminPanelToggle', event: 'click', handler: openAdminPanel },// 管理画面パネル開くのイベントリスナ
+                { id: 'adminPanelClose', event: 'click', handler: closeAdminPanel },// 管理画面パネル閉じるのイベントリスナ
+                { id: 'adminPanelOverlay', event: 'click', handler: closeAdminPanel },// 管理画面パネルオーバーレイクローズのイベントリスナ
+                { id: 'addNewCollectionBtn', event: 'click', handler: addNewCollection }// 新規コレクション追加ボタンのイベントリスナ
             ]);
         }
 
@@ -1394,6 +1414,65 @@ function closeDetailPanel() {
 
     panel.classList.remove('open');
     overlay.classList.remove('show');
+}
+
+// =====================
+// Admin Panel Functions
+// =====================
+
+/**
+ * 管理画面パネルを開く
+ */
+function openAdminPanel() {
+    const panel = document.getElementById('adminPanel');
+    const overlay = document.getElementById('adminPanelOverlay');
+    if (panel) panel.classList.add('open');
+    if (overlay) overlay.classList.add('show');
+}
+
+/**
+ * 管理画面パネルを閉じる
+ */
+function closeAdminPanel() {
+    const panel = document.getElementById('adminPanel');
+    const overlay = document.getElementById('adminPanelOverlay');
+    if (panel) panel.classList.remove('open');
+    if (overlay) overlay.classList.remove('show');
+}
+
+/**
+ * 新規コレクションを追加する
+ */
+async function addNewCollection() {
+    const btn = document.getElementById('addNewCollectionBtn');
+    if (btn) btn.disabled = true;
+
+    try {
+        const response = await fetch('/api/collections', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        const newId = result.id;
+
+        // メイン画面の場合はコレクション一覧を更新
+        if (isMainSearchPage()) {
+            await searchCollections(currentPage);
+        }
+
+        // 詳細画面を別ウインドウで開く
+        openCollectionWindow(newId);
+    } catch (error) {
+        console.error('Error creating new collection:', error);
+        alert(t('add-collection-error') + ': ' + error.message);
+    } finally {
+        if (btn) btn.disabled = false;
+    }
 }
 
 function updatePagination(result) {

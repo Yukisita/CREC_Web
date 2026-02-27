@@ -438,6 +438,46 @@
             background-color: #f8d7da;
             border-radius: 0.25rem;
         }
+
+        /* Admin Panel styles */
+        .admin-panel {
+            position: fixed;
+            top: 0;
+            left: -400px;
+            width: 400px;
+            height: 100vh;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            transition: left 0.3s ease-in-out;
+            z-index: 1050;
+            overflow-y: auto;
+        }
+
+        .admin-panel.open {
+            left: 0;
+        }
+
+        .admin-panel-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(0,0,0,0.5);
+            z-index: 1040;
+            display: none;
+        }
+
+        .admin-panel-overlay.show {
+            display: block;
+        }
+
+        @@media (max-width: 768px) {
+            .admin-panel {
+                width: 100%;
+                left: -100%;
+            }
+        }
     </style>
     @await RenderSectionAsync("Styles", required: false)
 </head>
@@ -450,6 +490,10 @@
                 CREC Web
             </a>
             <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3" id="adminPanelToggle" style="cursor: pointer;">
+                    <i class="bi bi-gear"></i>
+                    <span data-lang="admin-panel"></span>
+                </span>
                 <span class="navbar-text language-toggle" id="languageToggle">
                     <i class="bi bi-translate"></i>
                     <span id="languageLabel">日本語 / English</span>
@@ -572,6 +616,23 @@
                 </div>
             </form>
             <div id="inventoryManagementSettingsError" class="qr-scanner-error" style="display: none; margin-top: 1rem;"></div>
+        </div>
+    </div>
+
+    <!-- Admin Panel Overlay -->
+    <div class="admin-panel-overlay" id="adminPanelOverlay"></div>
+
+    <!-- Admin Panel -->
+    <div class="admin-panel" id="adminPanel">
+        <div class="detail-panel-header">
+            <button class="detail-panel-close" id="adminPanelClose">&times;</button>
+            <h5 data-lang="admin-panel"></h5>
+        </div>
+        <div class="detail-panel-body" id="adminPanelBody">
+            <button class="btn btn-primary w-100" id="addNewCollectionBtn">
+                <i class="bi bi-plus-circle"></i>
+                <span data-lang="add-new-collection"></span>
+            </button>
         </div>
     </div>
 
