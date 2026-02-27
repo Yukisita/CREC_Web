@@ -641,6 +641,11 @@ namespace CREC_Web.Controllers
                 }
 
                 // 値を更新
+                if(indexData.Values == null)
+                {
+                    indexData.Values = new IndexValues();
+                    _logger.LogWarning("Values section was missing in index.json for collection {CollectionId}, created new Values", collectionId.SanitizeForLog());
+                }
                 indexData.Values.Name = request.Name;
                 indexData.Values.ManagementCode = request.ManagementCode ?? string.Empty;
                 indexData.Values.RegistrationDate = request.RegistrationDate ?? string.Empty;
