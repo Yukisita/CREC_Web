@@ -116,14 +116,18 @@ namespace CREC_Web.Controllers
                 var systemDataFolder = Path.Combine(collectionFolder, "SystemData");
                 Directory.CreateDirectory(systemDataFolder);
 
+                var now = DateTimeOffset.Now;
                 var indexData = new IndexData
                 {
                     SystemData = new IndexSystemData
                     {
                         Id = newId,
-                        SystemCreateDate = DateTimeOffset.UtcNow.ToString("o")
+                        SystemCreateDate = now.ToString("o")
                     },
-                    Values = new IndexValues()
+                    Values = new IndexValues
+                    {
+                        RegistrationDate = now.ToString("yyyy/MM/dd")
+                    }
                 };
 
                 var options = new System.Text.Json.JsonSerializerOptions
