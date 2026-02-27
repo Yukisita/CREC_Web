@@ -346,6 +346,14 @@ async function initializeApp() {
     try {
         console.log('Initializing app...');
 
+        // 管理画面パネルのイベントリスナを最初に登録（非同期処理前）
+        setupEventListeners([
+            { id: 'adminPanelToggle', event: 'click', handler: openAdminPanel },
+            { id: 'adminPanelClose', event: 'click', handler: closeAdminPanel },
+            { id: 'adminPanelOverlay', event: 'click', handler: closeAdminPanel },
+            { id: 'addNewCollectionBtn', event: 'click', handler: addNewCollection }
+        ]);
+
         // プロジェクト設定の読み込み
         await loadProjectSettings();
 
@@ -381,11 +389,7 @@ async function initializeApp() {
                 { id: 'tableViewBtn', event: 'click', handler: switchToTableView },// テーブル表示ボタンのイベントリスナ
                 { id: 'toggleAdvancedFiltersButton', event: 'click', handler: toggleAdvancedFilters },// 詳細フィルタ表示切り替えボタンのイベントリスナ
                 { id: 'qrScannerClose', event: 'click', handler: closeQrScanner },// QRスキャナークローズのイベントリスナ
-                { id: 'qrScannerOverlay', event: 'click', handler: closeQrScanner },// QRスキャナーオーバーレイクローズのイベントリスナ
-                { id: 'adminPanelToggle', event: 'click', handler: openAdminPanel },// 管理画面パネル開くのイベントリスナ
-                { id: 'adminPanelClose', event: 'click', handler: closeAdminPanel },// 管理画面パネル閉じるのイベントリスナ
-                { id: 'adminPanelOverlay', event: 'click', handler: closeAdminPanel },// 管理画面パネルオーバーレイクローズのイベントリスナ
-                { id: 'addNewCollectionBtn', event: 'click', handler: addNewCollection }// 新規コレクション追加ボタンのイベントリスナ
+                { id: 'qrScannerOverlay', event: 'click', handler: closeQrScanner }// QRスキャナーオーバーレイクローズのイベントリスナ
             ]);
 
             // 保存された表示モードの読み込み
@@ -431,11 +435,7 @@ async function initializeApp() {
         } else {
             // Other pages (like Collection detail page) - only set up common event listeners
             setupEventListeners([
-                { id: 'languageToggle', event: 'click', handler: toggleLanguage },// 言語切り替えボタンのイベントリスナ
-                { id: 'adminPanelToggle', event: 'click', handler: openAdminPanel },// 管理画面パネル開くのイベントリスナ
-                { id: 'adminPanelClose', event: 'click', handler: closeAdminPanel },// 管理画面パネル閉じるのイベントリスナ
-                { id: 'adminPanelOverlay', event: 'click', handler: closeAdminPanel },// 管理画面パネルオーバーレイクローズのイベントリスナ
-                { id: 'addNewCollectionBtn', event: 'click', handler: addNewCollection }// 新規コレクション追加ボタンのイベントリスナ
+                { id: 'languageToggle', event: 'click', handler: toggleLanguage }// 言語切り替えボタンのイベントリスナ
             ]);
         }
 
