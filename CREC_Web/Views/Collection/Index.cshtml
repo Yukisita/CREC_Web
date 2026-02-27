@@ -593,14 +593,14 @@
                 // 日付をUTC ISO文字列に変換
                 let registrationDate = '';
                 if (registrationDateInput) {
-                    try {
-                        const date = new Date(registrationDateInput);
-                        registrationDate = date.toISOString();
-                    } catch (e) {
+                    const date = new Date(registrationDateInput);
+                    if (isNaN(date.getTime())) {
                         alert(t('invalid-date'));
                         return;
                     }
+                    registrationDate = date.toISOString();
                 }
+                
                 
                 try {
                     const response = await fetch(`/api/CollectionIndex/${encodeURIComponent(collection.indexData.systemData.id)}`, {
