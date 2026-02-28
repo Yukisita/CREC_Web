@@ -126,7 +126,7 @@ namespace CREC_Web.Controllers
                     },
                     Values = new IndexValues
                     {
-                        RegistrationDate = now.ToString("yyyy/MM/dd")
+                        RegistrationDate = now.ToString("yyyy/MM/dd HH:mm:ss")
                     }
                 };
 
