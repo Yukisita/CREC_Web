@@ -363,8 +363,7 @@ async function initializeApp() {
         // 言語適用
         updateUILanguage();
 
-        // Check if we're on the main search page by checking the URL path
-        // This is more robust than checking for UI elements
+        // URLからメインページにいるか確認
         if (isMainSearchPage()) {
             // Main search page specific initialization
             // Enter キーで検索
