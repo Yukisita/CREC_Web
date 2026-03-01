@@ -1174,8 +1174,8 @@ async function showCollectionDetails(collectionId) {
     }
 }
 
-function openCollectionWindow(collectionId) {
-    const url = `/Collection/${encodeURIComponent(collectionId)}`;
+function openCollectionWindow(collectionId, openEdit = false) {
+    const url = `/Collection/${encodeURIComponent(collectionId)}${openEdit ? '?edit=1' : ''}`;
     window.open(url, '_blank');
 }
 
@@ -1465,8 +1465,8 @@ async function addNewCollection() {
             await searchCollections(currentPage);
         }
 
-        // 詳細画面を別ウインドウで開く
-        openCollectionWindow(newId);
+        // 詳細画面を別ウインドウで開き編集モーダルを自動で表示する
+        openCollectionWindow(newId, true);
     } catch (error) {
         console.error('Error creating new collection:', error);
         alert(t('add-collection-error') + ': ' + error.message);

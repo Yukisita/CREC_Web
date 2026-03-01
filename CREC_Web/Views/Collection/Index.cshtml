@@ -940,6 +940,10 @@
             document.getElementById('collectionTitle').textContent = t('loading');
             document.getElementById('historyTitle').textContent = t('loading');
             await loadCollectionDetails();
+            // URLに ?edit=1 が含まれる場合は編集モーダルを自動で開く
+            if (new URLSearchParams(window.location.search).get('edit') === '1' && currentCollection) {
+                openEditIndexModal(currentCollection);
+            }
         });
     </script>
 }
