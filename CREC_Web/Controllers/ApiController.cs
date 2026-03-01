@@ -126,7 +126,8 @@ namespace CREC_Web.Controllers
                 var collectionPictureFolder = Path.Combine(collectionFolder, "pictures");
                 Directory.CreateDirectory(collectionPictureFolder);
 
-                var now = DateTimeOffset.Now;
+                // インデックスデータの作成
+                var now = DateTimeOffset.UtcNow;// 現在時刻をUTCで取得
                 var indexData = new IndexData
                 {
                     SystemData = new IndexSystemData
@@ -136,10 +137,11 @@ namespace CREC_Web.Controllers
                     },
                     Values = new IndexValues
                     {
-                        RegistrationDate = now.ToString("yyyy/MM/dd HH:mm:ss")
+                        RegistrationDate = now.ToString("o")
                     }
                 };
 
+                // JSONシリアライズオプションの設定
                 var options = new System.Text.Json.JsonSerializerOptions
                 {
                     WriteIndented = true,
