@@ -911,6 +911,7 @@ function handleWindowResize() {
     }
 }
 
+// コレクション行を作成
 function createCollectionRow(collection) {
     const row = document.createElement('tr');
     row.addEventListener('click', () => showCollectionDetails(collection.indexData?.systemData?.id));
