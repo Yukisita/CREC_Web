@@ -346,12 +346,13 @@ async function initializeApp() {
     try {
         console.log('Initializing app...');
 
-        // 管理画面パネルのイベントリスナを最初に登録（非同期処理前）
+        // 共通項目のイベントリスナを一括設定
         setupEventListeners([
-            { id: 'adminPanelToggle', event: 'click', handler: openAdminPanel },
-            { id: 'adminPanelClose', event: 'click', handler: closeAdminPanel },
-            { id: 'adminPanelOverlay', event: 'click', handler: closeAdminPanel },
-            { id: 'addNewCollectionBtn', event: 'click', handler: addNewCollection }
+            { id: 'adminPanelToggle', event: 'click', handler: openAdminPanel },// 管理パネルオープンのイベントリスナ
+            { id: 'adminPanelClose', event: 'click', handler: closeAdminPanel },// 管理パネルクローズのイベントリスナ
+            { id: 'adminPanelOverlay', event: 'click', handler: closeAdminPanel },// 管理パネルオーバーレイクリックのイベントリスナ
+            { id: 'addNewCollectionBtn', event: 'click', handler: addNewCollection },// 新しいコレクション追加のイベントリスナ
+            { id: 'languageToggle', event: 'click', handler: toggleLanguage },// 言語切り替えボタンのイベントリスナ
         ]);
 
         // プロジェクト設定の読み込み
@@ -376,12 +377,11 @@ async function initializeApp() {
                 });
             }
 
-            // イベントリスナの一括設定
+            // メインページ固有のイベントリスナを一括設定
             setupEventListeners([
                 { id: 'searchButton', event: 'click', handler: () => searchCollections() },// 検索ボタンのイベントリスナ
                 { id: 'qrScanButton', event: 'click', handler: openQrScanner },// QRスキャンボタンのイベントリスナ
                 { id: 'clearFiltersButton', event: 'click', handler: clearFilters },// フィルタクリアボタンのイベントリスナ
-                { id: 'languageToggle', event: 'click', handler: toggleLanguage },// 言語切り替えボタンのイベントリスナ
                 { id: 'detailPanelOverlay', event: 'click', handler: closeDetailPanel },// 詳細パネルオープンのイベントリスナ
                 { id: 'detailPanelClose', event: 'click', handler: closeDetailPanel },// 詳細パネルクローズのイベントリスナ
                 { id: 'gridViewBtn', event: 'click', handler: switchToGridView },// グリッド表示ボタンのイベントリスナ
@@ -432,10 +432,7 @@ async function initializeApp() {
             // 初回検索
             await searchCollections();
         } else {
-            // Other pages (like Collection detail page) - only set up common event listeners
-            setupEventListeners([
-                { id: 'languageToggle', event: 'click', handler: toggleLanguage }// 言語切り替えボタンのイベントリスナ
-            ]);
+            // Main search page 以外のページの初期化（必要に応じて今後追加予定のため、場所だけ確保）
         }
 
         console.log('App initialized successfully');
