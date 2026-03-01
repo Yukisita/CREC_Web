@@ -114,8 +114,17 @@ namespace CREC_Web.Controllers
                     return BadRequest("Access denied");
                 }
 
+                // コレクションフォルダ及びシステムデータフォルダを作成
                 var systemDataFolder = Path.Combine(collectionFolder, "SystemData");
                 Directory.CreateDirectory(systemDataFolder);
+
+                // コレクションDataフォルダを作成
+                var collectionDataFolder = Path.Combine(collectionFolder, "data");
+                Directory.CreateDirectory(collectionDataFolder);
+
+                // コレクションPictureフォルダを作成
+                var collectionPictureFolder = Path.Combine(collectionFolder, "pictures");
+                Directory.CreateDirectory(collectionPictureFolder);
 
                 var now = DateTimeOffset.Now;
                 var indexData = new IndexData
