@@ -97,6 +97,7 @@ namespace CREC_Web.Controllers
         {
             try
             {
+                // Ver4 UUIDを使用してIDを生成
                 var newId = Guid.NewGuid().ToString();
 
                 var configuredDataFolder = _configuration["ProjectDataPath"] ?? Directory.GetCurrentDirectory();
@@ -706,7 +707,7 @@ namespace CREC_Web.Controllers
                 }
 
                 // 値を更新
-                if(indexData.Values == null)
+                if (indexData.Values == null)
                 {
                     indexData.Values = new IndexValues();
                     _logger.LogWarning("Values section was missing in index.json for collection {CollectionId}, created new Values", collectionId.SanitizeForLog());
