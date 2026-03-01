@@ -17,11 +17,13 @@ namespace CREC_Web.Controllers
     {
         private readonly CrecDataService _crecDataService;
         private readonly ILogger<CollectionsController> _logger;
+        private readonly IConfiguration _configuration;
 
-        public CollectionsController(CrecDataService crecDataService, ILogger<CollectionsController> logger)
+        public CollectionsController(CrecDataService crecDataService, ILogger<CollectionsController> logger, IConfiguration configuration)
         {
             _crecDataService = crecDataService;
             _logger = logger;
+            _configuration = configuration;
         }
 
         /// <summary>
@@ -83,6 +85,81 @@ namespace CREC_Web.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting collection with ID {id}", id.SanitizeForLog());
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// 新規コレクション作成
+        /// </summary>
+        [HttpPost]
+        public async Task<ActionResult<object>> CreateCollection()
+        {
+            try
+            {
+                // Ver4 UUIDを使用してIDを生成
+                var newId = Guid.NewGuid().ToString();
+
+                var configuredDataFolder = _configuration["ProjectDataPath"] ?? Directory.GetCurrentDirectory();
+                var dataFolder = Path.GetFullPath(configuredDataFolder);
+                var collectionFolder = Path.GetFullPath(Path.Combine(dataFolder, newId));
+
+                // パストラバーサル防止
+                var dataFolderWithSeparator =
+                    dataFolder.EndsWith(Path.DirectorySeparatorChar) || dataFolder.EndsWith(Path.AltDirectorySeparatorChar)
+                        ? dataFolder
+                        : dataFolder + Path.DirectorySeparatorChar;
+                if (!collectionFolder.StartsWith(dataFolderWithSeparator, StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest("Access denied");
+                }
+
+                // コレクションフォルダ及びシステムデータフォルダを作成
+                var systemDataFolder = Path.Combine(collectionFolder, "SystemData");
+                Directory.CreateDirectory(systemDataFolder);
+
+                // コレクションDataフォルダを作成
+                var collectionDataFolder = Path.Combine(collectionFolder, "data");
+                Directory.CreateDirectory(collectionDataFolder);
+
+                // コレクションPictureフォルダを作成
+                var collectionPictureFolder = Path.Combine(collectionFolder, "pictures");
+                Directory.CreateDirectory(collectionPictureFolder);
+
+                // インデックスデータの作成
+                var now = DateTimeOffset.UtcNow;// 現在時刻をUTCで取得
+                var indexData = new IndexData
+                {
+                    SystemData = new IndexSystemData
+                    {
+                        Id = newId,
+                        SystemCreateDate = now.ToString("o")
+                    },
+                    Values = new IndexValues
+                    {
+                        RegistrationDate = now.ToString("o")
+                    }
+                };
+
+                // JSONシリアライズオプションの設定
+                var options = new System.Text.Json.JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                };
+                var json = System.Text.Json.JsonSerializer.Serialize(indexData, options);
+                var indexFilePath = Path.Combine(systemDataFolder, "index.json");
+                await System.IO.File.WriteAllTextAsync(indexFilePath, json, System.Text.Encoding.UTF8);
+
+                _crecDataService.ClearCollectionsListCache();
+
+                _logger.LogInformation("New collection created with ID {CollectionId}", newId);
+
+                return Ok(new { id = newId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating new collection");
                 return StatusCode(500, "Internal server error");
             }
         }
@@ -641,7 +718,7 @@ namespace CREC_Web.Controllers
                 }
 
                 // 値を更新
-                if(indexData.Values == null)
+                if (indexData.Values == null)
                 {
                     indexData.Values = new IndexValues();
                     _logger.LogWarning("Values section was missing in index.json for collection {CollectionId}, created new Values", collectionId.SanitizeForLog());

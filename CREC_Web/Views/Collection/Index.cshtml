@@ -940,6 +940,11 @@
             document.getElementById('collectionTitle').textContent = t('loading');
             document.getElementById('historyTitle').textContent = t('loading');
             await loadCollectionDetails();
+            // URLに ?edit=1 が含まれる場合は編集モーダルを自動で開く（リロード時に再度開かないようURLからフラグを除去）
+            if (new URLSearchParams(window.location.search).get('edit') === '1' && currentCollection) {
+                history.replaceState(null, '', window.location.pathname);
+                openEditIndexModal(currentCollection);
+            }
         });
     </script>
 }
