@@ -1171,9 +1171,22 @@ async function showCollectionDetails(collectionId) {
     }
 }
 
-function openCollectionWindow(collectionId, openEdit = false) {
+function openCollectionWindow(collectionId, openEdit = false, targetWindow = null) {
     const url = `/Collection/${encodeURIComponent(collectionId)}${openEdit ? '?edit=1' : ''}`;
-    window.open(url, '_blank');
+
+    if (targetWindow && !targetWindow.closed) {
+        targetWindow.location.href = url;
+        targetWindow.focus();
+        return targetWindow;
+    }
+
+    const openedWindow = window.open(url, '_blank');
+    if (!openedWindow) {
+        window.location.href = url;
+        return null;
+    }
+
+    return openedWindow;
 }
 
 function displayCollectionPanel(collection) {
@@ -1448,6 +1461,9 @@ async function addNewCollection() {
     const btn = document.getElementById('addNewCollectionBtn');
     if (btn) btn.disabled = true;
 
+    // ポップアップブロック回避のため、先にウィンドウを開いておく
+    const newWindow = window.open('about:blank', '_blank');
+
     try {
         const response = await fetch('/api/collections', {
             method: 'POST',
@@ -1455,6 +1471,7 @@ async function addNewCollection() {
         });
 
         if (!response.ok) {
+            if (newWindow && !newWindow.closed) newWindow.close();
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
@@ -1467,8 +1484,9 @@ async function addNewCollection() {
         }
 
         // 詳細画面を別ウインドウで開き編集モーダルを自動で表示する
-        openCollectionWindow(newId, true);
+        openCollectionWindow(newId, true, newWindow);
     } catch (error) {
+        if (newWindow && !newWindow.closed) newWindow.close();
         console.error('Error creating new collection:', error);
         alert(t('add-collection-error') + ': ' + error.message);
     } finally {
