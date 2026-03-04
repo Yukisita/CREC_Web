@@ -58,6 +58,9 @@
             cursor: pointer;
             color: white;
             font-size: 1rem;
+            background: none;
+            border: none;
+            padding: 0;
         }
 
         .navbar-btn:hover {
@@ -515,20 +518,20 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="navbar-layout">
             <div class="navbar-layout-left">
-                <span class="navbar-btn" id="adminPanelToggle">
+                <button type="button" class="navbar-btn" id="adminPanelToggle" aria-controls="adminPanel" aria-expanded="false">
                     <i class="bi bi-gear"></i>
                     <span data-lang="admin-panel"></span>
-                </span>
+                </button>
             </div>
             <a class="navbar-brand" href="#">
                 <i class="bi bi-collection"></i>
                 CREC Web
             </a>
             <div class="navbar-layout-right">
-                <span class="navbar-btn language-toggle" id="languageToggle">
+                <button type="button" class="navbar-btn language-toggle" id="languageToggle" aria-label="toggle language">
                     <i class="bi bi-translate"></i>
                     <span id="languageLabel">日本語 / English</span>
-                </span>
+                </button>
             </div>
         </div>
     </nav>

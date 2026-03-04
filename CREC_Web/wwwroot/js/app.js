@@ -1423,8 +1423,10 @@ function closeDetailPanel() {
 function openAdminPanel() {
     const panel = document.getElementById('adminPanel');
     const overlay = document.getElementById('adminPanelOverlay');
+    const toggle = document.getElementById('adminPanelToggle');
     if (panel) panel.classList.add('open');
     if (overlay) overlay.classList.add('show');
+    if (toggle) toggle.setAttribute('aria-expanded', 'true');
 }
 
 /**
@@ -1433,8 +1435,10 @@ function openAdminPanel() {
 function closeAdminPanel() {
     const panel = document.getElementById('adminPanel');
     const overlay = document.getElementById('adminPanelOverlay');
+    const toggle = document.getElementById('adminPanelToggle');
     if (panel) panel.classList.remove('open');
     if (overlay) overlay.classList.remove('show');
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
 }
 
 /**
