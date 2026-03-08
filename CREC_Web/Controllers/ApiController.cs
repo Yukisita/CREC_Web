@@ -165,42 +165,6 @@ namespace CREC_Web.Controllers
         }
 
         /// <summary>
-        /// 利用可能なカテゴリ一覧取得
-        /// </summary>
-        [HttpGet("categories")]
-        public async Task<ActionResult<List<string>>> GetCategories()
-        {
-            try
-            {
-                var categories = await _crecDataService.GetCategoriesAsync();
-                return Ok(categories);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting categories");
-                return StatusCode(500, "Internal server error");
-            }
-        }
-
-        /// <summary>
-        /// 利用可能なタグ一覧取得
-        /// </summary>
-        [HttpGet("tags")]
-        public async Task<ActionResult<List<string>>> GetTags()
-        {
-            try
-            {
-                var tags = await _crecDataService.GetTagsAsync();
-                return Ok(tags);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting tags");
-                return StatusCode(500, "Internal server error");
-            }
-        }
-
-        /// <summary>
         /// コレクション削除（RecycleBinフォルダに移動）
         /// </summary>
         [HttpDelete("{id}")]
@@ -272,6 +236,43 @@ namespace CREC_Web.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
+
+        /// <summary>
+        /// 利用可能なカテゴリ一覧取得
+        /// </summary>
+        [HttpGet("categories")]
+        public async Task<ActionResult<List<string>>> GetCategories()
+        {
+            try
+            {
+                var categories = await _crecDataService.GetCategoriesAsync();
+                return Ok(categories);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting categories");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// 利用可能なタグ一覧取得
+        /// </summary>
+        [HttpGet("tags")]
+        public async Task<ActionResult<List<string>>> GetTags()
+        {
+            try
+            {
+                var tags = await _crecDataService.GetTagsAsync();
+                return Ok(tags);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting tags");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
     }
 
     [ApiController]
