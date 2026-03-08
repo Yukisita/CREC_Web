@@ -461,15 +461,7 @@ async function initializeApp() {
             // 初回検索
             await searchCollections();
         } else {
-            // コレクション詳細ページの初期化
-            if (isCollectionDetailPage()) {
-                // コレクション詳細ページでは削除ボタンを有効化
-                const deleteBtn = document.getElementById('deleteCollectionBtn');
-                if (deleteBtn) {
-                    deleteBtn.classList.remove('disabled');
-                    deleteBtn.removeAttribute('aria-disabled');
-                }
-            }
+            // Main search page 以外のページの初期化（必要に応じて今後追加予定のため、場所だけ確保）
         }
 
         console.log('App initialized successfully');
@@ -1552,8 +1544,10 @@ async function deleteCollection() {
         return;
     }
 
+    // ボタンを無効化して多重クリックを防止
     const btn = document.getElementById('deleteCollectionBtn');
     if (btn) {
+        btn.disabled = true;
         btn.classList.add('disabled');
         btn.setAttribute('aria-disabled', 'true');
     }
@@ -1567,15 +1561,16 @@ async function deleteCollection() {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        alert(t('delete-collection-success'));
-        // ホームページにリダイレクト
-        window.location.href = '/';
+        alert(t('delete-collection-success'));// 削除成功メッセージをユーザに表示
+        window.location.href = '/';// ホームページにリダイレクト
     } catch (error) {
-        console.error('Error deleting collection:', error);
-        alert(t('delete-collection-error') + ': ' + error.message);
+        console.error('Error deleting collection:', error);// エラーメッセージをコンソールに表示
+        alert(t('delete-collection-error') + ': ' + error.message);// エラーメッセージをユーザーに表示
+        // ボタンを有効化
         if (btn) {
+            btn.disabled = false;
             btn.classList.remove('disabled');
-            btn.removeAttribute('aria-disabled');
+            btn.setAttribute('aria-disabled', 'false');
         }
     }
 }
