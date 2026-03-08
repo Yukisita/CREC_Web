@@ -165,6 +165,80 @@ namespace CREC_Web.Controllers
         }
 
         /// <summary>
+        /// コレクション削除（RecycleBinフォルダに移動）
+        /// </summary>
+        [HttpDelete("{id}")]
+        public IActionResult DeleteCollection(string id)
+        {
+            try
+            {
+                // コレクションIDの評価
+                if (string.IsNullOrWhiteSpace(id) ||
+                    id.Contains("..") || id.Contains("/") || id.Contains("\\"))
+                {
+                    return BadRequest("Invalid collection ID");
+                }
+
+                // フォルダ取得
+                var configuredDataFolder = _configuration["ProjectDataPath"] ?? Directory.GetCurrentDirectory();
+                var dataFolder = Path.GetFullPath(configuredDataFolder);
+                var collectionFolder = Path.GetFullPath(Path.Combine(dataFolder, id));
+
+                // パストラバーサル防止
+                var dataFolderWithSeparator =
+                    dataFolder.EndsWith(Path.DirectorySeparatorChar) || dataFolder.EndsWith(Path.AltDirectorySeparatorChar)
+                        ? dataFolder
+                        : dataFolder + Path.DirectorySeparatorChar;
+                if (!collectionFolder.StartsWith(dataFolderWithSeparator, StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest("Access denied");
+                }
+
+                // コレクションフォルダが存在するか確認
+                if (!Directory.Exists(collectionFolder))
+                {
+                    return NotFound($"Collection with ID '{id}' not found");
+                }
+
+                // RecycleBinフォルダを作成（存在しない場合）
+                var recycleBinFolder = Path.GetFullPath(Path.Combine(dataFolder, "$SystemData", "RecycleBin"));
+                Directory.CreateDirectory(recycleBinFolder);
+
+                // 移動先のパスを決定（同名フォルダが既に存在する場合はGUIDサフィックスを付加）
+                var destinationFolder = Path.GetFullPath(Path.Combine(recycleBinFolder, id));
+                if (Directory.Exists(destinationFolder))
+                {
+                    destinationFolder = Path.GetFullPath(Path.Combine(recycleBinFolder, $"{id}_{Guid.NewGuid():N}"));
+                }
+
+                // RecycleBinFolder が dataFolder/$SystemData/RecycleBin/ 配下であることを確認
+                var recycleBinFolderWithSeparator =
+                    recycleBinFolder.EndsWith(Path.DirectorySeparatorChar) || recycleBinFolder.EndsWith(Path.AltDirectorySeparatorChar)
+                        ? recycleBinFolder
+                        : recycleBinFolder + Path.DirectorySeparatorChar;
+                if (!destinationFolder.StartsWith(recycleBinFolderWithSeparator, StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest("Access denied");
+                }
+
+                // コレクションフォルダをRecycleBinに移動
+                Directory.Move(collectionFolder, destinationFolder);
+
+                // コレクションリストのキャッシュをクリア
+                _crecDataService.ClearCollectionsListCache();
+
+                _logger.LogInformation("Collection {CollectionId} moved to RecycleBin", id.SanitizeForLog());
+
+                return Ok(new { message = "Collection moved to RecycleBin successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting collection {CollectionId}", id.SanitizeForLog());
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
         /// 利用可能なカテゴリ一覧取得
         /// </summary>
         [HttpGet("categories")]
@@ -199,6 +273,7 @@ namespace CREC_Web.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
+
     }
 
     [ApiController]

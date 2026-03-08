@@ -163,7 +163,12 @@ const translations = {
         'edit-error': 'インデックスの保存に失敗しました',
         'admin-panel': '管理画面',
         'add-new-collection': '新規コレクション追加',
-        'add-collection-error': '新規コレクションの作成に失敗しました'
+        'add-collection-error': '新規コレクションの作成に失敗しました',
+        'delete-collection': 'コレクション削除',
+        'delete-collection-confirm': '本当にこのコレクションを削除しますか？',
+        'delete-collection-open-required': '削除するコレクションを開いてください',
+        'delete-collection-success': 'コレクションを削除しました',
+        'delete-collection-error': 'コレクションの削除に失敗しました'
     },
     en: {
         'loading': 'Loading...',
@@ -277,7 +282,12 @@ const translations = {
         'edit-error': 'Failed to save index',
         'admin-panel': 'Admin Panel',
         'add-new-collection': 'Add New Collection',
-        'add-collection-error': 'Failed to create new collection'
+        'add-collection-error': 'Failed to create new collection',
+        'delete-collection': 'Delete Collection',
+        'delete-collection-confirm': 'Are you sure you want to delete this collection?',
+        'delete-collection-open-required': 'Please open the collection to delete',
+        'delete-collection-success': 'Collection deleted successfully',
+        'delete-collection-error': 'Failed to delete collection'
     }
 };
 
@@ -288,6 +298,24 @@ const translations = {
 function isMainSearchPage() {
     const path = window.location.pathname.toLowerCase();
     return path === '/' || path === '/home' || path === '/home/index' || path.startsWith('/home/index/');
+}
+
+/**
+ * コレクション詳細ページかどうかを判定する
+ * @returns {boolean}
+ */
+function isCollectionDetailPage() {
+    const path = window.location.pathname.toLowerCase();
+    return path.startsWith('/collection/');
+}
+
+/**
+ * 現在のコレクション詳細ページのコレクションIDをURLから取得する
+ * @returns {string|null}
+ */
+function getCurrentCollectionId() {
+    const match = window.location.pathname.match(/\/collection\/([^\/]+)/i);
+    return match ? match[1] : null;
 }
 
 // DOMContentLoaded イベントで初期化
@@ -352,6 +380,7 @@ async function initializeApp() {
             { id: 'adminPanelClose', event: 'click', handler: closeAdminPanel },// 管理パネルクローズのイベントリスナ
             { id: 'adminPanelOverlay', event: 'click', handler: closeAdminPanel },// 管理パネルオーバーレイクリックのイベントリスナ
             { id: 'addNewCollectionBtn', event: 'click', handler: addNewCollection },// 新しいコレクション追加のイベントリスナ
+            { id: 'deleteCollectionBtn', event: 'click', handler: deleteCollection },// コレクション削除のイベントリスナ
             { id: 'languageToggle', event: 'click', handler: toggleLanguage },// 言語切り替えボタンのイベントリスナ
         ]);
 
@@ -1491,6 +1520,60 @@ async function addNewCollection() {
         alert(t('add-collection-error') + ': ' + error.message);
     } finally {
         if (btn) btn.disabled = false;
+    }
+}
+
+/**
+ * 現在のコレクションを削除する（RecycleBinフォルダに移動）
+ */
+async function deleteCollection() {
+    // コレクション詳細ページでない場合はメッセージを表示
+    if (!isCollectionDetailPage()) {
+        alert(t('delete-collection-open-required'));
+        return;
+    }
+
+    // 現在のコレクションIDを取得
+    const collectionId = getCurrentCollectionId();
+    // コレクションIDが取得できない場合はメッセージを表示
+    if (!collectionId) {
+        alert(t('delete-collection-open-required'));
+        return;
+    }
+
+    // 確認ダイアログを表示
+    if (!confirm(t('delete-collection-confirm'))) {
+        return;
+    }
+
+    // ボタンを無効化して多重クリックを防止
+    const btn = document.getElementById('deleteCollectionBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.classList.add('disabled');
+        btn.setAttribute('aria-disabled', 'true');
+    }
+
+    try {
+        const response = await fetch(`/api/collections/${encodeURIComponent(collectionId)}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        alert(t('delete-collection-success'));// 削除成功メッセージをユーザに表示
+        window.location.href = '/';// ホームページにリダイレクト
+    } catch (error) {
+        console.error('Error deleting collection:', error);// エラーメッセージをコンソールに表示
+        alert(t('delete-collection-error') + ': ' + error.message);// エラーメッセージをユーザーに表示
+        // ボタンを有効化
+        if (btn) {
+            btn.disabled = false;
+            btn.classList.remove('disabled');
+            btn.setAttribute('aria-disabled', 'false');
+        }
     }
 }
 
