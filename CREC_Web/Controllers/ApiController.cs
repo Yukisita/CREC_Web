@@ -179,6 +179,11 @@ namespace CREC_Web.Controllers
                     return BadRequest("Invalid collection ID");
                 }
 
+                // 予約済みのシステムコレクションIDを拒否
+                if (string.Equals(id, "$SystemData", StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest("Cannot delete system collection");
+                }
                 // フォルダ取得
                 var configuredDataFolder = _configuration["ProjectDataPath"] ?? Directory.GetCurrentDirectory();
                 var dataFolder = Path.GetFullPath(configuredDataFolder);
