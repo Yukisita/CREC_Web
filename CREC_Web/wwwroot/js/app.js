@@ -165,9 +165,9 @@ const translations = {
         'add-new-collection': '新規コレクション追加',
         'add-collection-error': '新規コレクションの作成に失敗しました',
         'delete-collection': 'コレクション削除',
-        'delete-collection-confirm': '本当にこのコレクションを削除しますか？\nコレクションはRecycleBinフォルダに移動されます。',
+        'delete-collection-confirm': '本当にこのコレクションを削除しますか？',
         'delete-collection-open-required': '削除するコレクションを開いてください',
-        'delete-collection-success': 'コレクションをRecycleBinに移動しました',
+        'delete-collection-success': 'コレクションを削除しました',
         'delete-collection-error': 'コレクションの削除に失敗しました'
     },
     en: {
@@ -284,9 +284,9 @@ const translations = {
         'add-new-collection': 'Add New Collection',
         'add-collection-error': 'Failed to create new collection',
         'delete-collection': 'Delete Collection',
-        'delete-collection-confirm': 'Are you sure you want to delete this collection?\nThe collection will be moved to the RecycleBin folder.',
+        'delete-collection-confirm': 'Are you sure you want to delete this collection?',
         'delete-collection-open-required': 'Please open the collection to delete',
-        'delete-collection-success': 'Collection moved to RecycleBin',
+        'delete-collection-success': 'Collection deleted successfully',
         'delete-collection-error': 'Failed to delete collection'
     }
 };
