@@ -1533,7 +1533,9 @@ async function deleteCollection() {
         return;
     }
 
+    // 現在のコレクションIDを取得
     const collectionId = getCurrentCollectionId();
+    // コレクションIDが取得できない場合はメッセージを表示
     if (!collectionId) {
         alert(t('delete-collection-open-required'));
         return;
