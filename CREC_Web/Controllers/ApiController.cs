@@ -179,6 +179,7 @@ namespace CREC_Web.Controllers
                     return BadRequest("Invalid collection ID");
                 }
 
+                // フォルダ取得
                 var configuredDataFolder = _configuration["ProjectDataPath"] ?? Directory.GetCurrentDirectory();
                 var dataFolder = Path.GetFullPath(configuredDataFolder);
                 var collectionFolder = Path.GetFullPath(Path.Combine(dataFolder, id));
