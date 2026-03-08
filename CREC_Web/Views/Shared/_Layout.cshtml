@@ -504,6 +504,15 @@
             display: block;
         }
 
+        #deleteCollectionBtn[aria-disabled="true"] {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        #deleteCollectionBtn[aria-disabled="true"]:hover {
+            opacity: 0.65;
+        }
+
         @@media (max-width: 768px) {
             .admin-panel {
                 width: 100%;
@@ -667,7 +676,7 @@
                 <i class="bi bi-plus-circle"></i>
                 <span data-lang="add-new-collection"></span>
             </button>
-            <button class="btn btn-danger w-100 mt-2" id="deleteCollectionBtn">
+            <button class="btn btn-danger w-100 mt-2" id="deleteCollectionBtn" aria-disabled="true">
                 <i class="bi bi-trash"></i>
                 <span data-lang="delete-collection"></span>
             </button>

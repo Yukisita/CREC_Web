@@ -460,8 +460,16 @@ async function initializeApp() {
 
             // 初回検索
             await searchCollections();
-        } else {
-            // Main search page 以外のページの初期化（必要に応じて今後追加予定のため、場所だけ確保）
+        }
+        else if (isCollectionDetailPage()) {
+            // コレクション削除ボタンの描画を削除可能状態に変更
+            const deleteBtn = document.getElementById('deleteCollectionBtn');
+            if (deleteBtn) {
+                deleteBtn.setAttribute('aria-disabled', 'false');
+            }
+        }
+        else {
+            // これら以外のページの初期化（必要に応じて今後追加予定のため、場所だけ確保）
         }
 
         console.log('App initialized successfully');
