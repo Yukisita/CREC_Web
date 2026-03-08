@@ -168,7 +168,11 @@ const translations = {
         'delete-collection-confirm': '本当にこのコレクションを削除しますか？',
         'delete-collection-open-required': '削除するコレクションを開いてください',
         'delete-collection-success': 'コレクションを削除しました',
-        'delete-collection-error': 'コレクションの削除に失敗しました'
+        'delete-collection-error': 'コレクションの削除に失敗しました',
+        'add-image': '画像追加',
+        'add-image-success': '画像を追加しました',
+        'add-image-error': '画像の追加に失敗しました',
+        'add-image-invalid-format': '対応していないファイル形式です（対応形式: JPEG, PNG, GIF, BMP, WebP）'
     },
     en: {
         'loading': 'Loading...',
@@ -287,7 +291,11 @@ const translations = {
         'delete-collection-confirm': 'Are you sure you want to delete this collection?',
         'delete-collection-open-required': 'Please open the collection to delete',
         'delete-collection-success': 'Collection deleted successfully',
-        'delete-collection-error': 'Failed to delete collection'
+        'delete-collection-error': 'Failed to delete collection',
+        'add-image': 'Add Image',
+        'add-image-success': 'Image added successfully',
+        'add-image-error': 'Failed to add image',
+        'add-image-invalid-format': 'Unsupported file format (Supported: JPEG, PNG, GIF, BMP, WebP)'
     }
 };
 
@@ -1255,7 +1263,7 @@ function displayCollectionPanel(collection) {
     const images = collection.imageFiles || [];
     let currentImageIndex = 0;
 
-    const imagesHtml = images.length > 0
+    const carouselHtml = images.length > 0
         ? `
             <div class="image-carousel">
                 <img id="carouselImage" src="/api/File/${encodeURIComponent(collection.indexData.systemData.id)}/${encodeURIComponent(images[0])}" 
@@ -1271,6 +1279,16 @@ function displayCollectionPanel(collection) {
             </div>
             `
         : `<p class="text-muted">${t('no-images')}</p>`;
+
+    const imagesHtml = `
+        ${carouselHtml}
+        <div class="image-action-toolbar mt-2 d-flex flex-wrap gap-2">
+            <button id="addImageBtn" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-plus-lg"></i> ${t('add-image')}
+            </button>
+        </div>
+        <input type="file" id="imageFileInput" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp" style="display:none;">
+    `;
 
     const filesHtml = collection.otherFiles.length > 0
         ? collection.otherFiles.map(file => `
@@ -1392,6 +1410,22 @@ function displayCollectionPanel(collection) {
         }
     }, ANIMATION_DELAY);
 
+    // 画像追加ボタンのイベントリスナを設定
+    setTimeout(() => {
+        const addImageBtn = document.getElementById('addImageBtn');
+        const imageFileInput = document.getElementById('imageFileInput');
+        if (addImageBtn && imageFileInput) {
+            addImageBtn.addEventListener('click', () => imageFileInput.click());
+            imageFileInput.addEventListener('change', async (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    await uploadCollectionImage(collection.indexData.systemData.id, file, () => showCollectionDetails(collection.indexData.systemData.id));
+                    event.target.value = '';
+                }
+            });
+        }
+    }, ANIMATION_DELAY);
+
     // 画像がある場合はカルーセル制御を設定
     if (images.length > 0) {
         setTimeout(() => {
@@ -1462,6 +1496,44 @@ function closeDetailPanel() {
     panel.classList.remove('open');
     overlay.classList.remove('show');
 }
+
+/**
+ * 画像をコレクションにアップロードする
+ * @param {string} collectionId - コレクションID
+ * @param {File} file - アップロード画像ファイル
+ * @param {Function} onSuccess - アップロード成功後のコールバック
+ */
+async function uploadCollectionImage(collectionId, file, onSuccess) {
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
+    const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+    if (!allowedExtensions.includes(fileExtension)) {
+        alert(t('add-image-invalid-format'));
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+        const response = await fetch(`/api/File/${encodeURIComponent(collectionId)}/upload`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        alert(t('add-image-success'));
+        if (typeof onSuccess === 'function') {
+            await onSuccess();
+        }
+    } catch (error) {
+        console.error('Error uploading image:', error);
+        alert(t('add-image-error'));
+    }
+}
+
 
 // =====================
 // Admin Panel Functions

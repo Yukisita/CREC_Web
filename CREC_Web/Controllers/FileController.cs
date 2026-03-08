@@ -185,6 +185,116 @@ namespace CREC_Web.Controllers
             }
         }
 
+        /// <summary>
+        /// 画像ファイルアップロード
+        /// </summary>
+        /// <param name="collectionId">コレクションID</param>
+        /// <param name="image">アップロード画像ファイル</param>
+        /// <returns>アップロード結果</returns>
+        // 呼び出し例: POST /api/File/{collectionId}/upload
+        [HttpPost("{collectionId}/upload")]
+        public async Task<IActionResult> UploadImage(string collectionId, IFormFile image)
+        {
+            try
+            {
+                // セキュリティ: コレクション ID を検証（英数字・ハイフン・アンダースコアのみ）
+                if (string.IsNullOrWhiteSpace(collectionId) ||
+                    !System.Text.RegularExpressions.Regex.IsMatch(collectionId, @"^[a-zA-Z0-9_-]+$") ||
+                    collectionId.Length > 255)
+                {
+                    _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
+                    return BadRequest("Invalid collection ID");
+                }
+
+                if (image == null || image.Length == 0)
+                {
+                    return BadRequest("No image file provided");
+                }
+
+                // ファイルサイズチェック（上限: 20MB）
+                const long maxFileSize = 20 * 1024 * 1024;
+                if (image.Length > maxFileSize)
+                {
+                    return BadRequest("File size exceeds the maximum allowed size (20MB)");
+                }
+
+                // 許可する画像拡張子
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" };
+                var extension = Path.GetExtension(image.FileName).ToLowerInvariant();
+                if (!allowedExtensions.Contains(extension))
+                {
+                    return BadRequest("Unsupported file format. Supported formats: JPEG, PNG, GIF, BMP, WebP");
+                }
+
+                // ファイル名を検証（パストラバーサル文字を禁止）
+                var sanitizedFileName = Path.GetFileName(image.FileName);
+                if (string.IsNullOrWhiteSpace(sanitizedFileName) ||
+                    sanitizedFileName.Contains("..") ||
+                    sanitizedFileName.Length > 255)
+                {
+                    _logger.LogWarning("Invalid file name: {fileName}", image.FileName.SanitizeForLog());
+                    return BadRequest("Invalid file name");
+                }
+
+                // 設定からデータパスを取得
+                var dataPath = _configuration["ProjectDataPath"] ?? Directory.GetCurrentDirectory();
+
+                // pictures フォルダのパスを構築
+                var picturesPath = Path.GetFullPath(Path.Combine(dataPath, collectionId, "pictures"));
+
+                // pictures フォルダが存在しない場合は作成
+                if (!Directory.Exists(picturesPath))
+                {
+                    Directory.CreateDirectory(picturesPath);
+                }
+
+                // ファイルの保存先を決定
+                var filePath = Path.GetFullPath(Path.Combine(picturesPath, sanitizedFileName));
+
+                // セキュリティ: 解決済みパスが pictures ディレクトリ配下に留まっていることを確認
+                if (!filePath.StartsWith(picturesPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogWarning("Path traversal attempt detected: {fullPath}", filePath.SanitizeForLog());
+                    return BadRequest("Invalid file path");
+                }
+
+                // 同名ファイルが存在する場合は連番を付与
+                if (System.IO.File.Exists(filePath))
+                {
+                    const int maxDuplicateFileNameAttempts = 1000;
+                    var fileNameWithoutExt = Path.GetFileNameWithoutExtension(sanitizedFileName);
+                    var counter = 1;
+                    do
+                    {
+                        var newFileName = $"{fileNameWithoutExt}_{counter}{extension}";
+                        filePath = Path.GetFullPath(Path.Combine(picturesPath, newFileName));
+                        counter++;
+                    } while (System.IO.File.Exists(filePath) && counter <= maxDuplicateFileNameAttempts);
+
+                    if (counter > maxDuplicateFileNameAttempts && System.IO.File.Exists(filePath))
+                    {
+                        return BadRequest("Too many files with the same name exist in this collection");
+                    }
+                }
+
+                // ファイルを保存
+                using (var stream = System.IO.File.Create(filePath))
+                {
+                    await image.CopyToAsync(stream);
+                }
+
+                _logger.LogInformation("Image uploaded for collection {CollectionId}: {FileName}",
+                    collectionId.SanitizeForLog(), Path.GetFileName(filePath).SanitizeForLog());
+
+                return Ok(new { fileName = Path.GetFileName(filePath) });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error uploading image for collection {CollectionId}", collectionId.SanitizeForLog());
+                return StatusCode(500, "Error uploading image");
+            }
+        }
+
         // path セーフ判定用ヘルパー
         private static bool IsSafePathComponent(string component)
         {
