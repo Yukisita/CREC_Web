@@ -1263,7 +1263,7 @@ function displayCollectionPanel(collection) {
     const images = collection.imageFiles || [];
     let currentImageIndex = 0;
 
-    const carouselHtml = images.length > 0
+    const imagesHtml = images.length > 0
         ? `
             <div class="image-carousel">
                 <img id="carouselImage" src="/api/File/${encodeURIComponent(collection.indexData.systemData.id)}/${encodeURIComponent(images[0])}" 
@@ -1279,16 +1279,6 @@ function displayCollectionPanel(collection) {
             </div>
             `
         : `<p class="text-muted">${t('no-images')}</p>`;
-
-    const imagesHtml = `
-        ${carouselHtml}
-        <div class="image-action-toolbar mt-2 d-flex flex-wrap gap-2">
-            <button id="addImageBtn" class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-plus-lg"></i> ${t('add-image')}
-            </button>
-        </div>
-        <input type="file" id="imageFileInput" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp" style="display:none;">
-    `;
 
     const filesHtml = collection.otherFiles.length > 0
         ? collection.otherFiles.map(file => `
@@ -1407,22 +1397,6 @@ function displayCollectionPanel(collection) {
         const inventoryManagementSettingsBtn = document.getElementById('inventoryManagementSettingsBtn');
         if (inventoryManagementSettingsBtn) {
             inventoryManagementSettingsBtn.addEventListener('click', () => openInventoryManagementSettingsModal(collection));
-        }
-    }, ANIMATION_DELAY);
-
-    // 画像追加ボタンのイベントリスナを設定
-    setTimeout(() => {
-        const addImageBtn = document.getElementById('addImageBtn');
-        const imageFileInput = document.getElementById('imageFileInput');
-        if (addImageBtn && imageFileInput) {
-            addImageBtn.addEventListener('click', () => imageFileInput.click());
-            imageFileInput.addEventListener('change', async (event) => {
-                const file = event.target.files[0];
-                if (file) {
-                    await uploadCollectionImage(collection.indexData.systemData.id, file, () => showCollectionDetails(collection.indexData.systemData.id));
-                    event.target.value = '';
-                }
-            });
         }
     }, ANIMATION_DELAY);
 
