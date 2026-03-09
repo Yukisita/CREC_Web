@@ -1508,7 +1508,6 @@ async function uploadCollectionImage(collectionId, file, onSuccess) {
     }
 }
 
-
 // =====================
 // Admin Panel Functions
 // =====================
