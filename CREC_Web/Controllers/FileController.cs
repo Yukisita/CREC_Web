@@ -5,6 +5,7 @@ This software is released under the MIT License.
 */
 
 using CREC_Web.Extensions;
+using CREC_Web.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CREC_Web.Controllers
@@ -15,11 +16,13 @@ namespace CREC_Web.Controllers
     {
         private readonly IConfiguration _configuration;
         private readonly ILogger<FileController> _logger;
+        private readonly CrecDataService _crecDataService;
 
-        public FileController(IConfiguration configuration, ILogger<FileController> logger)
+        public FileController(IConfiguration configuration, ILogger<FileController> logger, CrecDataService crecDataService)
         {
             _configuration = configuration;
             _logger = logger;
+            _crecDataService = crecDataService;
         }
 
         /// <summary>
@@ -282,6 +285,9 @@ namespace CREC_Web.Controllers
                 {
                     await image.CopyToAsync(stream);
                 }
+
+                // キャッシュ上の画像ファイルリストのみ更新（全体キャッシュは維持）
+                _crecDataService.RefreshCollectionFileCache(collectionId);
 
                 _logger.LogInformation("Image uploaded for collection {CollectionId}: {FileName}",
                     collectionId.SanitizeForLog(), Path.GetFileName(filePath).SanitizeForLog());

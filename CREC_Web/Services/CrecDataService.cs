@@ -466,5 +466,26 @@ namespace CREC_Web.Services
             _lastCacheUpdate = DateTime.MinValue; // 最終キャッシュ更新時刻を最小値（実質的に「初期化されていない」状態）にリセット
             _logger.LogInformation("Collections list cache cleared");
         }
+
+        /// <summary>
+        /// 特定コレクションのファイルリストキャッシュのみ更新（全体キャッシュは維持）
+        /// </summary>
+        /// <param name="id">コレクションID</param>
+        public void RefreshCollectionFileCache(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                return;
+
+            var collection = _collectionsCache.FirstOrDefault(c =>
+                c.IndexData.SystemData.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+
+            if (collection != null)
+            {
+                collection.ImageFiles.Clear();
+                collection.OtherFiles.Clear();
+                LoadFileList(collection, collection.CollectionFolderPath);
+                _logger.LogInformation("File cache refreshed for collection {CollectionId}", id);
+            }
+        }
     }
 }
