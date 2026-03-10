@@ -482,7 +482,6 @@ namespace CREC_Web.Services
             if (collection != null)
             {
                 collection.ImageFiles.Clear();
-                collection.OtherFiles.Clear();
                 LoadFileList(collection, collection.CollectionFolderPath);
                 _logger.LogInformation("File cache refreshed for collection {CollectionId}", id);
             }
