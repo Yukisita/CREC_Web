@@ -483,7 +483,7 @@ namespace CREC_Web.Services
             {
                 collection.ImageFiles.Clear();
                 LoadFileList(collection, collection.CollectionFolderPath);
-                _logger.LogInformation("File cache refreshed for collection {CollectionId}", id);
+                _logger.LogInformation("File cache refreshed for collection {CollectionId}", id.SanitizeForLog());
             }
         }
     }
