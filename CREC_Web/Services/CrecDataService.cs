@@ -238,7 +238,7 @@ namespace CREC_Web.Services
                 }
 
                 var files = Directory.GetFiles(directoryPath);
-                var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff" };
+                var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" };
 
                 // picturesフォルダから画像を読み込む
                 // CREC構造: {dataPath}\{collectionId}\pictures\

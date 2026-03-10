@@ -90,7 +90,6 @@ namespace CREC_Web.Controllers
                     ".gif" => "image/gif",
                     ".bmp" => "image/bmp",
                     ".webp" => "image/webp",
-                    ".svg" => "image/svg+xml",
                     _ => "application/octet-stream"
                 };
 
