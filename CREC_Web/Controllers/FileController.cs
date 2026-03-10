@@ -67,7 +67,8 @@ namespace CREC_Web.Controllers
                 var fullPath = Path.GetFullPath(filePath);
                 var allowedPath = Path.GetFullPath(Path.Combine(dataPath, collectionId, "pictures"));
 
-                if (!fullPath.StartsWith(allowedPath, StringComparison.OrdinalIgnoreCase))
+                if (!fullPath.StartsWith(allowedPath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) && 
+                    fullPath != allowedPath)
                 {
                     _logger.LogWarning("Path traversal attempt detected: {fullPath}", fullPath.SanitizeForLog());
                     return BadRequest("Invalid file path");
@@ -254,7 +255,8 @@ namespace CREC_Web.Controllers
                 var filePath = Path.GetFullPath(Path.Combine(picturesPath, sanitizedFileName));
 
                 // セキュリティ: 解決済みパスが pictures ディレクトリ配下に留まっていることを確認
-                if (!filePath.StartsWith(picturesPath, StringComparison.OrdinalIgnoreCase))
+                if (!filePath.StartsWith(picturesPath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) && 
+                    filePath != picturesPath)
                 {
                     _logger.LogWarning("Path traversal attempt detected: {fullPath}", filePath.SanitizeForLog());
                     return BadRequest("Invalid file path");
