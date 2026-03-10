@@ -214,8 +214,8 @@ namespace CREC_Web.Controllers
                     return BadRequest("No image file provided");
                 }
 
-                // ファイルサイズチェック（上限: 20MB）
-                const long maxFileSize = 20 * 1024 * 1024;
+                // ファイルサイズチェック（上限: 128MB）
+                const long maxFileSize = 128 * 1024 * 1024;
                 if (image.Length > maxFileSize)
                 {
                     return BadRequest("File size exceeds the maximum allowed size (20MB)");
