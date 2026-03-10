@@ -67,8 +67,8 @@ namespace CREC_Web.Controllers
                 var fullPath = Path.GetFullPath(filePath);
                 var allowedPath = Path.GetFullPath(Path.Combine(dataPath, collectionId, "pictures"));
 
-                if (!fullPath.StartsWith(allowedPath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) && 
-                    fullPath != allowedPath)
+                var relPath = Path.GetRelativePath(allowedPath, fullPath);
+                if (relPath.StartsWith("..", StringComparison.Ordinal))
                 {
                     _logger.LogWarning("Path traversal attempt detected: {fullPath}", fullPath.SanitizeForLog());
                     return BadRequest("Invalid file path");
