@@ -218,7 +218,7 @@ namespace CREC_Web.Controllers
                 const long maxFileSize = 128 * 1024 * 1024;
                 if (image.Length > maxFileSize)
                 {
-                    return BadRequest("File size exceeds the maximum allowed size (20MB)");
+                    return BadRequest("File size exceeds the maximum allowed size (128MB)");
                 }
 
                 // 許可する画像拡張子
