@@ -286,8 +286,8 @@ namespace CREC_Web.Controllers
                     await image.CopyToAsync(stream);
                 }
 
-                // キャッシュ上の画像ファイルリストのみ更新（全体キャッシュは維持）
-                _crecDataService.RefreshCollectionFileCache(collectionId);
+                // コレクションの画像キャッシュを削除
+                _crecDataService.RefreshCollectionImageFileCache(collectionId);
 
                 _logger.LogInformation("Image uploaded for collection {CollectionId}: {FileName}",
                     collectionId.SanitizeForLog(), Path.GetFileName(filePath).SanitizeForLog());

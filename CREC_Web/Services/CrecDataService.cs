@@ -468,10 +468,10 @@ namespace CREC_Web.Services
         }
 
         /// <summary>
-        /// 特定コレクションのファイルリストキャッシュのみ更新（全体キャッシュは維持）
+        /// 特定コレクションの画像リストキャッシュのみクリア（全体キャッシュは維持）
         /// </summary>
         /// <param name="id">コレクションID</param>
-        public void RefreshCollectionFileCache(string id)
+        public void RefreshCollectionImageFileCache(string id)
         {
             if (string.IsNullOrWhiteSpace(id))
                 return;
