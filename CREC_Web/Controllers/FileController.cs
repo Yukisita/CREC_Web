@@ -194,8 +194,8 @@ namespace CREC_Web.Controllers
         /// <param name="collectionId">コレクションID</param>
         /// <param name="image">アップロード画像ファイル</param>
         /// <returns>アップロード結果</returns>
-        // 呼び出し例: POST /api/File/{collectionId}/upload
-        [HttpPost("{collectionId}/upload")]
+        // 呼び出し例: POST /api/File/{collectionId}/upload/image
+        [HttpPost("{collectionId}/upload/image")]
         public async Task<IActionResult> UploadImage(string collectionId, IFormFile image)
         {
             try

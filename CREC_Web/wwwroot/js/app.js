@@ -1489,7 +1489,7 @@ async function uploadCollectionImage(collectionId, file, onSuccess) {
     formData.append('image', file);
 
     try {
-        const response = await fetch(`/api/File/${encodeURIComponent(collectionId)}/upload`, {
+        const response = await fetch(`/api/File/${encodeURIComponent(collectionId)}/upload/image`, {
             method: 'POST',
             body: formData
         });
