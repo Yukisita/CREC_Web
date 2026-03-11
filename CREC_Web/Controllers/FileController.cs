@@ -5,6 +5,7 @@ This software is released under the MIT License.
 */
 
 using CREC_Web.Extensions;
+using CREC_Web.Helpers;
 using CREC_Web.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -84,15 +85,7 @@ namespace CREC_Web.Controllers
 
                 // 拡張子に基づいてコンテンツタイプを判定
                 var extension = Path.GetExtension(fileName).ToLowerInvariant();
-                var contentType = extension switch
-                {
-                    ".jpg" or ".jpeg" => "image/jpeg",
-                    ".png" => "image/png",
-                    ".gif" => "image/gif",
-                    ".bmp" => "image/bmp",
-                    ".webp" => "image/webp",
-                    _ => "application/octet-stream"
-                };
+                var contentType = ImageFormats.GetContentType(extension);
 
                 _logger.LogInformation($"Serving file with content type: {contentType}");
 
@@ -222,9 +215,8 @@ namespace CREC_Web.Controllers
                 }
 
                 // 許可する画像拡張子
-                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" };
                 var extension = Path.GetExtension(image.FileName).ToLowerInvariant();
-                if (!allowedExtensions.Contains(extension))
+                if (!ImageFormats.AllowedExtensions.Contains(extension))
                 {
                     return BadRequest("Unsupported file format. Supported formats: JPEG, PNG, GIF, BMP, WebP");
                 }
@@ -364,12 +356,9 @@ namespace CREC_Web.Controllers
                     Directory.CreateDirectory(systemDataPath);
                 }
 
-                // 許可する画像拡張子
-                var allowedThumbnailExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" };
-
                 // 元画像の拡張子でサムネイルファイル名を決定（例: Thumbnail.jpg）
                 var thumbnailExtension = Path.GetExtension(fileName).ToLowerInvariant();
-                if (!allowedThumbnailExtensions.Contains(thumbnailExtension))
+                if (!ImageFormats.AllowedExtensions.Contains(thumbnailExtension))
                 {
                     return BadRequest("Unsupported file format. Supported formats: JPEG, PNG, GIF, BMP, WebP");
                 }
@@ -385,7 +374,7 @@ namespace CREC_Web.Controllers
                 }
 
                 // 既存のサムネイルファイル（拡張子が異なる場合も含む）を削除
-                foreach (var ext in allowedThumbnailExtensions)
+                foreach (var ext in ImageFormats.AllowedExtensions)
                 {
                     var oldThumbnailPath = Path.GetFullPath(Path.Combine(systemDataPath, $"Thumbnail{ext}"));
                     if (System.IO.File.Exists(oldThumbnailPath) && oldThumbnailPath != thumbnailPath)

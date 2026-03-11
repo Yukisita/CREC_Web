@@ -5,6 +5,7 @@ This software is released under the MIT License.
 */
 
 using CREC_Web.Extensions;
+using CREC_Web.Helpers;
 using CREC_Web.Models;
 using CREC_Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -589,10 +590,9 @@ namespace CREC_Web.Controllers
                 }
 
                 // Thumbnail.* を拡張子問わず検索
-                var allowedThumbnailExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" };
                 string? thumbnailPath = null;
                 string? thumbnailExtension = null;
-                foreach (var ext in allowedThumbnailExtensions)
+                foreach (var ext in ImageFormats.AllowedExtensions)
                 {
                     var candidate = Path.GetFullPath(Path.Combine(systemDataFolder, $"Thumbnail{ext}"));
                     if (System.IO.File.Exists(candidate))
@@ -608,14 +608,7 @@ namespace CREC_Web.Controllers
                     return NotFound($"Thumbnail not found for collection '{collectionId}'");
                 }
 
-                var contentType = thumbnailExtension switch
-                {
-                    ".jpg" or ".jpeg" => "image/jpeg",
-                    ".gif" => "image/gif",
-                    ".bmp" => "image/bmp",
-                    ".webp" => "image/webp",
-                    _ => "image/png"
-                };
+                var contentType = ImageFormats.GetContentType(thumbnailExtension);
 
                 Response.Headers["Cache-Control"] = "public, max-age=3600";
                 // img タグでインライン表示させるため、ファイル名は付与しない
