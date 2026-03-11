@@ -371,17 +371,17 @@ namespace CREC_Web.Controllers
                     return BadRequest("Access denied");
                 }
 
-                // 既存のサムネイルファイル（拡張子が異なる場合も含む）を削除
+                // 既存のサムネイルファイル（すべての拡張子）を削除
                 foreach (var ext in ImageFormats.AllowedExtensions)
                 {
                     var oldThumbnailPath = Path.GetFullPath(Path.Combine(systemDataPath, $"Thumbnail{ext}"));
-                    if (System.IO.File.Exists(oldThumbnailPath) && oldThumbnailPath != thumbnailPath)
+                    if (System.IO.File.Exists(oldThumbnailPath))
                     {
                         System.IO.File.Delete(oldThumbnailPath);
                     }
                 }
 
-                // 画像をサムネイルとしてコピー（既存ファイルは上書き）
+                // 画像をサムネイルとしてコピー
                 using var sourceStream = System.IO.File.OpenRead(sourceFilePath);
                 using var destStream = System.IO.File.Create(thumbnailPath);
                 await sourceStream.CopyToAsync(destStream);
@@ -411,5 +411,4 @@ namespace CREC_Web.Controllers
                 component == Path.GetFileName(component); // さらに単一要素か厳格判定
         }
     }
-
 }
