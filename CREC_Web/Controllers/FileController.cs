@@ -300,9 +300,9 @@ namespace CREC_Web.Controllers
         /// <param name="collectionId">コレクションID</param>
         /// <param name="fileName">サムネイルに設定する画像ファイル名</param>
         /// <returns>設定結果</returns>
-        // 呼び出し例: POST /api/File/{collectionId}/set-thumbnail
+        // 呼び出し例: POST /api/File/{collectionId}/set-thumbnail?fileName=photo.jpg
         [HttpPost("{collectionId}/set-thumbnail")]
-        public async Task<IActionResult> SetThumbnail(string collectionId, [FromBody] SetThumbnailRequest request)
+        public async Task<IActionResult> SetThumbnail(string collectionId, [FromQuery] string fileName)
         {
             try
             {
@@ -314,8 +314,6 @@ namespace CREC_Web.Controllers
                     _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
                     return BadRequest("Invalid collection ID");
                 }
-
-                var fileName = request?.FileName;
 
                 // セキュリティ: ファイル名を検証（パストラバーサル文字を禁止）
                 if (string.IsNullOrWhiteSpace(fileName) ||
@@ -414,11 +412,4 @@ namespace CREC_Web.Controllers
         }
     }
 
-    /// <summary>
-    /// サムネイル設定リクエスト
-    /// </summary>
-    public class SetThumbnailRequest
-    {
-        public string? FileName { get; set; }
-    }
 }

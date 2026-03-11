@@ -1523,10 +1523,8 @@ async function uploadCollectionImage(collectionId, file, onSuccess) {
  */
 async function setCollectionThumbnail(collectionId, fileName) {
     try {
-        const response = await fetch(`/api/File/${encodeURIComponent(collectionId)}/set-thumbnail`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fileName: fileName })
+        const response = await fetch(`/api/File/${encodeURIComponent(collectionId)}/set-thumbnail?fileName=${encodeURIComponent(fileName)}`, {
+            method: 'POST'
         });
 
         if (!response.ok) {
