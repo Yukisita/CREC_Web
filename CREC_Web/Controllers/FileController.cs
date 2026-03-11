@@ -302,6 +302,94 @@ namespace CREC_Web.Controllers
             }
         }
 
+        /// <summary>
+        /// 指定した画像をサムネイルとして設定する
+        /// </summary>
+        /// <param name="collectionId">コレクションID</param>
+        /// <param name="fileName">サムネイルに設定する画像ファイル名</param>
+        /// <returns>設定結果</returns>
+        // 呼び出し例: POST /api/File/{collectionId}/set-thumbnail
+        [HttpPost("{collectionId}/set-thumbnail")]
+        public async Task<IActionResult> SetThumbnail(string collectionId, [FromBody] SetThumbnailRequest request)
+        {
+            try
+            {
+                // セキュリティ: コレクション ID を検証（英数字・ハイフン・アンダースコアのみ）
+                if (string.IsNullOrWhiteSpace(collectionId) ||
+                    !System.Text.RegularExpressions.Regex.IsMatch(collectionId, @"^[a-zA-Z0-9_-]+$") ||
+                    collectionId.Length > 255)
+                {
+                    _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
+                    return BadRequest("Invalid collection ID");
+                }
+
+                var fileName = request?.FileName;
+
+                // セキュリティ: ファイル名を検証（パストラバーサル文字を禁止）
+                if (string.IsNullOrWhiteSpace(fileName) ||
+                    fileName.Contains("..") ||
+                    fileName.Contains("/") ||
+                    fileName.Contains("\\") ||
+                    fileName.Length > 255)
+                {
+                    _logger.LogWarning("Invalid file name: {fileName}", Path.GetFileName(fileName ?? "").SanitizeForLog());
+                    return BadRequest("Invalid file name");
+                }
+
+                var dataPath = _configuration["ProjectDataPath"] ?? Directory.GetCurrentDirectory();
+
+                // ソース画像のパスを構築
+                var picturesPath = Path.GetFullPath(Path.Combine(dataPath, collectionId, "pictures"));
+                var sourceFilePath = Path.GetFullPath(Path.Combine(picturesPath, fileName));
+
+                // セキュリティ: 解決済みパスが pictures ディレクトリ配下に留まっていることを確認
+                var relPath = Path.GetRelativePath(picturesPath, sourceFilePath);
+                if (relPath.StartsWith("..", StringComparison.Ordinal))
+                {
+                    _logger.LogWarning("Path traversal attempt detected: {fullPath}", sourceFilePath.SanitizeForLog());
+                    return BadRequest("Invalid file path");
+                }
+
+                if (!System.IO.File.Exists(sourceFilePath))
+                {
+                    return NotFound("Source image not found");
+                }
+
+                // SystemData フォルダのパスを構築
+                var systemDataPath = Path.GetFullPath(Path.Combine(dataPath, collectionId, "SystemData"));
+
+                // SystemData フォルダが存在しない場合は作成
+                if (!Directory.Exists(systemDataPath))
+                {
+                    Directory.CreateDirectory(systemDataPath);
+                }
+
+                var thumbnailPath = Path.GetFullPath(Path.Combine(systemDataPath, "Thumbnail.png"));
+
+                // セキュリティ: サムネイルパスが SystemData ディレクトリ配下に留まっていることを確認
+                var thumbnailRelPath = Path.GetRelativePath(systemDataPath, thumbnailPath);
+                if (thumbnailRelPath.StartsWith("..", StringComparison.Ordinal))
+                {
+                    return BadRequest("Access denied");
+                }
+
+                // 画像をサムネイルとしてコピー（既存ファイルは上書き）
+                using var sourceStream = System.IO.File.OpenRead(sourceFilePath);
+                using var destStream = System.IO.File.Create(thumbnailPath);
+                await sourceStream.CopyToAsync(destStream);
+
+                _logger.LogInformation("Thumbnail set for collection {CollectionId}: {FileName}",
+                    collectionId.SanitizeForLog(), Path.GetFileName(sourceFilePath).SanitizeForLog());
+
+                return Ok(new { message = "Thumbnail set successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error setting thumbnail for collection {CollectionId}", collectionId.SanitizeForLog());
+                return StatusCode(500, "Error setting thumbnail");
+            }
+        }
+
         // path セーフ判定用ヘルパー
         private static bool IsSafePathComponent(string component)
         {
@@ -314,5 +402,13 @@ namespace CREC_Web.Controllers
                 !component.Contains(Path.AltDirectorySeparatorChar) &&
                 component == Path.GetFileName(component); // さらに単一要素か厳格判定
         }
+    }
+
+    /// <summary>
+    /// サムネイル設定リクエスト
+    /// </summary>
+    public class SetThumbnailRequest
+    {
+        public string? FileName { get; set; }
     }
 }
