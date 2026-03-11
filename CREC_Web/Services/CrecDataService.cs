@@ -22,6 +22,7 @@ namespace CREC_Web.Services
         private readonly List<CollectionData> _collectionsCache = new();
         private DateTime _lastCacheUpdate = DateTime.MinValue;
         private readonly TimeSpan _cacheExpiry = TimeSpan.FromMinutes(5);
+        private readonly object _cacheLock = new object();// キャッシュのスレッドセーフなアクセスのためのロックオブジェクト
 
         // クラススコープにキャッシュ用JsonSerializerOptionsを追加
         private static readonly JsonSerializerOptions _indexDataJsonOptions = new JsonSerializerOptions
@@ -44,23 +45,30 @@ namespace CREC_Web.Services
         public async Task<List<CollectionData>> GetAllCollectionsAsync()
         {
             // キャッシュが有効な場合はキャッシュを返す
-            if (_collectionsCache.Any() && DateTime.Now - _lastCacheUpdate < _cacheExpiry)
+            lock (_cacheLock)
             {
-                _logger.LogInformation($"Returning {_collectionsCache.Count} collections from cache");
-                return _collectionsCache;
+                if (_collectionsCache.Any() && DateTime.Now - _lastCacheUpdate < _cacheExpiry)
+                {
+                    _logger.LogInformation($"Returning {_collectionsCache.Count} collections from cache");
+                    return new List<CollectionData>(_collectionsCache);
+                }
             }
-
-            _collectionsCache.Clear();
 
             try
             {
                 _logger.LogInformation($"Loading collections from data folder: {_dataFolderPath}");
                 _logger.LogInformation($"Data folder exists: {Directory.Exists(_dataFolderPath)}");
 
+                // データフォルダが存在しない場合は空のリストを返す
                 if (!Directory.Exists(_dataFolderPath))
                 {
                     _logger.LogWarning($"Data folder does not exist: {_dataFolderPath}");
-                    return _collectionsCache;
+                    lock (_cacheLock)
+                    {
+                        _collectionsCache.Clear();
+                        _lastCacheUpdate = DateTime.Now;
+                    }
+                    return new List<CollectionData>();
                 }
 
                 // データフォルダ内のサブフォルダを検索
@@ -85,17 +93,23 @@ namespace CREC_Web.Services
                 var validCollections = collections.Where(c => c != null).Cast<CollectionData>().ToList();
                 _logger.LogInformation($"Successfully loaded {validCollections.Count} collections");
 
-                _collectionsCache.AddRange(validCollections);
-                _lastCacheUpdate = DateTime.Now;
-
-                _logger.LogInformation($"Total collections in cache: {_collectionsCache.Count}");
+                lock (_cacheLock)
+                {
+                    _collectionsCache.Clear();
+                    _collectionsCache.AddRange(validCollections);
+                    _lastCacheUpdate = DateTime.Now;
+                    _logger.LogInformation($"Total collections in cache: {_collectionsCache.Count}");
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading collections");
             }
 
-            return _collectionsCache;
+            lock (_cacheLock)
+            {
+                return new List<CollectionData>(_collectionsCache);
+            }
         }
 
         /// <summary>
@@ -140,7 +154,7 @@ namespace CREC_Web.Services
                 collection.CollectionFolderPath = directoryPath;// コレクションフォルダパスを設定
 
                 LoadInventoryData(collection, directoryPath);// 在庫情報を読み込み
-                
+
                 LoadFileList(collection, directoryPath);// 画像ファイルとその他のファイルを検索
 
                 return collection;
@@ -238,7 +252,7 @@ namespace CREC_Web.Services
                 }
 
                 var files = Directory.GetFiles(directoryPath);
-                var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff" };
+                var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" };
 
                 // picturesフォルダから画像を読み込む
                 // CREC構造: {dataPath}\{collectionId}\pictures\
@@ -462,9 +476,36 @@ namespace CREC_Web.Services
         /// </summary>
         public void ClearCollectionsListCache()
         {
-            _collectionsCache.Clear();
-            _lastCacheUpdate = DateTime.MinValue; // 最終キャッシュ更新時刻を最小値（実質的に「初期化されていない」状態）にリセット
+
+            lock (_cacheLock)
+            {
+                _collectionsCache.Clear();
+                _lastCacheUpdate = DateTime.MinValue; // 最終キャッシュ更新時刻を最小値（実質的に「初期化されていない」状態）にリセット
+            }
             _logger.LogInformation("Collections list cache cleared");
+        }
+
+        /// <summary>
+        /// 特定コレクションの画像リストキャッシュのみクリア（全体キャッシュは維持）
+        /// </summary>
+        /// <param name="id">コレクションID</param>
+        public void RefreshCollectionImageFileCache(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                return;
+
+            lock (_cacheLock)
+            {
+                var collection = _collectionsCache.FirstOrDefault(c =>
+                    c.IndexData.SystemData.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+
+                if (collection != null)
+                {
+                    collection.ImageFiles.Clear();
+                    LoadFileList(collection, collection.CollectionFolderPath);
+                    _logger.LogInformation("File cache refreshed for collection {CollectionId}", id.SanitizeForLog());
+                }
+            }
         }
     }
 }
