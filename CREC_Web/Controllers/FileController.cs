@@ -364,13 +364,34 @@ namespace CREC_Web.Controllers
                     Directory.CreateDirectory(systemDataPath);
                 }
 
-                var thumbnailPath = Path.GetFullPath(Path.Combine(systemDataPath, "Thumbnail.png"));
+                // 許可する画像拡張子
+                var allowedThumbnailExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" };
+
+                // 元画像の拡張子でサムネイルファイル名を決定（例: Thumbnail.jpg）
+                var thumbnailExtension = Path.GetExtension(fileName).ToLowerInvariant();
+                if (!allowedThumbnailExtensions.Contains(thumbnailExtension))
+                {
+                    return BadRequest("Unsupported file format. Supported formats: JPEG, PNG, GIF, BMP, WebP");
+                }
+
+                var thumbnailFileName = $"Thumbnail{thumbnailExtension}";
+                var thumbnailPath = Path.GetFullPath(Path.Combine(systemDataPath, thumbnailFileName));
 
                 // セキュリティ: サムネイルパスが SystemData ディレクトリ配下に留まっていることを確認
                 var thumbnailRelPath = Path.GetRelativePath(systemDataPath, thumbnailPath);
                 if (thumbnailRelPath.StartsWith("..", StringComparison.Ordinal))
                 {
                     return BadRequest("Access denied");
+                }
+
+                // 既存のサムネイルファイル（拡張子が異なる場合も含む）を削除
+                foreach (var ext in allowedThumbnailExtensions)
+                {
+                    var oldThumbnailPath = Path.GetFullPath(Path.Combine(systemDataPath, $"Thumbnail{ext}"));
+                    if (System.IO.File.Exists(oldThumbnailPath) && oldThumbnailPath != thumbnailPath)
+                    {
+                        System.IO.File.Delete(oldThumbnailPath);
+                    }
                 }
 
                 // 画像をサムネイルとしてコピー（既存ファイルは上書き）
