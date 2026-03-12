@@ -416,6 +416,9 @@
                     <button id="setThumbnailBtn" class="btn btn-sm btn-outline-primary">
                         <i class="bi bi-image"></i> ${t('set-thumbnail')}
                     </button>
+                    <button id="deleteImageBtn" class="btn btn-sm btn-outline-danger" ${images.length === 0 ? 'disabled' : ''}>
+                        <i class="bi bi-trash"></i> ${t('delete-image')}
+                    </button>
                 </div>
                 <input type="file" id="imageFileInput" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp" style="display:none;">
             `;
@@ -546,6 +549,16 @@
                         return;
                     }
                     await setCollectionThumbnail(collection.indexData.systemData.id, images[currentImageIndex]);
+                });
+            }
+
+            // 画像削除ボタンのイベントリスナを設定
+            const deleteImageBtn = document.getElementById('deleteImageBtn');
+            if (deleteImageBtn) {
+                deleteImageBtn.addEventListener('click', async () => {
+                    if (images.length === 0) return;
+                    if (!confirm(t('delete-image-confirm'))) return;
+                    await deleteCollectionImage(collection.indexData.systemData.id, images[currentImageIndex], loadCollectionDetails);
                 });
             }
             
