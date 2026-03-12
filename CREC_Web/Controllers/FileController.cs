@@ -48,13 +48,9 @@ namespace CREC_Web.Controllers
                 }
 
                 // セキュリティ: ファイル名を検証（パストラバーサル文字を禁止）
-                if (string.IsNullOrWhiteSpace(fileName) ||
-                    fileName.Contains("..") ||
-                    fileName.Contains("/") ||
-                    fileName.Contains("\\") ||
-                    fileName.Length > 255)
+                if (!IsSafePathComponent(fileName))
                 {
-                    _logger.LogWarning("Invalid file name: {fileName}", Path.GetFileName(fileName).SanitizeForLog());
+                    _logger.LogWarning("Invalid file name: {fileName}", Path.GetFileName(fileName ?? "").SanitizeForLog());
                     return BadRequest("Invalid file name");
                 }
 
@@ -223,9 +219,7 @@ namespace CREC_Web.Controllers
 
                 // ファイル名を検証（パストラバーサル文字を禁止）
                 var sanitizedFileName = Path.GetFileName(image.FileName);
-                if (string.IsNullOrWhiteSpace(sanitizedFileName) ||
-                    sanitizedFileName.Contains("..") ||
-                    sanitizedFileName.Length > 255)
+                if (!IsSafePathComponent(sanitizedFileName))
                 {
                     _logger.LogWarning("Invalid file name: {fileName}", image.FileName.SanitizeForLog());
                     return BadRequest("Invalid file name");
@@ -316,11 +310,7 @@ namespace CREC_Web.Controllers
                 }
 
                 // セキュリティ: ファイル名を検証（パストラバーサル文字を禁止）
-                if (string.IsNullOrWhiteSpace(fileName) ||
-                    fileName.Contains("..") ||
-                    fileName.Contains("/") ||
-                    fileName.Contains("\\") ||
-                    fileName.Length > 255)
+                if (!IsSafePathComponent(fileName))
                 {
                     _logger.LogWarning("Invalid file name: {fileName}", Path.GetFileName(fileName ?? "").SanitizeForLog());
                     return BadRequest("Invalid file name");
@@ -420,11 +410,7 @@ namespace CREC_Web.Controllers
                 }
 
                 // セキュリティ: ファイル名を検証（パストラバーサル文字を禁止）
-                if (string.IsNullOrWhiteSpace(fileName) ||
-                    fileName.Contains("..") ||
-                    fileName.Contains("/") ||
-                    fileName.Contains("\\") ||
-                    fileName.Length > 255)
+                if (!IsSafePathComponent(fileName))
                 {
                     _logger.LogWarning("Invalid file name: {fileName}", Path.GetFileName(fileName ?? "").SanitizeForLog());
                     return BadRequest("Invalid file name");
@@ -469,7 +455,7 @@ namespace CREC_Web.Controllers
         // path セーフ判定用ヘルパー
         private static bool IsSafePathComponent(string component)
         {
-            if (string.IsNullOrEmpty(component))
+            if (string.IsNullOrWhiteSpace(component) || component.Length > 255)
                 return false;
             // 禁止: パス区切り文字、親ディレクトリ参照
             return
