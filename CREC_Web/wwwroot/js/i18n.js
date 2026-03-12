@@ -131,7 +131,11 @@ const translations = {
         'set-thumbnail': 'サムネイル設定',
         'set-thumbnail-success': 'サムネイルを設定しました',
         'set-thumbnail-error': 'サムネイルの設定に失敗しました',
-        'set-thumbnail-no-images': '先に画像をアップロードしてください'
+        'set-thumbnail-no-images': '先に画像をアップロードしてください',
+        'delete-image': '画像削除',
+        'delete-image-confirm': '表示されている画像を削除しますか？',
+        'delete-image-success': '画像を削除しました',
+        'delete-image-error': '画像の削除に失敗しました'
     },
     en: {
         'loading': 'Loading...',
@@ -258,6 +262,10 @@ const translations = {
         'set-thumbnail': 'Set Thumbnail',
         'set-thumbnail-success': 'Thumbnail set successfully',
         'set-thumbnail-error': 'Failed to set thumbnail',
-        'set-thumbnail-no-images': 'Please upload an image first'
+        'set-thumbnail-no-images': 'Please upload an image first',
+        'delete-image': 'Delete Image',
+        'delete-image-confirm': 'Are you sure you want to delete this image?',
+        'delete-image-success': 'Image deleted successfully',
+        'delete-image-error': 'Failed to delete image'
     }
 };

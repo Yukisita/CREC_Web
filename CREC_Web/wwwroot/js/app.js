@@ -1287,6 +1287,32 @@ async function setCollectionThumbnail(collectionId, fileName) {
     }
 }
 
+/**
+ * 指定した画像をコレクションから削除する
+ * @param {string} collectionId - コレクションID
+ * @param {string} fileName - 削除する画像ファイル名
+ * @param {Function} onSuccess - 削除成功後のコールバック
+ */
+async function deleteCollectionImage(collectionId, fileName, onSuccess) {
+    try {
+        const response = await fetch(`/api/File/${encodeURIComponent(collectionId)}/image?fileName=${encodeURIComponent(fileName)}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        alert(t('delete-image-success'));
+        if (typeof onSuccess === 'function') {
+            await onSuccess();
+        }
+    } catch (error) {
+        console.error('Error deleting image:', error);
+        alert(t('delete-image-error'));
+    }
+}
+
 // =====================
 // Admin Panel Functions
 // =====================

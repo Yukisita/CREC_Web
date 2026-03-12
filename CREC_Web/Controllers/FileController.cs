@@ -398,6 +398,74 @@ namespace CREC_Web.Controllers
             }
         }
 
+        /// <summary>
+        /// 指定した画像を削除する
+        /// </summary>
+        /// <param name="collectionId">コレクションID</param>
+        /// <param name="fileName">削除する画像ファイル名</param>
+        /// <returns>削除結果</returns>
+        // 呼び出し例: DELETE /api/File/{collectionId}/image?fileName=photo.jpg
+        [HttpDelete("{collectionId}/image")]
+        public IActionResult DeleteImage(string collectionId, [FromQuery] string fileName)
+        {
+            try
+            {
+                // セキュリティ: コレクション ID を検証（英数字・ハイフン・アンダースコアのみ）
+                if (string.IsNullOrWhiteSpace(collectionId) ||
+                    !System.Text.RegularExpressions.Regex.IsMatch(collectionId, @"^[a-zA-Z0-9_-]+$") ||
+                    collectionId.Length > 255)
+                {
+                    _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
+                    return BadRequest("Invalid collection ID");
+                }
+
+                // セキュリティ: ファイル名を検証（パストラバーサル文字を禁止）
+                if (string.IsNullOrWhiteSpace(fileName) ||
+                    fileName.Contains("..") ||
+                    fileName.Contains("/") ||
+                    fileName.Contains("\\") ||
+                    fileName.Length > 255)
+                {
+                    _logger.LogWarning("Invalid file name: {fileName}", Path.GetFileName(fileName ?? "").SanitizeForLog());
+                    return BadRequest("Invalid file name");
+                }
+
+                var dataPath = _configuration["ProjectDataPath"] ?? Directory.GetCurrentDirectory();
+
+                // pictures フォルダーへのパスを構築
+                var picturesPath = Path.GetFullPath(Path.Combine(dataPath, collectionId, "pictures"));
+                var filePath = Path.GetFullPath(Path.Combine(picturesPath, fileName));
+
+                // セキュリティ: 解決済みパスが pictures ディレクトリ配下に留まっていることを確認
+                var relPath = Path.GetRelativePath(picturesPath, filePath);
+                if (relPath.StartsWith("..", StringComparison.Ordinal))
+                {
+                    _logger.LogWarning("Path traversal attempt detected: {fullPath}", filePath.SanitizeForLog());
+                    return BadRequest("Invalid file path");
+                }
+
+                if (!System.IO.File.Exists(filePath))
+                {
+                    return NotFound("Image not found");
+                }
+
+                System.IO.File.Delete(filePath);
+
+                // コレクションの画像キャッシュを削除（ファイルシステムとキャッシュの整合性を保つため）
+                _crecDataService.RefreshCollectionImageFileCache(collectionId);
+
+                _logger.LogInformation("Image deleted for collection {CollectionId}: {FileName}",
+                    collectionId.SanitizeForLog(), Path.GetFileName(filePath).SanitizeForLog());
+
+                return Ok(new { message = "Image deleted successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting image for collection {CollectionId}", collectionId.SanitizeForLog());
+                return StatusCode(500, "Error deleting image");
+            }
+        }
+
         // path セーフ判定用ヘルパー
         private static bool IsSafePathComponent(string component)
         {
