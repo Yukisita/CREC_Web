@@ -5,6 +5,7 @@ This software is released under the MIT License.
 */
 
 using CREC_Web.Extensions;
+using CREC_Web.Helpers;
 using CREC_Web.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -84,15 +85,7 @@ namespace CREC_Web.Controllers
 
                 // 拡張子に基づいてコンテンツタイプを判定
                 var extension = Path.GetExtension(fileName).ToLowerInvariant();
-                var contentType = extension switch
-                {
-                    ".jpg" or ".jpeg" => "image/jpeg",
-                    ".png" => "image/png",
-                    ".gif" => "image/gif",
-                    ".bmp" => "image/bmp",
-                    ".webp" => "image/webp",
-                    _ => "application/octet-stream"
-                };
+                var contentType = ImageFormats.GetContentType(extension);
 
                 _logger.LogInformation($"Serving file with content type: {contentType}");
 
@@ -222,9 +215,8 @@ namespace CREC_Web.Controllers
                 }
 
                 // 許可する画像拡張子
-                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" };
                 var extension = Path.GetExtension(image.FileName).ToLowerInvariant();
-                if (!allowedExtensions.Contains(extension))
+                if (!ImageFormats.AllowedExtensions.Contains(extension))
                 {
                     return BadRequest("Unsupported file format. Supported formats: JPEG, PNG, GIF, BMP, WebP");
                 }
@@ -299,6 +291,110 @@ namespace CREC_Web.Controllers
             {
                 _logger.LogError(ex, "Error uploading image for collection {CollectionId}", collectionId.SanitizeForLog());
                 return StatusCode(500, "Error uploading image");
+            }
+        }
+
+        /// <summary>
+        /// 指定した画像をサムネイルとして設定する
+        /// </summary>
+        /// <param name="collectionId">コレクションID</param>
+        /// <param name="fileName">サムネイルに設定する画像ファイル名</param>
+        /// <returns>設定結果</returns>
+        // 呼び出し例: POST /api/File/{collectionId}/set-thumbnail?fileName=photo.jpg
+        [HttpPost("{collectionId}/set-thumbnail")]
+        public async Task<IActionResult> SetThumbnail(string collectionId, [FromQuery] string fileName)
+        {
+            try
+            {
+                // セキュリティ: コレクション ID を検証（英数字・ハイフン・アンダースコアのみ）
+                if (string.IsNullOrWhiteSpace(collectionId) ||
+                    !System.Text.RegularExpressions.Regex.IsMatch(collectionId, @"^[a-zA-Z0-9_-]+$") ||
+                    collectionId.Length > 255)
+                {
+                    _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
+                    return BadRequest("Invalid collection ID");
+                }
+
+                // セキュリティ: ファイル名を検証（パストラバーサル文字を禁止）
+                if (string.IsNullOrWhiteSpace(fileName) ||
+                    fileName.Contains("..") ||
+                    fileName.Contains("/") ||
+                    fileName.Contains("\\") ||
+                    fileName.Length > 255)
+                {
+                    _logger.LogWarning("Invalid file name: {fileName}", Path.GetFileName(fileName ?? "").SanitizeForLog());
+                    return BadRequest("Invalid file name");
+                }
+
+                var dataPath = _configuration["ProjectDataPath"] ?? Directory.GetCurrentDirectory();
+
+                // ソース画像のパスを構築
+                var picturesPath = Path.GetFullPath(Path.Combine(dataPath, collectionId, "pictures"));
+                var sourceFilePath = Path.GetFullPath(Path.Combine(picturesPath, fileName));
+
+                // セキュリティ: 解決済みパスが pictures ディレクトリ配下に留まっていることを確認
+                var relPath = Path.GetRelativePath(picturesPath, sourceFilePath);
+                if (relPath.StartsWith("..", StringComparison.Ordinal))
+                {
+                    _logger.LogWarning("Path traversal attempt detected: {fullPath}", sourceFilePath.SanitizeForLog());
+                    return BadRequest("Invalid file path");
+                }
+
+                if (!System.IO.File.Exists(sourceFilePath))
+                {
+                    return NotFound("Source image not found");
+                }
+
+                // SystemData フォルダのパスを構築
+                var systemDataPath = Path.GetFullPath(Path.Combine(dataPath, collectionId, "SystemData"));
+
+                // SystemData フォルダが存在しない場合は作成
+                if (!Directory.Exists(systemDataPath))
+                {
+                    Directory.CreateDirectory(systemDataPath);
+                }
+
+                // 元画像の拡張子でサムネイルファイル名を決定（例: Thumbnail.jpg）
+                var thumbnailExtension = Path.GetExtension(fileName).ToLowerInvariant();
+                if (!ImageFormats.AllowedExtensions.Contains(thumbnailExtension))
+                {
+                    return BadRequest("Unsupported file format. Supported formats: JPEG, PNG, GIF, BMP, WebP");
+                }
+
+                var thumbnailFileName = $"Thumbnail{thumbnailExtension}";
+                var thumbnailPath = Path.GetFullPath(Path.Combine(systemDataPath, thumbnailFileName));
+
+                // セキュリティ: サムネイルパスが SystemData ディレクトリ配下に留まっていることを確認
+                var thumbnailRelPath = Path.GetRelativePath(systemDataPath, thumbnailPath);
+                if (thumbnailRelPath.StartsWith("..", StringComparison.Ordinal))
+                {
+                    return BadRequest("Access denied");
+                }
+
+                // 既存のサムネイルファイル（すべての拡張子）を削除
+                foreach (var ext in ImageFormats.AllowedExtensions)
+                {
+                    var oldThumbnailPath = Path.GetFullPath(Path.Combine(systemDataPath, $"Thumbnail{ext}"));
+                    if (System.IO.File.Exists(oldThumbnailPath))
+                    {
+                        System.IO.File.Delete(oldThumbnailPath);
+                    }
+                }
+
+                // 画像をサムネイルとしてコピー
+                using var sourceStream = System.IO.File.OpenRead(sourceFilePath);
+                using var destStream = System.IO.File.Create(thumbnailPath);
+                await sourceStream.CopyToAsync(destStream);
+
+                _logger.LogInformation("Thumbnail set for collection {CollectionId}: {FileName}",
+                    collectionId.SanitizeForLog(), Path.GetFileName(sourceFilePath).SanitizeForLog());
+
+                return Ok(new { message = "Thumbnail set successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error setting thumbnail for collection {CollectionId}", collectionId.SanitizeForLog());
+                return StatusCode(500, "Error setting thumbnail");
             }
         }
 

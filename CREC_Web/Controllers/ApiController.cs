@@ -5,6 +5,7 @@ This software is released under the MIT License.
 */
 
 using CREC_Web.Extensions;
+using CREC_Web.Helpers;
 using CREC_Web.Models;
 using CREC_Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -580,22 +581,39 @@ namespace CREC_Web.Controllers
                 var dataFolder = _configuration["ProjectDataPath"] ?? Directory.GetCurrentDirectory();
 
                 var collectionFolder = Path.GetFullPath(Path.Combine(dataFolder, collectionId));
-                var thumbnailPath = Path.GetFullPath(Path.Combine(collectionFolder, "SystemData", "Thumbnail.png"));
+                var systemDataFolder = Path.GetFullPath(Path.Combine(collectionFolder, "SystemData"));
 
-                // パストラバーサル防止
-                if (!thumbnailPath.StartsWith(collectionFolder, StringComparison.OrdinalIgnoreCase))
+                // パストラバーサル防止: systemDataFolder が collectionFolder 配下にあることを一度だけ確認
+                if (!systemDataFolder.StartsWith(collectionFolder, StringComparison.OrdinalIgnoreCase))
                 {
                     return BadRequest("Access denied");
                 }
 
-                if (!System.IO.File.Exists(thumbnailPath))
+                // Thumbnail.* を検索
+                string? thumbnailPath = null;
+                string? thumbnailExtension = null;
+                foreach (var ext in ImageFormats.AllowedExtensions)
+                {
+                    var candidate = Path.GetFullPath(Path.Combine(systemDataFolder, $"Thumbnail{ext}"));
+                    if (System.IO.File.Exists(candidate))
+                    {
+                        thumbnailPath = candidate;
+                        thumbnailExtension = ext;
+                        break;
+                    }
+                }
+
+                if (thumbnailPath == null)
                 {
                     return NotFound($"Thumbnail not found for collection '{collectionId}'");
                 }
 
-                Response.Headers["Cache-Control"] = "public, max-age=3600";
+                var contentType = ImageFormats.GetContentType(thumbnailExtension);
+
+                // サムネイルはユーザーが更新できるため、常に再検証する（ETag/Last-Modified を利用）
+                Response.Headers["Cache-Control"] = "no-cache";
                 // img タグでインライン表示させるため、ファイル名は付与しない
-                return PhysicalFile(thumbnailPath, "image/png");
+                return PhysicalFile(thumbnailPath, contentType);
             }
             catch (Exception ex)
             {

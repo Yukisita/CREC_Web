@@ -172,7 +172,11 @@ const translations = {
         'add-image': '画像追加',
         'add-image-success': '画像を追加しました',
         'add-image-error': '画像の追加に失敗しました',
-        'add-image-invalid-format': '対応していないファイル形式です（対応形式: JPEG, PNG, GIF, BMP, WebP）'
+        'add-image-invalid-format': '対応していないファイル形式です（対応形式: JPEG, PNG, GIF, BMP, WebP）',
+        'set-thumbnail': 'サムネイル設定',
+        'set-thumbnail-success': 'サムネイルを設定しました',
+        'set-thumbnail-error': 'サムネイルの設定に失敗しました',
+        'set-thumbnail-no-images': '先に画像をアップロードしてください'
     },
     en: {
         'loading': 'Loading...',
@@ -295,7 +299,11 @@ const translations = {
         'add-image': 'Add Image',
         'add-image-success': 'Image added successfully',
         'add-image-error': 'Failed to add image',
-        'add-image-invalid-format': 'Unsupported file format (Supported: JPEG, PNG, GIF, BMP, WebP)'
+        'add-image-invalid-format': 'Unsupported file format (Supported: JPEG, PNG, GIF, BMP, WebP)',
+        'set-thumbnail': 'Set Thumbnail',
+        'set-thumbnail-success': 'Thumbnail set successfully',
+        'set-thumbnail-error': 'Failed to set thumbnail',
+        'set-thumbnail-no-images': 'Please upload an image first'
     }
 };
 
@@ -1505,6 +1513,35 @@ async function uploadCollectionImage(collectionId, file, onSuccess) {
     } catch (error) {
         console.error('Error uploading image:', error);
         alert(t('add-image-error'));
+    }
+}
+
+/**
+ * 指定した画像をコレクションのサムネイルとして設定する
+ * @param {string} collectionId - コレクションID
+ * @param {string} fileName - サムネイルに設定する画像ファイル名
+ */
+async function setCollectionThumbnail(collectionId, fileName) {
+    try {
+        const response = await fetch(`/api/File/${encodeURIComponent(collectionId)}/set-thumbnail?fileName=${encodeURIComponent(fileName)}`, {
+            method: 'POST'
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        // サムネイル画像のキャッシュを更新（対象コレクションのサムネイルのみ）
+        const baseUrl = `/api/Files/thumbnail/${encodeURIComponent(collectionId)}`;
+        const cacheBustedUrl = `${baseUrl}?t=${Date.now()}`;
+        document.querySelectorAll(`img[src^="${baseUrl}"]`).forEach(img => {
+            img.src = cacheBustedUrl;
+        });
+
+        alert(t('set-thumbnail-success'));
+    } catch (error) {
+        console.error('Error setting thumbnail:', error);
+        alert(t('set-thumbnail-error'));
     }
 }
 
