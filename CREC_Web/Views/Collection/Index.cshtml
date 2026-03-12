@@ -413,11 +413,11 @@
                     <button id="addImageBtn" class="btn btn-sm btn-outline-primary">
                         <i class="bi bi-plus-lg"></i> ${t('add-image')}
                     </button>
-                    <button id="deleteImageBtn" class="btn btn-sm btn-outline-danger" ${images.length === 0 ? 'disabled' : ''}>
-                        <i class="bi bi-trash"></i> ${t('delete-image')}
-                    </button>
                     <button id="setThumbnailBtn" class="btn btn-sm btn-outline-primary">
                         <i class="bi bi-image"></i> ${t('set-thumbnail')}
+                    </button>
+                    <button id="deleteImageBtn" class="btn btn-sm btn-outline-danger" ${images.length === 0 ? 'disabled' : ''}>
+                        <i class="bi bi-trash"></i> ${t('delete-image')}
                     </button>
                 </div>
                 <input type="file" id="imageFileInput" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp" style="display:none;">
