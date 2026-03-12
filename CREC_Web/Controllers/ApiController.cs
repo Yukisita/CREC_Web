@@ -610,7 +610,8 @@ namespace CREC_Web.Controllers
 
                 var contentType = ImageFormats.GetContentType(thumbnailExtension);
 
-                Response.Headers["Cache-Control"] = "public, max-age=3600";
+                // サムネイルはユーザーが更新できるため、常に再検証する（ETag/Last-Modified を利用）
+                Response.Headers["Cache-Control"] = "no-cache";
                 // img タグでインライン表示させるため、ファイル名は付与しない
                 return PhysicalFile(thumbnailPath, contentType);
             }
