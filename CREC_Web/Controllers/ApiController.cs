@@ -589,7 +589,7 @@ namespace CREC_Web.Controllers
                     return BadRequest("Access denied");
                 }
 
-                // Thumbnail.* を拡張子問わず検索
+                // Thumbnail.* を検索
                 string? thumbnailPath = null;
                 string? thumbnailExtension = null;
                 foreach (var ext in ImageFormats.AllowedExtensions)
