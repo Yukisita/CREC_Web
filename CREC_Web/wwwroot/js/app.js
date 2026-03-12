@@ -49,8 +49,6 @@ function getMobileBreakpoint() {
 // パネル用イベントハンドラを格納する WeakMap
 const panelEventHandlers = new WeakMap();
 
-// 言語翻訳 (i18n.js で定義)
-
 /**
  * メイン検索ページかどうかを判定する
  * @returns {boolean}
