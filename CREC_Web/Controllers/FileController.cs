@@ -64,8 +64,8 @@ namespace CREC_Web.Controllers
                 var fullPath = Path.GetFullPath(filePath);
                 var allowedPath = Path.GetFullPath(Path.Combine(dataPath, collectionId, "pictures"));
 
-                var relPath = Path.GetRelativePath(allowedPath, fullPath);
-                if (relPath.StartsWith("..", StringComparison.Ordinal))
+                // セキュリティ: 解決済みパスが pictures ディレクトリ配下に留まっていることを確認
+                if (!IsPathWithinDirectory(filePath, allowedPath))
                 {
                     _logger.LogWarning("Path traversal attempt detected: {fullPath}", fullPath.SanitizeForLog());
                     return BadRequest("Invalid file path");
@@ -130,7 +130,7 @@ namespace CREC_Web.Controllers
                 var fullDataRoot = Path.GetFullPath(Path.Combine(dataPath, collectionId, "data"));
 
                 // ファイルパスが想定ディレクトリ配下か確認（パストラバーサル防止）
-                if (!fullFilePath.StartsWith(fullDataRoot + Path.DirectorySeparatorChar) && fullFilePath != fullDataRoot)
+                if (!IsPathWithinDirectory(fullFilePath, fullDataRoot))
                 {
                     _logger.LogWarning("Attempted path traversal attack: {filePath}", fullFilePath.SanitizeForLog());
                     return BadRequest("Invalid file path.");
@@ -241,8 +241,7 @@ namespace CREC_Web.Controllers
                 var filePath = Path.GetFullPath(Path.Combine(picturesPath, sanitizedFileName));
 
                 // セキュリティ: 解決済みパスが pictures ディレクトリ配下に留まっていることを確認
-                var relPath = Path.GetRelativePath(picturesPath, filePath);
-                if (relPath.StartsWith("..", StringComparison.Ordinal))
+                if (!IsPathWithinDirectory(filePath, picturesPath))
                 {
                     _logger.LogWarning("Path traversal attempt detected: {fullPath}", filePath.SanitizeForLog());
                     return BadRequest("Invalid file path");
@@ -323,8 +322,7 @@ namespace CREC_Web.Controllers
                 var sourceFilePath = Path.GetFullPath(Path.Combine(picturesPath, fileName));
 
                 // セキュリティ: 解決済みパスが pictures ディレクトリ配下に留まっていることを確認
-                var relPath = Path.GetRelativePath(picturesPath, sourceFilePath);
-                if (relPath.StartsWith("..", StringComparison.Ordinal))
+                if (!IsPathWithinDirectory(sourceFilePath, picturesPath))
                 {
                     _logger.LogWarning("Path traversal attempt detected: {fullPath}", sourceFilePath.SanitizeForLog());
                     return BadRequest("Invalid file path");
@@ -355,8 +353,7 @@ namespace CREC_Web.Controllers
                 var thumbnailPath = Path.GetFullPath(Path.Combine(systemDataPath, thumbnailFileName));
 
                 // セキュリティ: サムネイルパスが SystemData ディレクトリ配下に留まっていることを確認
-                var thumbnailRelPath = Path.GetRelativePath(systemDataPath, thumbnailPath);
-                if (thumbnailRelPath.StartsWith("..", StringComparison.Ordinal))
+                if (!IsPathWithinDirectory(thumbnailPath, systemDataPath))
                 {
                     return BadRequest("Access denied");
                 }
@@ -423,8 +420,7 @@ namespace CREC_Web.Controllers
                 var filePath = Path.GetFullPath(Path.Combine(picturesPath, fileName));
 
                 // セキュリティ: 解決済みパスが pictures ディレクトリ配下に留まっていることを確認
-                var relPath = Path.GetRelativePath(picturesPath, filePath);
-                if (relPath.StartsWith("..", StringComparison.Ordinal))
+                if (!IsPathWithinDirectory(filePath, picturesPath))
                 {
                     _logger.LogWarning("Path traversal attempt detected: {fullPath}", filePath.SanitizeForLog());
                     return BadRequest("Invalid file path");
@@ -463,6 +459,36 @@ namespace CREC_Web.Controllers
                 !component.Contains(Path.DirectorySeparatorChar) &&
                 !component.Contains(Path.AltDirectorySeparatorChar) &&
                 component == Path.GetFileName(component); // さらに単一要素か厳格判定
+        }
+
+        /// <summary>
+        /// 指定されたパスが許可されたディレクトリ配下にあることを確認
+        /// </summary>
+        /// <param name="path">チェック対象のフルパス</param>
+        /// <param name="allowedDirectory">許可されたディレクトリのフルパス</param>
+        /// <returns>ディレクトリ配下にある場合は true、それ以外は false</returns>
+        private static bool IsPathWithinDirectory(string path, string allowedDirectory)
+        {
+            // 両方のパスがフルパスで正規化されていることを確認
+            var normalizedPath = Path.GetFullPath(path);
+            var normalizedAllowedDirectory = Path.GetFullPath(allowedDirectory);
+
+            // ルートが異なる場合は拒否
+            if (!string.Equals(Path.GetPathRoot(normalizedPath), Path.GetPathRoot(normalizedAllowedDirectory),
+                StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            // normalizedAllowedDirectoryにディレクトリセパレータを末尾に追加
+            if (!normalizedAllowedDirectory.EndsWith(Path.DirectorySeparatorChar.ToString()))
+            {
+                normalizedAllowedDirectory += Path.DirectorySeparatorChar;
+            }
+
+            // パスがディレクトリ配下にあるか、またはディレクトリそのものであるかを確認
+            return normalizedPath.StartsWith(normalizedAllowedDirectory, StringComparison.OrdinalIgnoreCase) ||
+                   normalizedPath.Equals(normalizedAllowedDirectory.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase);
         }
     }
 }
