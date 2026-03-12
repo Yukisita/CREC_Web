@@ -189,7 +189,7 @@ const translations = {
         'no-thumbnail': 'No Thumbnail',
         'grid-view': 'Grid',
         'table-view': 'Table',
-        'qr-registered-trademark': 'QRコード and QR Code is a registered trademark of DENSO WAVE INCORPORATED in Japan and in other countries', 
+        'qr-registered-trademark': 'QRコード and QR Code are a registered trademark of DENSO WAVE INCORPORATED in Japan and in other countries',
         'qr-scan-button': 'QR',
         'qr-scanner-title': 'Scan QR Code',
         'qr-scanner-initializing': 'Initializing camera...',
