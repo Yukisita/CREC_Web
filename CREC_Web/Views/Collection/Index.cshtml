@@ -20,8 +20,39 @@
 
         .left-panel {
             flex: 1;
-            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
             border-right: 2px solid #dee2e6;
+        }
+
+        .left-panel-header {
+            flex-shrink: 0;
+            overflow-y: auto;
+            max-height: 50%;
+        }
+
+        .left-panel-tabs {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .left-panel-tabs .nav-tabs {
+            flex-shrink: 0;
+            padding: 0 1rem;
+        }
+
+        .left-panel-tabs .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        .left-panel-tabs .tab-pane {
+            padding: 1rem;
         }
 
         .right-panel {
@@ -171,6 +202,15 @@
             padding: 0 1rem 1rem 1rem;
         }
 
+        /* Fallback tab visibility rules (Bootstrap CSS handles this when CDN is available) */
+        .tab-content > .tab-pane {
+            display: none;
+        }
+
+        .tab-content > .tab-pane.active {
+            display: block;
+        }
+
         /* Responsive layout: switch to vertical layout on narrow screens */
         @@media (max-width: 992px) {
             .split-container {
@@ -196,24 +236,51 @@
 <div class="split-container">
     <!-- Left Panel: Collection Details -->
     <div class="left-panel" role="region" aria-label="Collection Details">
-        <div class="collection-container">
-            <div class="collection-header">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3 id="collectionTitle"></h3>
-                    <button id="editIndexBtn" class="btn btn-sm btn-outline-primary" style="font-size: 0.8em;">
-                        <i class="bi bi-pencil-square"></i> <span id="editBtnText"></span>
-                    </button>
+        <!-- Area A: Collection Header + Index Data -->
+        <div class="left-panel-header">
+            <div class="collection-container">
+                <div class="collection-header">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3 id="collectionTitle"></h3>
+                        <button id="editIndexBtn" class="btn btn-sm btn-outline-primary" style="font-size: 0.8em;">
+                            <i class="bi bi-pencil-square"></i> <span id="editBtnText"></span>
+                        </button>
+                    </div>
                 </div>
+                <div id="collectionIndexData"></div>
             </div>
-            <div id="collectionBody" class="loading">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
+        </div>
+
+        <!-- Area B: Tabbed Content -->
+        <div class="left-panel-tabs">
+            <ul class="nav nav-tabs" id="collectionTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="images-tab" data-bs-toggle="tab" data-bs-target="#images-tab-pane" type="button" role="tab" aria-controls="images-tab-pane" aria-selected="true">Image</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="data-tab" data-bs-toggle="tab" data-bs-target="#data-tab-pane" type="button" role="tab" aria-controls="data-tab-pane" aria-selected="false">Data</button>
+                </li>
+            </ul>
+            <div class="tab-content" id="collectionTabContent">
+                <div class="tab-pane fade show active" id="images-tab-pane" role="tabpanel" aria-labelledby="images-tab" tabindex="0">
+                    <div id="imageTabContent" class="loading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="data-tab-pane" role="tabpanel" aria-labelledby="data-tab" tabindex="0">
+                    <div id="dataTabContent" class="loading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Right Panel: Inventory Operation History -->
+    <!-- Right Panel / Area C: Inventory Operation History -->
     <div class="right-panel" role="region" aria-label="Inventory Information">
         <div id="inventorySummary"></div>
         <div class="history-header">
@@ -368,74 +435,21 @@
                 displayInventoryHistory(collection);
             } catch (error) {
                 console.error('Error loading collection details:', error);
-                document.getElementById('collectionBody').innerHTML = `
+                const errorHtml = `
                     <div class="alert alert-danger" role="alert">
                         ${t('error-loading')}: ${escapeHtml(error.message)}
                     </div>
                 `;
-                document.getElementById('historyTableContainer').innerHTML = `
-                    <div class="alert alert-danger" role="alert">
-                        ${t('error-loading')}: ${escapeHtml(error.message)}
-                    </div>
-                `;
+                document.getElementById('imageTabContent').innerHTML = errorHtml;
+                document.getElementById('dataTabContent').innerHTML = errorHtml;
+                document.getElementById('collectionIndexData').innerHTML = errorHtml;
+                document.getElementById('historyTableContainer').innerHTML = errorHtml;
             }
         }
 
-        // コレクションの詳細を表示する関数
-        function displayCollectionDetails(collection) {
-			// タイトルを設定
-            document.title = collection.indexData.values.name;
-            document.getElementById('collectionTitle').textContent = collection.indexData.values.name;
-
-            const images = collection.imageFiles || [];
-            let currentImageIndex = 0;
-
-            const carouselHtml = images.length > 0
-                ? `
-                    <div class="image-carousel">
-                        <img id="carouselImage" src="/api/File/${encodeURIComponent(collection.indexData.systemData.id)}/${encodeURIComponent(images[0])}" 
-                                class="detail-image" 
-                                alt="${escapeHtml(images[0])}"
-                                onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'200\\' height=\\'200\\'%3E%3Crect width=\\'200\\' height=\\'200\\' fill=\\'%23ddd\\'/%3E%3Ctext x=\\'50%25\\' y=\\'50%25\\' dominant-baseline=\\'middle\\' text-anchor=\\'middle\\' font-family=\\'sans-serif\\' font-size=\\'16\\' fill=\\'%23999\\'%3EImage not found%3C/text%3E%3C/svg%3E';">
-                        <div class="text-center mt-3" style="display: flex; justify-content: center; align-items: center; gap: 15px;">
-                            <button id="prevImage" class="btn btn-outline-secondary btn-sm">◀</button>
-                            <span id="imageCounter" style="font-size: 14px; min-width: 60px;">${currentImageIndex + 1} / ${images.length}</span>
-                            <button id="nextImage" class="btn btn-outline-secondary btn-sm">▶</button>
-                        </div>
-                        <p id="imageName" class="small text-muted text-center mt-2">${escapeHtml(images[0])}</p>
-                    </div>
-                    `
-                : `<p class="text-muted">${t('no-images')}</p>`;
-
-            const imagesHtml = `
-                ${carouselHtml}
-                <div class="image-action-toolbar mt-2 d-flex flex-wrap gap-2 justify-content-center">
-                    <button id="addImageBtn" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-plus-lg"></i> ${t('add-image')}
-                    </button>
-                    <button id="setThumbnailBtn" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-image"></i> ${t('set-thumbnail')}
-                    </button>
-                    <button id="deleteImageBtn" class="btn btn-sm btn-outline-danger" ${images.length === 0 ? 'disabled' : ''}>
-                        <i class="bi bi-trash"></i> ${t('delete-image')}
-                    </button>
-                </div>
-                <input type="file" id="imageFileInput" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp" style="display:none;">
-            `;
-
-            const filesHtml = collection.otherFiles.length > 0
-                ? collection.otherFiles.map(file => `
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        ${escapeHtml(file)}
-                        <a href="/api/File/data/${encodeURIComponent(collection.indexData.systemData.id)}/${encodeURIComponent(file)}" 
-                            class="btn btn-sm btn-outline-primary" target="_blank">
-                            <i class="bi bi-download"></i>
-                        </a>
-                    </li>
-                    `).join('')
-                : `<p class="text-muted">${t('no-files')}</p>`;
-
-            document.getElementById('collectionBody').innerHTML = `
+        // インデックスデータのHTMLを生成するヘルパー関数
+        function generateIndexDataHtml(collection) {
+            return `
                 <div class="detail-section">
                     <h6>${projectSettings.uuidName}</h6>
                     <p>${escapeHtml(collection.indexData.systemData.id)}</p>
@@ -479,12 +493,60 @@
                         <div class="border rounded p-3" style="white-space: pre-wrap; background-color: #f8f9fa;">${escapeHtml(collection.comment)}</div>
                     </div>
                 ` : ''}
-                    
-                <div class="detail-section">
-                    <h6>${t('images')}</h6>
-                    ${imagesHtml}
+            `;
+        }
+
+        // 画像タブのHTMLを生成するヘルパー関数
+        function generateImageTabHtml(collection, images, currentImageIndex) {
+            const carouselHtml = images.length > 0
+                ? `
+                    <div class="image-carousel">
+                        <img id="carouselImage" src="/api/File/${encodeURIComponent(collection.indexData.systemData.id)}/${encodeURIComponent(images[currentImageIndex])}" 
+                                class="detail-image" 
+                                alt="${escapeHtml(images[currentImageIndex])}"
+                                onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'200\\' height=\\'200\\'%3E%3Crect width=\\'200\\' height=\\'200\\' fill=\\'%23ddd\\'/%3E%3Ctext x=\\'50%25\\' y=\\'50%25\\' dominant-baseline=\\'middle\\' text-anchor=\\'middle\\' font-family=\\'sans-serif\\' font-size=\\'16\\' fill=\\'%23999\\'%3EImage not found%3C/text%3E%3C/svg%3E';">
+                        <div class="text-center mt-3" style="display: flex; justify-content: center; align-items: center; gap: 15px;">
+                            <button id="prevImage" class="btn btn-outline-secondary btn-sm">◀</button>
+                            <span id="imageCounter" style="font-size: 14px; min-width: 60px;">${currentImageIndex + 1} / ${images.length}</span>
+                            <button id="nextImage" class="btn btn-outline-secondary btn-sm">▶</button>
+                        </div>
+                        <p id="imageName" class="small text-muted text-center mt-2">${escapeHtml(images[currentImageIndex])}</p>
+                    </div>
+                    `
+                : `<p class="text-muted">${t('no-images')}</p>`;
+
+            return `
+                ${carouselHtml}
+                <div class="image-action-toolbar mt-2 d-flex flex-wrap gap-2 justify-content-center">
+                    <button id="addImageBtn" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-plus-lg"></i> ${t('add-image')}
+                    </button>
+                    <button id="setThumbnailBtn" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-image"></i> ${t('set-thumbnail')}
+                    </button>
+                    <button id="deleteImageBtn" class="btn btn-sm btn-outline-danger" ${images.length === 0 ? 'disabled' : ''}>
+                        <i class="bi bi-trash"></i> ${t('delete-image')}
+                    </button>
                 </div>
-                    
+                <input type="file" id="imageFileInput" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp" style="display:none;">
+            `;
+        }
+
+        // データタブのHTMLを生成するヘルパー関数
+        function generateDataTabHtml(collection) {
+            const filesHtml = collection.otherFiles.length > 0
+                ? collection.otherFiles.map(file => `
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        ${escapeHtml(file)}
+                        <a href="/api/File/data/${encodeURIComponent(collection.indexData.systemData.id)}/${encodeURIComponent(file)}"
+                            class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener noreferrer">
+                            <i class="bi bi-download"></i>
+                        </a>
+                    </li>
+                    `).join('')
+                : `<p class="text-muted">${t('no-files')}</p>`;
+
+            return `
                 <div class="detail-section">
                     <h6>${t('files')}</h6>
                     <ul class="list-group">
@@ -492,6 +554,34 @@
                     </ul>
                 </div>
             `;
+        }
+
+        // コレクションの詳細を表示する関数
+        function displayCollectionDetails(collection) {
+			// タイトルを設定
+            document.title = collection.indexData.values.name;
+            document.getElementById('collectionTitle').textContent = collection.indexData.values.name;
+
+            // --- エリアA: インデックスデータを構築 ---
+            document.getElementById('collectionIndexData').innerHTML = generateIndexDataHtml(collection);
+
+			// 編集ボタンのテキストを設定
+            document.getElementById('editBtnText').textContent = t('edit');
+            
+            // 編集ボタンのイベントリスナを設定（既存のハンドラを上書きして重複を防ぐ）
+            const editIndexBtn = document.getElementById('editIndexBtn');
+            if (editIndexBtn) {
+                editIndexBtn.onclick = () => openEditIndexModal(collection);
+            }
+
+            // --- エリアB: タブ名を設定 ---
+            document.getElementById('images-tab').textContent = t('tab-image');
+            document.getElementById('data-tab').textContent = t('tab-data');
+
+            // --- エリアB: 画像タブの内容を構築 ---
+            const images = collection.imageFiles || [];
+            let currentImageIndex = 0;
+            document.getElementById('imageTabContent').innerHTML = generateImageTabHtml(collection, images, currentImageIndex);
 
             // 画像がある場合はカルーセル制御を設定
             if (images.length > 0) {
@@ -502,7 +592,7 @@
                 const nextBtn = document.getElementById('nextImage');
 
                 if (carouselImage && imageCounter && imageName && prevBtn && nextBtn) {
-                    function updateImage() {
+                    const updateImage = () => {
                         const collectionID = collection?.indexData?.systemData?.id;
                         if (!collectionID) {
                             console.error('Collection ID is missing.');
@@ -512,7 +602,7 @@
                         carouselImage.alt = images[currentImageIndex];
                         imageCounter.textContent = `${currentImageIndex + 1} / ${images.length}`;
                         imageName.textContent = images[currentImageIndex];
-                    }
+                    };
 
                     prevBtn.addEventListener('click', () => {
                         currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
@@ -562,14 +652,8 @@
                 });
             }
             
-			// 編集ボタンのテキストを設定
-            document.getElementById('editBtnText').textContent = t('edit');
-            
-            // 編集ボタンのイベントリスナを設定（既存のハンドラを上書きして重複を防ぐ）
-            const editIndexBtn = document.getElementById('editIndexBtn');
-            if (editIndexBtn) {
-                editIndexBtn.onclick = () => openEditIndexModal(collection);
-            }
+            // --- エリアB: データタブの内容を構築（ファイルのみ）---
+            document.getElementById('dataTabContent').innerHTML = generateDataTabHtml(collection);
         }
 
 		// コレクションインデックス編集モーダルを開く関数
@@ -991,6 +1075,33 @@
 			// タイトルを読み込み中として設定
             document.getElementById('collectionTitle').textContent = t('loading');
             document.getElementById('historyTitle').textContent = t('loading');
+
+            // Bootstrap JS が読み込まれていない場合のタブ切り替えフォールバック
+            document.getElementById('collectionTabs').addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-bs-toggle="tab"]');
+                if (!btn) return;
+                // Bootstrap Tab コンポーネントが有効ならBootstrap側で処理されるため不要
+                if (typeof bootstrap !== 'undefined' && typeof bootstrap.Tab !== 'undefined') return;
+                const targetId = btn.getAttribute('data-bs-target');
+                // すべてのタブボタンを非アクティブに
+                document.querySelectorAll('#collectionTabs .nav-link').forEach(link => {
+                    link.classList.remove('active');
+                    link.setAttribute('aria-selected', 'false');
+                });
+                // クリックされたタブボタンをアクティブに
+                btn.classList.add('active');
+                btn.setAttribute('aria-selected', 'true');
+                // すべてのタブパネルを非表示に
+                document.querySelectorAll('#collectionTabContent .tab-pane').forEach(pane => {
+                    pane.classList.remove('show', 'active');
+                });
+                // 対象タブパネルを表示
+                const targetPane = document.querySelector(targetId);
+                if (targetPane) {
+                    targetPane.classList.add('show', 'active');
+                }
+            });
+
             await loadCollectionDetails();
             // URLに ?edit=1 が含まれる場合は編集モーダルを自動で開く（リロード時に再度開かないようURLから edit フラグのみ除去）
             if (new URLSearchParams(window.location.search).get('edit') === '1' && currentCollection) {

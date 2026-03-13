@@ -135,7 +135,9 @@ const translations = {
         'delete-image': '画像削除',
         'delete-image-confirm': '表示されている画像を削除しますか？',
         'delete-image-success': '画像を削除しました',
-        'delete-image-error': '画像の削除に失敗しました'
+        'delete-image-error': '画像の削除に失敗しました',
+        'tab-image': '画像',
+        'tab-data': 'データ'
     },
     en: {
         'loading': 'Loading...',
@@ -266,6 +268,8 @@ const translations = {
         'delete-image': 'Delete Image',
         'delete-image-confirm': 'Are you sure you want to delete this image?',
         'delete-image-success': 'Image deleted successfully',
-        'delete-image-error': 'Failed to delete image'
+        'delete-image-error': 'Failed to delete image',
+        'tab-image': 'Image',
+        'tab-data': 'Data'
     }
 };
