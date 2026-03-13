@@ -20,8 +20,37 @@
 
         .left-panel {
             flex: 1;
-            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
             border-right: 2px solid #dee2e6;
+        }
+
+        .left-panel-header {
+            flex-shrink: 0;
+        }
+
+        .left-panel-tabs {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .left-panel-tabs .nav-tabs {
+            flex-shrink: 0;
+            padding: 0 1rem;
+        }
+
+        .left-panel-tabs .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        .left-panel-tabs .tab-pane {
+            padding: 1rem;
         }
 
         .right-panel {
@@ -171,6 +200,15 @@
             padding: 0 1rem 1rem 1rem;
         }
 
+        /* Fallback tab visibility rules (Bootstrap CSS handles this when CDN is available) */
+        .tab-content > .tab-pane {
+            display: none;
+        }
+
+        .tab-content > .tab-pane.active {
+            display: block;
+        }
+
         /* Responsive layout: switch to vertical layout on narrow screens */
         @@media (max-width: 992px) {
             .split-container {
@@ -196,18 +234,44 @@
 <div class="split-container">
     <!-- Left Panel: Collection Details -->
     <div class="left-panel" role="region" aria-label="Collection Details">
-        <div class="collection-container">
-            <div class="collection-header">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3 id="collectionTitle"></h3>
-                    <button id="editIndexBtn" class="btn btn-sm btn-outline-primary" style="font-size: 0.8em;">
-                        <i class="bi bi-pencil-square"></i> <span id="editBtnText"></span>
-                    </button>
+        <!-- Area A: Collection Header -->
+        <div class="left-panel-header">
+            <div class="collection-container">
+                <div class="collection-header">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3 id="collectionTitle"></h3>
+                        <button id="editIndexBtn" class="btn btn-sm btn-outline-primary" style="font-size: 0.8em;">
+                            <i class="bi bi-pencil-square"></i> <span id="editBtnText"></span>
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div id="collectionBody" class="loading">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
+        </div>
+
+        <!-- Area B: Tabbed Content -->
+        <div class="left-panel-tabs">
+            <ul class="nav nav-tabs" id="collectionTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="images-tab" data-bs-toggle="tab" data-bs-target="#images-tab-pane" type="button" role="tab" aria-controls="images-tab-pane" aria-selected="true"></button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="data-tab" data-bs-toggle="tab" data-bs-target="#data-tab-pane" type="button" role="tab" aria-controls="data-tab-pane" aria-selected="false"></button>
+                </li>
+            </ul>
+            <div class="tab-content" id="collectionTabContent">
+                <div class="tab-pane fade show active" id="images-tab-pane" role="tabpanel" aria-labelledby="images-tab" tabindex="0">
+                    <div id="imageTabContent" class="loading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="data-tab-pane" role="tabpanel" aria-labelledby="data-tab" tabindex="0">
+                    <div id="dataTabContent" class="loading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -368,16 +432,14 @@
                 displayInventoryHistory(collection);
             } catch (error) {
                 console.error('Error loading collection details:', error);
-                document.getElementById('collectionBody').innerHTML = `
+                const errorHtml = `
                     <div class="alert alert-danger" role="alert">
                         ${t('error-loading')}: ${escapeHtml(error.message)}
                     </div>
                 `;
-                document.getElementById('historyTableContainer').innerHTML = `
-                    <div class="alert alert-danger" role="alert">
-                        ${t('error-loading')}: ${escapeHtml(error.message)}
-                    </div>
-                `;
+                document.getElementById('imageTabContent').innerHTML = errorHtml;
+                document.getElementById('dataTabContent').innerHTML = errorHtml;
+                document.getElementById('historyTableContainer').innerHTML = errorHtml;
             }
         }
 
@@ -387,9 +449,14 @@
             document.title = collection.indexData.values.name;
             document.getElementById('collectionTitle').textContent = collection.indexData.values.name;
 
+            // タブ名を設定
+            document.getElementById('images-tab').textContent = t('tab-image');
+            document.getElementById('data-tab').textContent = t('tab-data');
+
             const images = collection.imageFiles || [];
             let currentImageIndex = 0;
 
+            // --- 画像タブの内容を構築 ---
             const carouselHtml = images.length > 0
                 ? `
                     <div class="image-carousel">
@@ -423,6 +490,9 @@
                 <input type="file" id="imageFileInput" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp" style="display:none;">
             `;
 
+            document.getElementById('imageTabContent').innerHTML = imagesHtml;
+
+            // --- データタブの内容を構築 ---
             const filesHtml = collection.otherFiles.length > 0
                 ? collection.otherFiles.map(file => `
                     <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -435,7 +505,7 @@
                     `).join('')
                 : `<p class="text-muted">${t('no-files')}</p>`;
 
-            document.getElementById('collectionBody').innerHTML = `
+            document.getElementById('dataTabContent').innerHTML = `
                 <div class="detail-section">
                     <h6>${projectSettings.uuidName}</h6>
                     <p>${escapeHtml(collection.indexData.systemData.id)}</p>
@@ -479,11 +549,6 @@
                         <div class="border rounded p-3" style="white-space: pre-wrap; background-color: #f8f9fa;">${escapeHtml(collection.comment)}</div>
                     </div>
                 ` : ''}
-                    
-                <div class="detail-section">
-                    <h6>${t('images')}</h6>
-                    ${imagesHtml}
-                </div>
                     
                 <div class="detail-section">
                     <h6>${t('files')}</h6>
@@ -991,6 +1056,33 @@
 			// タイトルを読み込み中として設定
             document.getElementById('collectionTitle').textContent = t('loading');
             document.getElementById('historyTitle').textContent = t('loading');
+
+            // Bootstrap JS が読み込まれていない場合のタブ切り替えフォールバック
+            document.getElementById('collectionTabs').addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-bs-toggle="tab"]');
+                if (!btn) return;
+                // Bootstrap Tab コンポーネントが有効ならBootstrap側で処理されるため不要
+                if (typeof bootstrap !== 'undefined' && typeof bootstrap.Tab !== 'undefined') return;
+                const targetId = btn.getAttribute('data-bs-target');
+                // すべてのタブボタンを非アクティブに
+                document.querySelectorAll('#collectionTabs .nav-link').forEach(link => {
+                    link.classList.remove('active');
+                    link.setAttribute('aria-selected', 'false');
+                });
+                // クリックされたタブボタンをアクティブに
+                btn.classList.add('active');
+                btn.setAttribute('aria-selected', 'true');
+                // すべてのタブパネルを非表示に
+                document.querySelectorAll('#collectionTabContent .tab-pane').forEach(pane => {
+                    pane.classList.remove('show', 'active');
+                });
+                // 対象タブパネルを表示
+                const targetPane = document.querySelector(targetId);
+                if (targetPane) {
+                    targetPane.classList.add('show', 'active');
+                }
+            });
+
             await loadCollectionDetails();
             // URLに ?edit=1 が含まれる場合は編集モーダルを自動で開く（リロード時に再度開かないようURLから edit フラグのみ除去）
             if (new URLSearchParams(window.location.search).get('edit') === '1' && currentCollection) {
