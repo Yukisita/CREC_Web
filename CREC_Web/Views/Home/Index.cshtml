@@ -240,7 +240,9 @@
             await searchCollections();
         }
 
-        // テーブルヘッダーのテキストを更新
+        /**
+         * プロジェクト設定に基づいてテーブルヘッダーのテキストを更新する
+         */
         function updateTableHeaders() {
             const table = document.querySelector('.collections-table');
             if (!table) {
@@ -264,7 +266,9 @@
             }
         }
 
-        // 列リサイズ機能のセットアップ（初回のみ実行）
+        /**
+         * テーブルの列リサイズ機能をセットアップする(初回のみ)
+         */
         function setupColumnResizers() {
             const table = document.querySelector('.collections-table');
             if (!table) {
@@ -317,7 +321,9 @@
             });
         }
 
-        // コレクション検索
+        /**
+         * コレクションを検索して結果を表示する
+         */
         async function searchCollections(page = 1) {
             try {
                 currentPage = page;
@@ -379,6 +385,9 @@
             }
         }
 
+        /**
+		 * 検索結果を表示する
+         */
         function displaySearchResults(result) {
             const tableContainer = document.getElementById('collectionsTableContainer');
             const gridContainer = document.getElementById('collectionsGridContainer');
@@ -441,6 +450,9 @@
             updateViewToggleButtons();
         }
 
+        /**
+         * 表示モード切替ボタンの状態を更新する
+         */
         function updateViewToggleButtons() {
             const gridBtn = document.getElementById('gridViewBtn');
             const tableBtn = document.getElementById('tableViewBtn');
@@ -457,6 +469,9 @@
             }
         }
 
+        /**
+         * グリッド表示に切り替える
+         */
         function switchToGridView() {
             currentViewMode = 'grid';
             localStorage.setItem('crec_view_mode', 'grid');
@@ -467,6 +482,9 @@
             }
         }
 
+        /**
+         * テーブル表示に切り替える
+         */
         function switchToTableView() {
             currentViewMode = 'table';
             localStorage.setItem('crec_view_mode', 'table');
@@ -521,7 +539,9 @@
             }
         }
 
-        // 詳細フィルタの表示/非表示を切り替え
+        /**
+         * 詳細フィルタの表示/非表示を切り替える
+         */
         function toggleAdvancedFilters() {
             const advancedFiltersSection = document.getElementById('advancedFiltersSection');
 
@@ -539,7 +559,9 @@
             }
         }
 
-        // ウィンドウリサイズ時の処理
+        /**
+         * ウィンドウの幅がモバイルとデスクトップの閾値を跨いだ場合に表示モードを自動切替する
+         */
         function handleWindowResize() {
             const isMobile = window.innerWidth < getMobileBreakpoint();
 
@@ -572,7 +594,9 @@
             }
         }
 
-        // コレクション行を作成
+        /**
+         * コレクションのテーブル行を作成する
+         */
         function createCollectionRow(collection) {
             const row = document.createElement('tr');
             row.addEventListener('click', () => showCollectionDetails(collection.indexData?.systemData?.id));
@@ -672,6 +696,9 @@
             return row;
         }
 
+        /**
+         * コレクションカードを作成する
+         */
         function createCollectionCard(collection) {
             const colDiv = document.createElement('div');
             colDiv.className = 'col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 mb-4';
@@ -758,6 +785,10 @@
             return colDiv;
         }
 
+        /**
+         * コレクションの詳細を表示する
+         * @@param {string} collectionId - コレクションのID
+         */
         async function showCollectionDetails(collectionId) {
             try {
                 const response = await fetch(`/api/collections/${encodeURIComponent(collectionId)}`);
@@ -773,6 +804,10 @@
             }
         }
 
+        /**
+         * コレクションの詳細パネルに情報を表示する
+         * @@param {object} collection - コレクションの詳細データ
+         */
         function displayCollectionPanel(collection) {
             const panel = document.getElementById('detailPanel');
             const overlay = document.getElementById('detailPanelOverlay');
@@ -988,6 +1023,10 @@
             }
         }
 
+        /**
+         * パネルのイベントリスナをクリーンアップする
+         * @@param {HTMLElement} panel - クリーンアップ対象のパネル要素
+         */
         function cleanupPanelEventListeners(panel) {
             // カルーセルのイベントリスナがあれば削除
             const handlers = panelEventHandlers.get(panel);
@@ -999,6 +1038,9 @@
             }
         }
 
+        /**
+         * 詳細パネルを閉じる
+         */
         function closeDetailPanel() {
             const panel = document.getElementById('detailPanel');
             const overlay = document.getElementById('detailPanelOverlay');
@@ -1010,6 +1052,10 @@
             overlay.classList.remove('show');
         }
 
+        /**
+         * ページネーションを更新する
+         * @@param {object} result - ページネーション情報
+         */
         function updatePagination(result) {
             const pagination = document.getElementById('pagination');
 
@@ -1064,6 +1110,9 @@
             });
         }
 
+        /**
+         * コレクション検索フィルタをクリアして全件表示する
+         */
         function clearFilters() {
             const searchTextElement = document.getElementById('searchText');
             const searchFieldElement = document.getElementById('searchField');
@@ -1078,14 +1127,25 @@
             searchCollections();
         }
 
+        /**
+         * ローディングインジケータの表示/非表示を切り替える
+         * @@param {boolean} show - trueなら表示、falseなら非表示
+         */
         function showLoading(show) {
             document.getElementById('loading').style.display = show ? 'block' : 'none';
         }
 
+        /**
+         * エラーメッセージを非表示にする
+         */
         function hideError() {
             document.getElementById('error').style.display = 'none';
         }
 
+        /**
+         * エラーメッセージを表示する
+		 * @@param {string} message - 表示するエラーメッセージ
+         */
         function showError(message) {
             const errorElement = document.getElementById('error');
             errorElement.textContent = message;
