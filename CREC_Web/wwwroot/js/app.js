@@ -692,4 +692,3 @@ function formatUtcToLocal(utcDateString) {
         return utcDateString;
     }
 }
-
