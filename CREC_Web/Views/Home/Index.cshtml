@@ -177,7 +177,7 @@
             // Enter キーで検索
             const searchTextElement = document.getElementById('searchText');
             if (searchTextElement) {
-                searchTextElement.addEventListener('keypress', function (e) {
+                searchTextElement.addEventListener('keydown', function (e) {
                     if (e.key === 'Enter') {
                         searchCollections();
                     }
