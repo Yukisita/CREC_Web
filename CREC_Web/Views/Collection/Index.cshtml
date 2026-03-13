@@ -28,6 +28,8 @@
 
         .left-panel-header {
             flex-shrink: 0;
+            overflow-y: auto;
+            max-height: 50%;
         }
 
         .left-panel-tabs {
@@ -234,7 +236,7 @@
 <div class="split-container">
     <!-- Left Panel: Collection Details -->
     <div class="left-panel" role="region" aria-label="Collection Details">
-        <!-- Area A: Collection Header -->
+        <!-- Area A: Collection Header + Index Data -->
         <div class="left-panel-header">
             <div class="collection-container">
                 <div class="collection-header">
@@ -245,6 +247,7 @@
                         </button>
                     </div>
                 </div>
+                <div id="collectionIndexData"></div>
             </div>
         </div>
 
@@ -439,8 +442,58 @@
                 `;
                 document.getElementById('imageTabContent').innerHTML = errorHtml;
                 document.getElementById('dataTabContent').innerHTML = errorHtml;
+                document.getElementById('collectionIndexData').innerHTML = errorHtml;
                 document.getElementById('historyTableContainer').innerHTML = errorHtml;
             }
+        }
+
+        // インデックスデータのHTMLを生成するヘルパー関数
+        function generateIndexDataHtml(collection) {
+            return `
+                <div class="detail-section">
+                    <h6>${projectSettings.uuidName}</h6>
+                    <p>${escapeHtml(collection.indexData.systemData.id)}</p>
+                </div>
+
+                <div class="detail-section">
+                    <h6>${projectSettings.managementCodeName}</h6>
+                    <p>${escapeHtml(collection.indexData.values.managementCode)}</p>
+                </div>
+                    
+                <div class="detail-section">
+                    <h6>${projectSettings.categoryName}</h6>
+                    <p>${escapeHtml(collection.indexData.values.category)}</p>
+                </div>
+                    
+                <div class="detail-section">
+                    <h6>${t('registration-date')}</h6>
+                    <p>${escapeHtml(formatUtcToLocal(collection.indexData.values.registrationDate))}</p>
+                </div>
+                    
+                <div class="detail-section">
+                    <h6>${t('location')}</h6>
+                    <p>${escapeHtml(collection.indexData.values.location)}</p>
+                </div>
+                    
+                <div class="detail-section">
+                    <h6>${t('tags')}</h6>
+                    <div>
+                        ${collection.indexData?.values?.firstTag && collection.indexData?.values?.firstTag !== ' - ' ? `<p>${escapeHtml(projectSettings.tag1Name || (currentLanguage === 'ja' ? 'タグ 1' : 'Tag 1'))}: ${escapeHtml(collection.indexData?.values?.firstTag)}</p>` : ''}
+                        ${collection.indexData?.values?.secondTag && collection.indexData?.values?.secondTag !== ' - ' ? `<p>${escapeHtml(projectSettings.tag2Name || (currentLanguage === 'ja' ? 'タグ 2' : 'Tag 2'))}: ${escapeHtml(collection.indexData?.values?.secondTag)}</p>` : ''}
+                        ${collection.indexData?.values?.thirdTag && collection.indexData?.values?.thirdTag !== ' - ' ? `<p>${escapeHtml(projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3'))}: ${escapeHtml(collection.indexData?.values?.thirdTag)}</p>` : ''}
+                        ${(!collection.indexData?.values?.firstTag || collection.indexData?.values?.firstTag === ' - ') &&
+                            (!collection.indexData?.values?.secondTag || collection.indexData?.values?.secondTag === ' - ') &&
+                            (!collection.indexData?.values?.thirdTag || collection.indexData?.values?.thirdTag === ' - ') ? `<p>${t('not-set')}</p>` : ''}
+                    </div>
+                </div>
+                    
+                ${collection.comment ? `
+                    <div class="detail-section">
+                        <h6>${t('comment')}</h6>
+                        <div class="border rounded p-3" style="white-space: pre-wrap; background-color: #f8f9fa;">${escapeHtml(collection.comment)}</div>
+                    </div>
+                ` : ''}
+            `;
         }
 
         // コレクションの詳細を表示する関数
@@ -492,7 +545,10 @@
 
             document.getElementById('imageTabContent').innerHTML = imagesHtml;
 
-            // --- データタブの内容を構築 ---
+            // --- エリアA: インデックスデータを構築 ---
+            document.getElementById('collectionIndexData').innerHTML = generateIndexDataHtml(collection);
+
+            // --- データタブの内容を構築（ファイルのみ）---
             const filesHtml = collection.otherFiles.length > 0
                 ? collection.otherFiles.map(file => `
                     <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -506,50 +562,6 @@
                 : `<p class="text-muted">${t('no-files')}</p>`;
 
             document.getElementById('dataTabContent').innerHTML = `
-                <div class="detail-section">
-                    <h6>${projectSettings.uuidName}</h6>
-                    <p>${escapeHtml(collection.indexData.systemData.id)}</p>
-                </div>
-
-                <div class="detail-section">
-                    <h6>${projectSettings.managementCodeName}</h6>
-                    <p>${escapeHtml(collection.indexData.values.managementCode)}</p>
-                </div>
-                    
-                <div class="detail-section">
-                    <h6>${projectSettings.categoryName}</h6>
-                    <p>${escapeHtml(collection.indexData.values.category)}</p>
-                </div>
-                    
-                <div class="detail-section">
-                    <h6>${t('registration-date')}</h6>
-                    <p>${escapeHtml(formatUtcToLocal(collection.indexData.values.registrationDate))}</p>
-                </div>
-                    
-                <div class="detail-section">
-                    <h6>${t('location')}</h6>
-                    <p>${escapeHtml(collection.indexData.values.location)}</p>
-                </div>
-                    
-                <div class="detail-section">
-                    <h6>${t('tags')}</h6>
-                    <div>
-                        ${collection.indexData?.values?.firstTag && collection.indexData?.values?.firstTag !== ' - ' ? `<p>${escapeHtml(projectSettings.tag1Name || (currentLanguage === 'ja' ? 'タグ 1' : 'Tag 1'))}: ${escapeHtml(collection.indexData?.values?.firstTag)}</p>` : ''}
-                        ${collection.indexData?.values?.secondTag && collection.indexData?.values?.secondTag !== ' - ' ? `<p>${escapeHtml(projectSettings.tag2Name || (currentLanguage === 'ja' ? 'タグ 2' : 'Tag 2'))}: ${escapeHtml(collection.indexData?.values?.secondTag)}</p>` : ''}
-                        ${collection.indexData?.values?.thirdTag && collection.indexData?.values?.thirdTag !== ' - ' ? `<p>${escapeHtml(projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3'))}: ${escapeHtml(collection.indexData?.values?.thirdTag)}</p>` : ''}
-                        ${(!collection.indexData?.values?.firstTag || collection.indexData?.values?.firstTag === ' - ') &&
-                            (!collection.indexData?.values?.secondTag || collection.indexData?.values?.secondTag === ' - ') &&
-                            (!collection.indexData?.values?.thirdTag || collection.indexData?.values?.thirdTag === ' - ') ? `<p>${t('not-set')}</p>` : ''}
-                    </div>
-                </div>
-                    
-                ${collection.comment ? `
-                    <div class="detail-section">
-                        <h6>${t('comment')}</h6>
-                        <div class="border rounded p-3" style="white-space: pre-wrap; background-color: #f8f9fa;">${escapeHtml(collection.comment)}</div>
-                    </div>
-                ` : ''}
-                    
                 <div class="detail-section">
                     <h6>${t('files')}</h6>
                     <ul class="list-group">
