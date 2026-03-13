@@ -4,10 +4,6 @@ Copyright (c) [2025 - 2026] [S.Yukisita]
 This software is released under the MIT License.
 */
 
-/*
-QRコード、QR Codeは株式会社デンソーウェーブの登録商標です。
-*/
-
 // グローバル変数
 let currentPage = 1;
 let currentPageSize = 20;
