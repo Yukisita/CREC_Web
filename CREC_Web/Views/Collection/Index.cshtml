@@ -496,38 +496,26 @@
             `;
         }
 
-        // コレクションの詳細を表示する関数
-        function displayCollectionDetails(collection) {
-			// タイトルを設定
-            document.title = collection.indexData.values.name;
-            document.getElementById('collectionTitle').textContent = collection.indexData.values.name;
-
-            // タブ名を設定
-            document.getElementById('images-tab').textContent = t('tab-image');
-            document.getElementById('data-tab').textContent = t('tab-data');
-
-            const images = collection.imageFiles || [];
-            let currentImageIndex = 0;
-
-            // --- 画像タブの内容を構築 ---
+        // 画像タブのHTMLを生成するヘルパー関数
+        function generateImageTabHtml(collection, images, currentImageIndex) {
             const carouselHtml = images.length > 0
                 ? `
                     <div class="image-carousel">
-                        <img id="carouselImage" src="/api/File/${encodeURIComponent(collection.indexData.systemData.id)}/${encodeURIComponent(images[0])}" 
+                        <img id="carouselImage" src="/api/File/${encodeURIComponent(collection.indexData.systemData.id)}/${encodeURIComponent(images[currentImageIndex])}" 
                                 class="detail-image" 
-                                alt="${escapeHtml(images[0])}"
+                                alt="${escapeHtml(images[currentImageIndex])}"
                                 onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'200\\' height=\\'200\\'%3E%3Crect width=\\'200\\' height=\\'200\\' fill=\\'%23ddd\\'/%3E%3Ctext x=\\'50%25\\' y=\\'50%25\\' dominant-baseline=\\'middle\\' text-anchor=\\'middle\\' font-family=\\'sans-serif\\' font-size=\\'16\\' fill=\\'%23999\\'%3EImage not found%3C/text%3E%3C/svg%3E';">
                         <div class="text-center mt-3" style="display: flex; justify-content: center; align-items: center; gap: 15px;">
                             <button id="prevImage" class="btn btn-outline-secondary btn-sm">◀</button>
                             <span id="imageCounter" style="font-size: 14px; min-width: 60px;">${currentImageIndex + 1} / ${images.length}</span>
                             <button id="nextImage" class="btn btn-outline-secondary btn-sm">▶</button>
                         </div>
-                        <p id="imageName" class="small text-muted text-center mt-2">${escapeHtml(images[0])}</p>
+                        <p id="imageName" class="small text-muted text-center mt-2">${escapeHtml(images[currentImageIndex])}</p>
                     </div>
                     `
                 : `<p class="text-muted">${t('no-images')}</p>`;
 
-            const imagesHtml = `
+            return `
                 ${carouselHtml}
                 <div class="image-action-toolbar mt-2 d-flex flex-wrap gap-2 justify-content-center">
                     <button id="addImageBtn" class="btn btn-sm btn-outline-primary">
@@ -542,18 +530,15 @@
                 </div>
                 <input type="file" id="imageFileInput" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp" style="display:none;">
             `;
+        }
 
-            document.getElementById('imageTabContent').innerHTML = imagesHtml;
-
-            // --- エリアA: インデックスデータを構築 ---
-            document.getElementById('collectionIndexData').innerHTML = generateIndexDataHtml(collection);
-
-            // --- データタブの内容を構築（ファイルのみ）---
+        // データタブのHTMLを生成するヘルパー関数
+        function generateDataTabHtml(collection) {
             const filesHtml = collection.otherFiles.length > 0
                 ? collection.otherFiles.map(file => `
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         ${escapeHtml(file)}
-                        <a href="/api/File/data/${encodeURIComponent(collection.indexData.systemData.id)}/${encodeURIComponent(file)}" 
+                        <a href="/api/File/data/${encodeURIComponent(collection.indexData.systemData.id)}/${encodeURIComponent(file)}"
                             class="btn btn-sm btn-outline-primary" target="_blank">
                             <i class="bi bi-download"></i>
                         </a>
@@ -561,7 +546,7 @@
                     `).join('')
                 : `<p class="text-muted">${t('no-files')}</p>`;
 
-            document.getElementById('dataTabContent').innerHTML = `
+            return `
                 <div class="detail-section">
                     <h6>${t('files')}</h6>
                     <ul class="list-group">
@@ -569,6 +554,34 @@
                     </ul>
                 </div>
             `;
+        }
+
+        // コレクションの詳細を表示する関数
+        function displayCollectionDetails(collection) {
+			// タイトルを設定
+            document.title = collection.indexData.values.name;
+            document.getElementById('collectionTitle').textContent = collection.indexData.values.name;
+
+            // --- エリアA: インデックスデータを構築 ---
+            document.getElementById('collectionIndexData').innerHTML = generateIndexDataHtml(collection);
+
+			// 編集ボタンのテキストを設定
+            document.getElementById('editBtnText').textContent = t('edit');
+            
+            // 編集ボタンのイベントリスナを設定（既存のハンドラを上書きして重複を防ぐ）
+            const editIndexBtn = document.getElementById('editIndexBtn');
+            if (editIndexBtn) {
+                editIndexBtn.onclick = () => openEditIndexModal(collection);
+            }
+
+            // --- エリアB: タブ名を設定 ---
+            document.getElementById('images-tab').textContent = t('tab-image');
+            document.getElementById('data-tab').textContent = t('tab-data');
+
+            // --- エリアB: 画像タブの内容を構築 ---
+            const images = collection.imageFiles || [];
+            let currentImageIndex = 0;
+            document.getElementById('imageTabContent').innerHTML = generateImageTabHtml(collection, images, currentImageIndex);
 
             // 画像がある場合はカルーセル制御を設定
             if (images.length > 0) {
@@ -639,14 +652,8 @@
                 });
             }
             
-			// 編集ボタンのテキストを設定
-            document.getElementById('editBtnText').textContent = t('edit');
-            
-            // 編集ボタンのイベントリスナを設定（既存のハンドラを上書きして重複を防ぐ）
-            const editIndexBtn = document.getElementById('editIndexBtn');
-            if (editIndexBtn) {
-                editIndexBtn.onclick = () => openEditIndexModal(collection);
-            }
+            // --- エリアB: データタブの内容を構築（ファイルのみ）---
+            document.getElementById('dataTabContent').innerHTML = generateDataTabHtml(collection);
         }
 
 		// コレクションインデックス編集モーダルを開く関数
