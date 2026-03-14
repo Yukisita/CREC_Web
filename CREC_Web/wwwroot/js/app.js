@@ -132,7 +132,6 @@ async function initializeApp() {
             { id: 'adminPanelOverlay', event: 'click', handler: closeAdminPanel },// 管理パネルオーバーレイクリックのイベントリスナ
             { id: 'addNewCollectionBtn', event: 'click', handler: addNewCollection },// 新しいコレクション追加のイベントリスナ
             { id: 'deleteCollectionBtn', event: 'click', handler: deleteCollection },// コレクション削除のイベントリスナ
-            { id: 'languageToggle', event: 'click', handler: toggleLanguage },// 言語切り替えボタンのイベントリスナ
         ]);
 
         // プロジェクト設定の読み込み
@@ -142,6 +141,7 @@ async function initializeApp() {
         updateUILabels();
 
         // 言語適用
+        buildLanguageDropdown();
         updateUILanguage();
         updateLanguageLabel();
 
@@ -591,14 +591,38 @@ async function deleteCollection() {
     }
 }
 
-function toggleLanguage() {
-    const languages = Object.keys(translations);
-    const currentIndex = languages.indexOf(currentLanguage);
-    currentLanguage = languages[(currentIndex + 1) % languages.length];
+// 言語ドロップダウンを構築し、各アイテムのクリックイベントを設定する
+function buildLanguageDropdown() {
+    const menu = document.getElementById('languageDropdownMenu');
+    if (!menu) return;
+
+    menu.innerHTML = '';
+    Object.keys(translations).forEach(lang => {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.className = 'dropdown-item';
+        a.href = '#';
+        a.textContent = languageNames[lang] || lang;
+        a.addEventListener('click', (e) => {
+            e.preventDefault();
+            selectLanguage(lang);
+        });
+        li.appendChild(a);
+        menu.appendChild(li);
+    });
+
+    updateLanguageLabel();
+}
+
+// 指定した言語に切り替える
+function selectLanguage(lang) {
+    if (!translations[lang]) return;
+    currentLanguage = lang;
     // Save language preference to localStorage so it persists across pages
     localStorage.setItem('crec_language', currentLanguage);
     updateLanguageLabel();
     updateUILanguage();
+    updateUILabels();
     if (isMainSearchPage()) {
         updateTableHeaders();
         // 現在の結果を新しい言語で再描画
