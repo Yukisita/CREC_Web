@@ -1057,7 +1057,7 @@
 			// 言語切り替えボタンのイベントリスナを設定
             const languageToggle = document.getElementById('languageToggle');
             if (languageToggle) {
-                languageToggle.addEventListener('click', () => {
+                languageToggle.addEventListener('hidden.bs.dropdown', () => {
                     setTimeout(() => {
                         // 再描画し、言語設定を反映
                         if (currentCollection) {
