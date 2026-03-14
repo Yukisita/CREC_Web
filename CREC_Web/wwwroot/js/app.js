@@ -132,7 +132,6 @@ async function initializeApp() {
             { id: 'adminPanelOverlay', event: 'click', handler: closeAdminPanel },// 管理パネルオーバーレイクリックのイベントリスナ
             { id: 'addNewCollectionBtn', event: 'click', handler: addNewCollection },// 新しいコレクション追加のイベントリスナ
             { id: 'deleteCollectionBtn', event: 'click', handler: deleteCollection },// コレクション削除のイベントリスナ
-            { id: 'languageToggle', event: 'click', handler: toggleLanguage },// 言語切り替えボタンのイベントリスナ
         ]);
 
         // プロジェクト設定の読み込み
@@ -142,7 +141,9 @@ async function initializeApp() {
         updateUILabels();
 
         // 言語適用
+        buildLanguageDropdown();
         updateUILanguage();
+        updateLanguageLabel();
 
         // URLからメインページにいるか確認
         if (isMainSearchPage()) {
@@ -181,37 +182,25 @@ async function loadProjectSettings() {
             const settings = await response.json();
             projectSettings = {
                 projectName: settings.projectName || '',
-                objectNameLabel: settings.objectNameLabel || (currentLanguage === 'ja' ? '名称' : 'Name'),
+                objectNameLabel: settings.objectNameLabel || t('field-name'),
                 uuidName: settings.uuidName || 'ID',
                 managementCodeName: settings.managementCodeName || 'MC',
-                categoryName: settings.categoryName || (currentLanguage === 'ja' ? 'カテゴリ' : 'Category'),
-                tag1Name: settings.tag1Name || (currentLanguage === 'ja' ? 'タグ 1' : 'Tag 1'),
-                tag2Name: settings.tag2Name || (currentLanguage === 'ja' ? 'タグ 2' : 'Tag 2'),
-                tag3Name: settings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3')
+                categoryName: settings.categoryName || t('category'),
+                tag1Name: settings.tag1Name || t('field-firstTag'),
+                tag2Name: settings.tag2Name || t('field-secondTag'),
+                tag3Name: settings.tag3Name || t('field-thirdTag')
             };
             console.log('Project settings loaded:', projectSettings);
             // translationsの内容をプロジェクト設定値に合うように更新
-            // field-name
-            translations.ja['field-name'] = projectSettings.objectNameLabel;
-            translations.en['field-name'] = projectSettings.objectNameLabel;
-            // field-id
-            translations.ja['field-id'] = projectSettings.uuidName;
-            translations.en['field-id'] = projectSettings.uuidName;
-            // field-mc
-            translations.ja['field-mc'] = projectSettings.managementCodeName;
-            translations.en['field-mc'] = projectSettings.managementCodeName;
-            // field-category
-            translations.ja['field-category'] = projectSettings.categoryName;
-            translations.en['field-category'] = projectSettings.categoryName;
-            // field-firstTag
-            translations.ja['field-firstTag'] = projectSettings.tag1Name;
-            translations.en['field-firstTag'] = projectSettings.tag1Name;
-            // field-secondTag
-            translations.ja['field-secondTag'] = projectSettings.tag2Name;
-            translations.en['field-secondTag'] = projectSettings.tag2Name;
-            // field-thirdTag
-            translations.ja['field-thirdTag'] = projectSettings.tag3Name;
-            translations.en['field-thirdTag'] = projectSettings.tag3Name;
+            Object.keys(translations).forEach(lang => {
+                translations[lang]['field-name'] = projectSettings.objectNameLabel;
+                translations[lang]['field-id'] = projectSettings.uuidName;
+                translations[lang]['field-mc'] = projectSettings.managementCodeName;
+                translations[lang]['field-category'] = projectSettings.categoryName;
+                translations[lang]['field-firstTag'] = projectSettings.tag1Name;
+                translations[lang]['field-secondTag'] = projectSettings.tag2Name;
+                translations[lang]['field-thirdTag'] = projectSettings.tag3Name;
+            });
         }
     } catch (error) {
         console.warn('Could not load project settings, using defaults:', error);
@@ -233,7 +222,7 @@ function updateUILabels() {
         // 「全項目」オプションを追加 - SearchField.All = 0
         const allFieldsOption = document.createElement('option');
         allFieldsOption.value = '0';
-        allFieldsOption.text = currentLanguage === 'ja' ? 'すべてのフィールド' : 'All Fields';
+        allFieldsOption.text = t('field-all');
         searchFieldElement.appendChild(allFieldsOption);
 
         // ID オプションを追加 - SearchField.ID = 1
@@ -245,7 +234,7 @@ function updateUILabels() {
         // 名称オプションを追加 - SearchField.Name = 2
         const nameOption = document.createElement('option');
         nameOption.value = '2';
-        nameOption.text = projectSettings.objectNameLabel || (currentLanguage === 'ja' ? '名称' : 'Name');
+        nameOption.text = projectSettings.objectNameLabel || t('field-name');
         searchFieldElement.appendChild(nameOption);
 
         // 管理コードオプションを追加 - SearchField.ManagementCode = 3
@@ -263,7 +252,7 @@ function updateUILabels() {
         // タグ（全て）オプションを追加 - SearchField.Tag = 5
         const tagAllOption = document.createElement('option');
         tagAllOption.value = '5';
-        tagAllOption.text = currentLanguage === 'ja' ? 'タグ (全て)' : 'Tags (All)';
+        tagAllOption.text = t('field-tags');
         searchFieldElement.appendChild(tagAllOption);
 
         // 個別タグオプションを追加 - SearchField.Tag1/2/3 = 6/7/8
@@ -285,7 +274,7 @@ function updateUILabels() {
         // 場所オプションを追加 - SearchField.Location = 9
         const locationOption = document.createElement('option');
         locationOption.value = '9';
-        locationOption.text = currentLanguage === 'ja' ? '場所' : 'Location';
+        locationOption.text = t('location');
         searchFieldElement.appendChild(locationOption);
 
         // 前の選択を復元（有効な場合）
@@ -602,17 +591,52 @@ async function deleteCollection() {
     }
 }
 
-function toggleLanguage() {
-    currentLanguage = currentLanguage === 'ja' ? 'en' : 'ja';
+// 言語ドロップダウンを構築し、各アイテムのクリックイベントを設定する
+function buildLanguageDropdown() {
+    const menu = document.getElementById('languageDropdownMenu');
+    if (!menu) return;
+
+    menu.innerHTML = '';
+    Object.keys(translations).forEach(lang => {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.className = 'dropdown-item';
+        a.href = '#';
+        a.textContent = languageNames[lang] || lang;
+        a.addEventListener('click', (e) => {
+            e.preventDefault();
+            selectLanguage(lang);
+        });
+        li.appendChild(a);
+        menu.appendChild(li);
+    });
+
+    updateLanguageLabel();
+}
+
+// 指定した言語に切り替える
+function selectLanguage(lang) {
+    if (!translations[lang]) return;
+    currentLanguage = lang;
     // Save language preference to localStorage so it persists across pages
     localStorage.setItem('crec_language', currentLanguage);
+    updateLanguageLabel();
     updateUILanguage();
+    updateUILabels();
     if (isMainSearchPage()) {
         updateTableHeaders();
         // 現在の結果を新しい言語で再描画
         if (currentSearchCriteria && Object.keys(currentSearchCriteria).length > 0) {
             searchCollections(currentPage);
         }
+    }
+}
+
+// 言語ラベルを現在の言語名で更新する
+function updateLanguageLabel() {
+    const label = document.getElementById('languageLabel');
+    if (label) {
+        label.textContent = languageNames[currentLanguage] || currentLanguage;
     }
 }
 
