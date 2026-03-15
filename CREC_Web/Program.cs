@@ -36,6 +36,7 @@ projectSettings = ParseCrecFile(crecFilePath);
 if (projectSettings != null)
 {
     builder.Configuration["ProjectDataPath"] = projectSettings.ProjectDataPath;
+    builder.Configuration["CrecFilePath"] = crecFilePath;
     builder.Configuration["ProjectName"] = projectSettings.ProjectName;
     builder.Configuration["CollectionNameLabel"] = projectSettings.CollectionNameLabel;
     builder.Configuration["UUIDLabel"] = projectSettings.UUIDLabel;

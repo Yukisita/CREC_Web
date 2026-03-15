@@ -131,6 +131,7 @@ async function initializeApp() {
             { id: 'adminPanelClose', event: 'click', handler: closeAdminPanel },// 管理パネルクローズのイベントリスナ
             { id: 'adminPanelOverlay', event: 'click', handler: closeAdminPanel },// 管理パネルオーバーレイクリックのイベントリスナ
             { id: 'addNewCollectionBtn', event: 'click', handler: addNewCollection },// 新しいコレクション追加のイベントリスナ
+            { id: 'editProjectBtn', event: 'click', handler: openProjectEdit },// プロジェクト編集のイベントリスナ
             { id: 'deleteCollectionBtn', event: 'click', handler: deleteCollection },// コレクション削除のイベントリスナ
         ]);
 
@@ -495,6 +496,13 @@ function closeAdminPanel() {
     if (panel) panel.classList.remove('open');
     if (overlay) overlay.classList.remove('show');
     if (toggle) toggle.setAttribute('aria-expanded', 'false');
+}
+
+/**
+ * プロジェクト編集画面を新しいタブで開く
+ */
+function openProjectEdit() {
+    window.open('/ProjectEdit', '_blank');
 }
 
 /**
