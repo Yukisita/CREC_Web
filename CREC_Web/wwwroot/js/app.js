@@ -640,13 +640,17 @@ function updateLanguageLabel() {
     }
 }
 
+/**
+ * 使用可能な言語かどうかを安全に判定し、必要に応じてフォールバックする
+ * @returns
+ */
 function getSafeLanguage() {
-    // If the current language exists in translations, use it as-is
+    // 現在の言語がtranslationsオブジェクト内に存在するかを安全にチェック
     if (typeof translations === 'object' && translations !== null && translations[currentLanguage]) {
         return currentLanguage;
     }
 
-    // Fallback to Japanese if available, otherwise use the first available language
+    // 日本語が使用可能であれば日本語にフォールバックし、そうでなければ利用可能な最初の言語を使用する
     const hasTranslationsObject = typeof translations === 'object' && translations !== null;
     const fallback =
         (hasTranslationsObject && translations['ja'])
@@ -654,17 +658,16 @@ function getSafeLanguage() {
             : (hasTranslationsObject ? Object.keys(translations)[0] : undefined);
 
     if (fallback) {
-        // Normalize the global state and persist the corrected language
         currentLanguage = fallback;
         try {
             localStorage.setItem('crec_language', currentLanguage);
         } catch (e) {
-            // localStorage might be unavailable; ignore errors to avoid breaking the UI
+            // localStorageへのアクセスに失敗した場合は、そのまま続行する
         }
         return fallback;
     }
 
-    // If no translations are defined, keep the currentLanguage as-is
+    // 使用可能な言語が定義されていない場合は、そのままとする。
     return currentLanguage;
 }
 
