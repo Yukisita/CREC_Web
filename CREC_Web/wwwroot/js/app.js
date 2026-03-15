@@ -252,7 +252,7 @@ function updateUILabels() {
         // タグ（全て）オプションを追加 - SearchField.Tag = 5
         const tagAllOption = document.createElement('option');
         tagAllOption.value = '5';
-        tagAllOption.text = t('field-tags');
+        tagAllOption.text = t('field-tags-all');
         searchFieldElement.appendChild(tagAllOption);
 
         // 個別タグオプションを追加 - SearchField.Tag1/2/3 = 6/7/8
