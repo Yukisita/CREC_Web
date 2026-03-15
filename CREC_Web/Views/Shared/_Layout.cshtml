@@ -88,6 +88,10 @@
             cursor: pointer;
         }
 
+        .language-toggle.dropdown-toggle::after {
+            vertical-align: middle;
+        }
+
         /* Table styles */
         .collections-table {
             width: 100%;
@@ -537,10 +541,15 @@
                 CREC Web
             </a>
             <div class="navbar-layout-right">
-                <button type="button" class="navbar-btn language-toggle" id="languageToggle" aria-label="toggle language">
-                    <i class="bi bi-translate"></i>
-                    <span id="languageLabel">日本語 / English</span>
-                </button>
+                <div class="dropdown">
+                    <button type="button" class="navbar-btn language-toggle dropdown-toggle" id="languageToggle" data-bs-toggle="dropdown" aria-expanded="false" aria-label="select language">
+                        <i class="bi bi-translate"></i>
+                        <span id="languageLabel"></span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" id="languageDropdownMenu">
+                        <!-- populated by buildLanguageDropdown() in app.js -->
+                    </ul>
+                </div>
             </div>
         </div>
     </nav>
