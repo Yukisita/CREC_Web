@@ -640,8 +640,37 @@ function updateLanguageLabel() {
     }
 }
 
+function getSafeLanguage() {
+    // If the current language exists in translations, use it as-is
+    if (typeof translations === 'object' && translations !== null && translations[currentLanguage]) {
+        return currentLanguage;
+    }
+
+    // Fallback to Japanese if available, otherwise use the first available language
+    const hasTranslationsObject = typeof translations === 'object' && translations !== null;
+    const fallback =
+        (hasTranslationsObject && translations['ja'])
+            ? 'ja'
+            : (hasTranslationsObject ? Object.keys(translations)[0] : undefined);
+
+    if (fallback) {
+        // Normalize the global state and persist the corrected language
+        currentLanguage = fallback;
+        try {
+            localStorage.setItem('crec_language', currentLanguage);
+        } catch (e) {
+            // localStorage might be unavailable; ignore errors to avoid breaking the UI
+        }
+        return fallback;
+    }
+
+    // If no translations are defined, keep the currentLanguage as-is
+    return currentLanguage;
+}
+
 function t(key) {
-    return translations[currentLanguage][key] || key;
+    const lang = getSafeLanguage();
+    return translations[lang]?.[key] || key;
 }
 
 /**
