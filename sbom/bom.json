@@ -1,0 +1,29 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:557024ea-22eb-4bbe-9a70-cc6af6138a8f",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-03-17T23:01:21Z",
+    "tools": [
+      {
+        "vendor": "CycloneDX",
+        "name": "CycloneDX module for .NET",
+        "version": "6.0.0.0"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "bom-ref": "CREC_Web@0.0.0",
+      "name": "CREC_Web",
+      "version": "0.0.0"
+    }
+  },
+  "components": [],
+  "dependencies": [
+    {
+      "ref": "CREC_Web@0.0.0",
+      "dependsOn": []
+    }
+  ]
+}

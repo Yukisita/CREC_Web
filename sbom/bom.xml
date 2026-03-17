@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<bom xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" serialNumber="urn:uuid:c57ed591-5261-4e18-8ed9-cab3f84779fa" version="1" xmlns="http://cyclonedx.org/schema/bom/1.6">
+  <metadata>
+    <timestamp>2026-03-17T23:01:43.1122092Z</timestamp>
+    <tools>
+      <tool>
+        <vendor>CycloneDX</vendor>
+        <name>CycloneDX module for .NET</name>
+        <version>6.0.0.0</version>
+      </tool>
+    </tools>
+    <component type="application" bom-ref="CREC_Web@0.0.0">
+      <name>CREC_Web</name>
+      <version>0.0.0</version>
+    </component>
+  </metadata>
+  <components />
+  <dependencies>
+    <dependency ref="CREC_Web@0.0.0" />
+  </dependencies>
+</bom>
