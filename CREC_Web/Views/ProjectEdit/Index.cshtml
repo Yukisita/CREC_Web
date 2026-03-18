@@ -43,11 +43,7 @@
             margin-top: 1.5rem;
         }
 
-        #projectEditSuccess,
-        #projectEditError {
-            display: none;
-            margin-top: 1rem;
-        }
+
     </style>
 }
 
@@ -119,8 +115,6 @@
             </div>
         </form>
 
-        <div id="projectEditSuccess" class="alert alert-success" data-lang="edit-project-success"></div>
-        <div id="projectEditError" class="alert alert-danger"></div>
     </div>
 </div>
 
@@ -151,12 +145,7 @@
                 e.preventDefault();
 
                 const saveBtn = document.getElementById('projectEditSaveBtn');
-                const successEl = document.getElementById('projectEditSuccess');
-                const errorEl = document.getElementById('projectEditError');
-
                 saveBtn.disabled = true;
-                successEl.style.display = 'none';
-                errorEl.style.display = 'none';
 
                 const payload = {
                     projectName: document.getElementById('editProjectName').value,
@@ -181,12 +170,10 @@
                         throw new Error(text || `HTTP error! status: ${response.status}`);
                     }
 
-                    successEl.style.display = 'block';
-                    successEl.textContent = t('edit-project-success');
+                    alert(t('edit-project-success'));
                 } catch (error) {
                     console.error('Error saving project settings:', error);
-                    errorEl.style.display = 'block';
-                    errorEl.textContent = t('edit-project-error') + ': ' + error.message;
+                    alert(t('edit-project-error') + ': ' + error.message);
                 } finally {
                     saveBtn.disabled = false;
                 }
