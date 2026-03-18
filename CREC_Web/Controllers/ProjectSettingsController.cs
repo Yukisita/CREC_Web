@@ -54,6 +54,12 @@ public class ProjectSettingsController : ControllerBase
         public string? ThirdTagLabel { get; set; }
     }
 
+    // SemaphoreSlim to protect concurrent read-modify-write access to the .crec file.
+    // This is intentionally static and application-lifetime scoped; it is not disposed
+    // because disposing a shared static lock while other requests may still hold it
+    // would cause ObjectDisposedException on subsequent calls.
+    private static readonly SemaphoreSlim _fileLock = new SemaphoreSlim(1, 1);
+
     [HttpPut]
     public async Task<IActionResult> UpdateProjectSettings([FromBody] UpdateProjectSettingsRequest request)
     {
@@ -68,8 +74,12 @@ public class ProjectSettingsController : ControllerBase
             return StatusCode(500, "Project file path is not configured or file does not exist");
         }
 
+        var lockAcquired = false;
         try
         {
+            await _fileLock.WaitAsync(HttpContext.RequestAborted);
+            lockAcquired = true;
+
             // Read the current .crec file content
             var lines = await System.IO.File.ReadAllLinesAsync(crecFilePath, System.Text.Encoding.UTF8);
             var updatedLines = new List<string>();
@@ -167,10 +177,18 @@ public class ProjectSettingsController : ControllerBase
             _logger.LogInformation("Project settings updated successfully");
             return Ok(new { message = "Project settings updated successfully" });
         }
+        catch (OperationCanceledException)
+        {
+            return StatusCode(499, "Request was cancelled");
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating project settings");
             return StatusCode(500, "Failed to update project settings");
+        }
+        finally
+        {
+            if (lockAcquired) _fileLock.Release();
         }
     }
 }
