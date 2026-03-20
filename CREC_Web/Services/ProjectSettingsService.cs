@@ -46,7 +46,7 @@ public class ProjectSettingsService
                 {
                     if (string.IsNullOrWhiteSpace(line)) continue;
 
-                    var cols = line.Split(',');
+                    var cols = line.Split(',', 2);
                     if (cols.Length < 2) continue;
 
                     var key = cols[0].Trim();
@@ -187,7 +187,7 @@ public class ProjectSettingsService
                         continue;
                     }
 
-                    var cols = line.Split(',');
+                    var cols = line.Split(',', 2);
                     if (cols.Length < 2)
                     {
                         updatedLines.Add(line);
