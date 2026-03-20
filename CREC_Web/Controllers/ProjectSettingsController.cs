@@ -63,6 +63,26 @@ public class ProjectSettingsController : ControllerBase
         }
 
         _logger.LogError("Error updating project settings: {Message}", message);
+        return CreateUpdateFailureResult(message);
+    }
+
+    private IActionResult CreateUpdateFailureResult(string message)
+    {
+        if (!string.IsNullOrWhiteSpace(message))
+        {
+            if (message.Contains("not configured", StringComparison.OrdinalIgnoreCase) ||
+                message.Contains("invalid", StringComparison.OrdinalIgnoreCase) ||
+                message.Contains("bad request", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(message);
+            }
+
+            if (message.Contains("not found", StringComparison.OrdinalIgnoreCase) ||
+                message.Contains("missing", StringComparison.OrdinalIgnoreCase))
+            {
+                return NotFound(message);
+            }
+        }
         return StatusCode(500, message);
     }
 }
