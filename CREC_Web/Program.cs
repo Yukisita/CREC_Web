@@ -11,6 +11,7 @@ Console.WriteLine("Starting CREC Web Server...");
 
 // Webアプリケーションビルダーの作成
 var builder = WebApplication.CreateBuilder(args);
+var projectSettingsService = new ProjectSettingsService(builder.Configuration);
 
 // CRECのプロジェクトファイルのパスを取得
 var crecFilePath = string.Empty;
@@ -30,21 +31,12 @@ else
 
 // CRECのプロジェクトファイルを読み込み、プロジェクト設定を取得
 Console.WriteLine($"Loading project settings from: {crecFilePath}");
-projectSettings = ParseCrecFile(crecFilePath);
+projectSettings = projectSettingsService.LoadProjectSettings(crecFilePath);
 
 // プロジェクト設定を適用
 if (projectSettings != null)
 {
-    builder.Configuration["ProjectDataPath"] = projectSettings.ProjectDataPath;
-    builder.Configuration["CrecFilePath"] = crecFilePath;
-    builder.Configuration["ProjectName"] = projectSettings.ProjectName;
-    builder.Configuration["CollectionNameLabel"] = projectSettings.CollectionNameLabel;
-    builder.Configuration["UUIDLabel"] = projectSettings.UUIDLabel;
-    builder.Configuration["ManagementCodeLabel"] = projectSettings.ManagementCodeLabel;
-    builder.Configuration["CategoryLabel"] = projectSettings.CategoryLabel;
-    builder.Configuration["FirstTagLabel"] = projectSettings.FirstTagLabel;
-    builder.Configuration["SecondTagLabel"] = projectSettings.SecondTagLabel;
-    builder.Configuration["ThirdTagLabel"] = projectSettings.ThirdTagLabel;
+    projectSettingsService.ApplyProjectSettings(projectSettings, crecFilePath);
 }
 else
 {
@@ -59,6 +51,7 @@ builder.Environment.WebRootPath = webRootPath;
 // Add services to the container
 builder.Services.AddControllersWithViews();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSingleton(projectSettingsService);
 
 // Add CREC data service
 builder.Services.AddSingleton<CrecDataService>();
@@ -203,119 +196,6 @@ var monitorTask = Task.Run(() =>
     }
 });
 
-// Helper method to parse .crec file and extract project settings
-static ProjectSettings? ParseCrecFile(string crecFilePath)
-{
-    try
-    {
-        if (!File.Exists(crecFilePath))
-        {
-            Console.WriteLine($"Error: .crec file not found: {crecFilePath}");
-            return null;
-        }
-
-        var settings = new ProjectSettings();
-        var lines = File.ReadAllLines(crecFilePath, System.Text.Encoding.GetEncoding("UTF-8"));
-
-        Console.WriteLine($"Parsing .crec file with {lines.Length} lines...");
-
-        foreach (var line in lines)
-        {
-            if (string.IsNullOrWhiteSpace(line)) continue;
-
-            var cols = line.Split(',');
-            if (cols.Length < 2) continue;
-
-            // Extract the value (second column, index 1)
-            var key = cols[0].Trim();
-            var value = cols[1].Trim();
-
-            switch (key)
-            {
-                case "projectname":
-                    settings.ProjectName = value;
-                    Console.WriteLine($"  - Found projectname: {value}");
-                    break;
-                case "projectlocation":
-                    settings.ProjectDataPath = value;
-                    Console.WriteLine($"  - Found projectlocation: {value}");
-                    break;
-                case "ShowObjectNameLabel":
-                    if (!string.IsNullOrWhiteSpace(value))
-                    {
-                        settings.CollectionNameLabel = value;
-                        Console.WriteLine($"  - Found ShowObjectNameLabel: {value}");
-                    }
-                    break;
-                case "ShowIDLabel":
-                    if (!string.IsNullOrWhiteSpace(value))
-                    {
-                        settings.UUIDLabel = value;
-                        Console.WriteLine($"  - Found ShowIDLabel: {value}");
-                    }
-                    break;
-                case "ShowMCLabel":
-                    if (!string.IsNullOrWhiteSpace(value))
-                    {
-                        settings.ManagementCodeLabel = value;
-                        Console.WriteLine($"  - Found ShowMCLabel: {value}");
-                    }
-                    break;
-                case "ShowCategoryLabel":
-                    if (!string.IsNullOrWhiteSpace(value))
-                    {
-                        settings.CategoryLabel = value;
-                        Console.WriteLine($"  - Found ShowCategoryLabel: {value}");
-                    }
-                    break;
-                case "Tag1Name":
-                    if (!string.IsNullOrWhiteSpace(value))
-                    {
-                        settings.FirstTagLabel = value;
-                        Console.WriteLine($"  - Found Tag1Name: {value}");
-                    }
-                    break;
-                case "Tag2Name":
-                    if (!string.IsNullOrWhiteSpace(value))
-                    {
-                        settings.SecondTagLabel = value;
-                        Console.WriteLine($"  - Found Tag2Name: {value}");
-                    }
-                    break;
-                case "Tag3Name":
-                    if (!string.IsNullOrWhiteSpace(value))
-                    {
-                        settings.ThirdTagLabel = value;
-                        Console.WriteLine($"  - Found Tag3Name: {value}");
-                    }
-                    break;
-            }
-        }
-
-        Console.WriteLine($"Finished parsing .crec file");
-
-        // Validate that we at least have a data path
-        if (string.IsNullOrEmpty(settings.ProjectDataPath))
-        {
-            Console.WriteLine("Error: 'projectlocation' not found in .crec file");
-            return null;
-        }
-
-        if (!Directory.Exists(settings.ProjectDataPath))
-        {
-            Console.WriteLine($"Warning: Project data folder does not exist: {settings.ProjectDataPath}");
-            // Return anyway so user can see the configured path
-        }
-
-        return settings;
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Error parsing .crec file: {ex.Message}");
-        return null;
-    }
-}
-
 // ポートが利用可能か確認する関数
 static bool IsPortAvailable(int port)
 {
@@ -347,17 +227,3 @@ static bool IsPortAvailable(int port)
 }
 
 app.Run();
-
-// Helper class to hold project settings
-public class ProjectSettings
-{
-    public string ProjectName { get; set; } = "CREC Project";
-    public string ProjectDataPath { get; set; } = "";
-    public string CollectionNameLabel { get; set; } = "Name";
-    public string UUIDLabel { get; set; } = "UUID";
-    public string ManagementCodeLabel { get; set; } = "MC";
-    public string CategoryLabel { get; set; } = "Category";
-    public string FirstTagLabel { get; set; } = "Tag 1";
-    public string SecondTagLabel { get; set; } = "Tag 2";
-    public string ThirdTagLabel { get; set; } = "Tag 3";
-}
