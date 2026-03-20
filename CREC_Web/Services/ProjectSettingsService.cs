@@ -268,9 +268,9 @@ public class ProjectSettingsService
             message = "Project settings updated successfully";
             return true;
         }
-        catch
+        catch(Exception ex)
         {
-            message = "Failed to update project settings";
+            message = "Failed to update project settings: " + ex.Message;
             return false;
         }
     }
