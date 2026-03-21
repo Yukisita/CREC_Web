@@ -264,15 +264,16 @@ public class ProjectSettingsService
 
                 File.WriteAllLines(crecFilePath, updatedLines, Encoding.UTF8);
 
-                // アプリケーションのプロジェクト設定値を更新
-                if (request.ProjectName != null) _configuration["ProjectName"] = request.ProjectName;
-                if (request.CollectionNameLabel != null) _configuration["CollectionNameLabel"] = request.CollectionNameLabel;
-                if (request.UUIDLabel != null) _configuration["UUIDLabel"] = request.UUIDLabel;
-                if (request.ManagementCodeLabel != null) _configuration["ManagementCodeLabel"] = request.ManagementCodeLabel;
-                if (request.CategoryLabel != null) _configuration["CategoryLabel"] = request.CategoryLabel;
-                if (request.FirstTagLabel != null) _configuration["FirstTagLabel"] = request.FirstTagLabel;
-                if (request.SecondTagLabel != null) _configuration["SecondTagLabel"] = request.SecondTagLabel;
-                if (request.ThirdTagLabel != null) _configuration["ThirdTagLabel"] = request.ThirdTagLabel;
+                // アプリケーションのプロジェクト設定値を更新、Nullになっている値はデフォルト値を使用
+                var defaults = new ProjectSettings();
+                _configuration["ProjectName"] = request.ProjectName ?? defaults.ProjectName;
+                _configuration["CollectionNameLabel"] = request.CollectionNameLabel ?? defaults.CollectionNameLabel;
+                _configuration["UUIDLabel"] = request.UUIDLabel ?? defaults.UUIDLabel;
+                _configuration["ManagementCodeLabel"] = request.ManagementCodeLabel ?? defaults.ManagementCodeLabel;
+                _configuration["CategoryLabel"] = request.CategoryLabel ?? defaults.CategoryLabel;
+                _configuration["FirstTagLabel"] = request.FirstTagLabel ?? defaults.FirstTagLabel;
+                _configuration["SecondTagLabel"] = request.SecondTagLabel ?? defaults.SecondTagLabel;
+                _configuration["ThirdTagLabel"] = request.ThirdTagLabel ?? defaults.ThirdTagLabel;
             }
 
             message = "Project settings updated successfully";
