@@ -171,6 +171,16 @@ public class ProjectSettingsService
             return false;
         }
 
+        // 入力値に改行が含まれていないかをチェック
+        foreach (var (propertyName, value) in GetRequestStringValues(request))
+        {
+            if (ContainsNewLine(value))
+            {
+                message = $"{propertyName} cannot contain newline characters";
+                return false;
+            }
+        }
+
         try
         {
             lock (_fileLock)
@@ -273,6 +283,26 @@ public class ProjectSettingsService
             message = "Failed to update project settings: " + ex.Message;
             return false;
         }
+    }
+
+    // UpdateProjectSettingsRequestのstringプロパティとその値を列挙するヘルパーメソッド
+    private static IEnumerable<(string PropertyName, string? Value)> GetRequestStringValues(UpdateProjectSettingsRequest request)
+    {
+        foreach (var property in typeof(UpdateProjectSettingsRequest).GetProperties())
+        {
+            if (property.PropertyType != typeof(string))
+            {
+                continue;
+            }
+
+            yield return (property.Name, property.GetValue(request) as string);
+        }
+    }
+
+    // 文字列に改行が含まれているかをチェックするヘルパーメソッド
+    private static bool ContainsNewLine(string? value)
+    {
+        return value?.IndexOfAny(new[] {'\r', '\n'}) >= 0;
     }
 }
 
