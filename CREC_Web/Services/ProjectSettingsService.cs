@@ -264,16 +264,16 @@ public class ProjectSettingsService
 
                 File.WriteAllLines(crecFilePath, updatedLines, Encoding.UTF8);
 
-                // アプリケーションのプロジェクト設定値を更新、Nullになっている値はデフォルト値を使用
+                // アプリケーションのプロジェクト設定値を更新、Nullまたはホワイトスペースのみになっている値はデフォルト値を使用
                 var defaults = new ProjectSettings();
-                _configuration["ProjectName"] = request.ProjectName ?? defaults.ProjectName;
-                _configuration["CollectionNameLabel"] = request.CollectionNameLabel ?? defaults.CollectionNameLabel;
-                _configuration["UUIDLabel"] = request.UUIDLabel ?? defaults.UUIDLabel;
-                _configuration["ManagementCodeLabel"] = request.ManagementCodeLabel ?? defaults.ManagementCodeLabel;
-                _configuration["CategoryLabel"] = request.CategoryLabel ?? defaults.CategoryLabel;
-                _configuration["FirstTagLabel"] = request.FirstTagLabel ?? defaults.FirstTagLabel;
-                _configuration["SecondTagLabel"] = request.SecondTagLabel ?? defaults.SecondTagLabel;
-                _configuration["ThirdTagLabel"] = request.ThirdTagLabel ?? defaults.ThirdTagLabel;
+                _configuration["ProjectName"] = GetValueOrDefault(request.ProjectName, defaults.ProjectName);
+                _configuration["CollectionNameLabel"] = GetValueOrDefault(request.CollectionNameLabel, defaults.CollectionNameLabel);
+                _configuration["UUIDLabel"] = GetValueOrDefault(request.UUIDLabel, defaults.UUIDLabel);
+                _configuration["ManagementCodeLabel"] = GetValueOrDefault(request.ManagementCodeLabel, defaults.ManagementCodeLabel);
+                _configuration["CategoryLabel"] = GetValueOrDefault(request.CategoryLabel, defaults.CategoryLabel);
+                _configuration["FirstTagLabel"] = GetValueOrDefault(request.FirstTagLabel, defaults.FirstTagLabel);
+                _configuration["SecondTagLabel"] = GetValueOrDefault(request.SecondTagLabel, defaults.SecondTagLabel);
+                _configuration["ThirdTagLabel"] = GetValueOrDefault(request.ThirdTagLabel, defaults.ThirdTagLabel);
             }
 
             message = "Project settings updated successfully";
@@ -304,6 +304,12 @@ public class ProjectSettingsService
     private static bool ContainsNewLine(string? value)
     {
         return value?.IndexOfAny(new[] {'\r', '\n'}) >= 0;
+    }
+
+    // 値がNullまたはホワイトスペースのみの場合はデフォルト値を返すヘルパーメソッド
+    private static string GetValueOrDefault(string? value, string defaultValue)
+    {
+        return string.IsNullOrWhiteSpace(value) ? defaultValue : value;
     }
 }
 
