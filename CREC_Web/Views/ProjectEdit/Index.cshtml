@@ -123,9 +123,15 @@
         (async function initProjectEditPage() {
             // Load current settings
             try {
-                const response = await fetch('/api/ProjectSettings');
-                if (!response.ok) throw new Error('Failed to load settings');
-                const settings = await response.json();
+                let settings;
+
+                if (typeof loadProjectSettings === 'function') {
+                    settings = await loadProjectSettings();
+                } else {
+                    const response = await fetch('/api/ProjectSettings');
+                    if (!response.ok) throw new Error('Failed to load settings');
+                    settings = await response.json();
+                }
 
                 document.getElementById('editProjectName').value = settings.projectName || '';
                 document.getElementById('editProjectDataPath').value = settings.projectDataPath || '';
