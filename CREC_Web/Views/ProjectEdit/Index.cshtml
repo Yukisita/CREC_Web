@@ -1,0 +1,189 @@
+@{
+    ViewData["Title"] = "Project Edit";
+    Layout = "_Layout";
+}
+
+@section Styles {
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .project-edit-container {
+            max-width: 700px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .project-edit-card {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            padding: 2rem;
+        }
+
+        .project-edit-header {
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .project-edit-header h3 {
+            margin: 0;
+            color: #212529;
+        }
+
+        .section-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #6c757d;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+
+    </style>
+}
+
+<div class="project-edit-container">
+    <div class="project-edit-card">
+        <div class="project-edit-header">
+            <h3 data-lang="edit-project"></h3>
+        </div>
+
+        <form id="projectEditForm" novalidate>
+            <!-- Project Name -->
+            <div class="mb-3">
+                <label for="editProjectName" class="form-label" data-lang="project-name"></label>
+                <input type="text" class="form-control" id="editProjectName" />
+            </div>
+
+            <!-- Project Data Path (read-only) -->
+            <div class="mb-3">
+                <label for="editProjectDataPath" class="form-label" data-lang="project-data-path"></label>
+                <input type="text" class="form-control" id="editProjectDataPath" readonly />
+            </div>
+
+            <div class="section-label" data-lang="label-settings"></div>
+
+            <!-- Collection Name Label -->
+            <div class="mb-3">
+                <label for="editCollectionNameLabel" class="form-label" data-lang="collection-name-label"></label>
+                <input type="text" class="form-control" id="editCollectionNameLabel" />
+            </div>
+
+            <!-- UUID Label -->
+            <div class="mb-3">
+                <label for="editUUIDLabel" class="form-label" data-lang="uuid-label"></label>
+                <input type="text" class="form-control" id="editUUIDLabel" />
+            </div>
+
+            <!-- Management Code Label -->
+            <div class="mb-3">
+                <label for="editManagementCodeLabel" class="form-label" data-lang="management-code-label"></label>
+                <input type="text" class="form-control" id="editManagementCodeLabel" />
+            </div>
+
+            <!-- Category Label -->
+            <div class="mb-3">
+                <label for="editCategoryLabel" class="form-label" data-lang="category-label"></label>
+                <input type="text" class="form-control" id="editCategoryLabel" />
+            </div>
+
+            <!-- Tag 1 Label -->
+            <div class="mb-3">
+                <label for="editTag1Label" class="form-label" data-lang="tag1-label"></label>
+                <input type="text" class="form-control" id="editTag1Label" />
+            </div>
+
+            <!-- Tag 2 Label -->
+            <div class="mb-3">
+                <label for="editTag2Label" class="form-label" data-lang="tag2-label"></label>
+                <input type="text" class="form-control" id="editTag2Label" />
+            </div>
+
+            <!-- Tag 3 Label -->
+            <div class="mb-3">
+                <label for="editTag3Label" class="form-label" data-lang="tag3-label"></label>
+                <input type="text" class="form-control" id="editTag3Label" />
+            </div>
+
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary" id="projectEditSaveBtn" data-lang="save"></button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (async function initProjectEditPage() {
+            // Load current settings
+            try {
+                let settings;
+
+                if (typeof loadProjectSettings === 'function') {
+                    settings = await loadProjectSettings();
+                } else {
+                    const response = await fetch('/api/ProjectSettings');
+                    if (!response.ok) throw new Error('Failed to load settings');
+                    settings = await response.json();
+                }
+
+                document.getElementById('editProjectName').value = settings.projectName || '';
+                document.getElementById('editProjectDataPath').value = settings.projectDataPath || '';
+                document.getElementById('editCollectionNameLabel').value = settings.objectNameLabel || '';
+                document.getElementById('editUUIDLabel').value = settings.uuidName || '';
+                document.getElementById('editManagementCodeLabel').value = settings.managementCodeName || '';
+                document.getElementById('editCategoryLabel').value = settings.categoryName || '';
+                document.getElementById('editTag1Label').value = settings.tag1Name || '';
+                document.getElementById('editTag2Label').value = settings.tag2Name || '';
+                document.getElementById('editTag3Label').value = settings.tag3Name || '';
+            } catch (error) {
+                console.error('Error loading project settings:', error);
+            }
+
+            // Save handler
+            document.getElementById('projectEditForm').addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                const saveBtn = document.getElementById('projectEditSaveBtn');
+                saveBtn.disabled = true;
+
+                const payload = {
+                    projectName: document.getElementById('editProjectName').value,
+                    collectionNameLabel: document.getElementById('editCollectionNameLabel').value,
+                    uuidLabel: document.getElementById('editUUIDLabel').value,
+                    managementCodeLabel: document.getElementById('editManagementCodeLabel').value,
+                    categoryLabel: document.getElementById('editCategoryLabel').value,
+                    firstTagLabel: document.getElementById('editTag1Label').value,
+                    secondTagLabel: document.getElementById('editTag2Label').value,
+                    thirdTagLabel: document.getElementById('editTag3Label').value
+                };
+
+                try {
+                    const response = await fetch('/api/ProjectSettings', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const text = await response.text();
+                        throw new Error(text || `HTTP error! status: ${response.status}`);
+                    }
+
+                    alert(t('edit-project-success'));
+                } catch (error) {
+                    console.error('Error saving project settings:', error);
+                    alert(t('edit-project-error') + ': ' + error.message);
+                } finally {
+                    saveBtn.disabled = false;
+                }
+            });
+        })();
+    </script>
+}

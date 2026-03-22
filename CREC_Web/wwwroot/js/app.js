@@ -13,6 +13,7 @@ let currentViewMode = 'table'; // 'table' or 'grid'
 let lastIsMobile; // 画面サイズ変更前のMobile検知
 let projectSettings = {
     projectName: '',
+    projectDataPath: '',
     objectNameLabel:'Collection Name',
     uuidName: 'UUID',
     managementCodeName: 'MC',
@@ -24,6 +25,7 @@ let projectSettings = {
 
 // アニメーション遅延時間（ミリ秒）
 const ANIMATION_DELAY = 10
+let projectSettingsLoadPromise;
 
 // 最小列幅（ピクセル）
 const MIN_COLUMN_WIDTH = (() => {
@@ -131,6 +133,7 @@ async function initializeApp() {
             { id: 'adminPanelClose', event: 'click', handler: closeAdminPanel },// 管理パネルクローズのイベントリスナ
             { id: 'adminPanelOverlay', event: 'click', handler: closeAdminPanel },// 管理パネルオーバーレイクリックのイベントリスナ
             { id: 'addNewCollectionBtn', event: 'click', handler: addNewCollection },// 新しいコレクション追加のイベントリスナ
+            { id: 'editProjectBtn', event: 'click', handler: openProjectEdit },// プロジェクト編集のイベントリスナ
             { id: 'deleteCollectionBtn', event: 'click', handler: deleteCollection },// コレクション削除のイベントリスナ
         ]);
 
@@ -176,36 +179,47 @@ async function initializeApp() {
 
 // API からプロジェクト設定を読み込む
 async function loadProjectSettings() {
-    try {
-        const response = await fetch('/api/ProjectSettings');
-        if (response.ok) {
-            const settings = await response.json();
-            projectSettings = {
-                projectName: settings.projectName || '',
-                objectNameLabel: settings.objectNameLabel || t('field-name'),
-                uuidName: settings.uuidName || 'ID',
-                managementCodeName: settings.managementCodeName || 'MC',
-                categoryName: settings.categoryName || t('category'),
-                tag1Name: settings.tag1Name || t('field-firstTag'),
-                tag2Name: settings.tag2Name || t('field-secondTag'),
-                tag3Name: settings.tag3Name || t('field-thirdTag')
-            };
-            console.log('Project settings loaded:', projectSettings);
-            // translationsの内容をプロジェクト設定値に合うように更新
-            Object.keys(translations).forEach(lang => {
-                translations[lang]['field-name'] = projectSettings.objectNameLabel;
-                translations[lang]['field-id'] = projectSettings.uuidName;
-                translations[lang]['field-mc'] = projectSettings.managementCodeName;
-                translations[lang]['field-category'] = projectSettings.categoryName;
-                translations[lang]['field-firstTag'] = projectSettings.tag1Name;
-                translations[lang]['field-secondTag'] = projectSettings.tag2Name;
-                translations[lang]['field-thirdTag'] = projectSettings.tag3Name;
-            });
-        }
-    } catch (error) {
-        console.warn('Could not load project settings, using defaults:', error);
-        // 既に初期化されたデフォルト値を保持
+    if (projectSettingsLoadPromise) {
+        return projectSettingsLoadPromise;
     }
+
+    projectSettingsLoadPromise = (async () => {
+        try {
+            const response = await fetch('/api/ProjectSettings');
+            if (response.ok) {
+                const settings = await response.json();
+                projectSettings = {
+                    projectName: settings.projectName || '',
+                    projectDataPath: settings.projectDataPath || '',
+                    objectNameLabel: settings.objectNameLabel || t('field-name'),
+                    uuidName: settings.uuidName || 'ID',
+                    managementCodeName: settings.managementCodeName || 'MC',
+                    categoryName: settings.categoryName || t('category'),
+                    tag1Name: settings.tag1Name || t('field-firstTag'),
+                    tag2Name: settings.tag2Name || t('field-secondTag'),
+                    tag3Name: settings.tag3Name || t('field-thirdTag')
+                };
+                console.log('Project settings loaded:', projectSettings);
+                // translationsの内容をプロジェクト設定値に合うように更新
+                Object.keys(translations).forEach(lang => {
+                    translations[lang]['field-name'] = projectSettings.objectNameLabel;
+                    translations[lang]['field-id'] = projectSettings.uuidName;
+                    translations[lang]['field-mc'] = projectSettings.managementCodeName;
+                    translations[lang]['field-category'] = projectSettings.categoryName;
+                    translations[lang]['field-firstTag'] = projectSettings.tag1Name;
+                    translations[lang]['field-secondTag'] = projectSettings.tag2Name;
+                    translations[lang]['field-thirdTag'] = projectSettings.tag3Name;
+                });
+            }
+        } catch (error) {
+            console.warn('Could not load project settings, using defaults:', error);
+            // 既に初期化されたデフォルト値を保持
+        }
+
+        return projectSettings;
+    })();
+
+    return projectSettingsLoadPromise;
 }
 
 // プロジェクト設定のカスタム値で UI ラベルを更新
@@ -495,6 +509,13 @@ function closeAdminPanel() {
     if (panel) panel.classList.remove('open');
     if (overlay) overlay.classList.remove('show');
     if (toggle) toggle.setAttribute('aria-expanded', 'false');
+}
+
+/**
+ * プロジェクト編集画面を新しいタブで開く
+ */
+function openProjectEdit() {
+    window.open('/ProjectEdit', '_blank');
 }
 
 /**

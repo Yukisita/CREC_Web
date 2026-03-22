@@ -138,7 +138,20 @@ const translations = {
         'delete-image-success': '画像を削除しました',
         'delete-image-error': '画像の削除に失敗しました',
         'tab-image': '画像',
-        'tab-data': 'データ'
+        'tab-data': 'データ',
+        'edit-project': 'プロジェクト編集',
+        'project-name': 'プロジェクト名',
+        'project-data-path': 'プロジェクトデータフォルダ（読み取り専用）',
+        'label-settings': 'ラベル設定',
+        'collection-name-label': 'コレクション名ラベル',
+        'uuid-label': 'UUIDラベル',
+        'management-code-label': '管理コードラベル',
+        'category-label': 'カテゴリラベル',
+        'tag1-label': 'タグ1ラベル',
+        'tag2-label': 'タグ2ラベル',
+        'tag3-label': 'タグ3ラベル',
+        'edit-project-success': 'プロジェクト設定を保存しました',
+        'edit-project-error': 'プロジェクト設定の保存に失敗しました'
     },
     de: {
         'loading': 'Laden...',
@@ -272,7 +285,20 @@ const translations = {
         'delete-image-success': 'Bild erfolgreich gelöscht',
         'delete-image-error': 'Fehler beim Löschen des Bildes',
         'tab-image': 'Bild',
-        'tab-data': 'Daten'
+        'tab-data': 'Daten',
+        'edit-project': 'Projekt bearbeiten',
+        'project-name': 'Projektname',
+        'project-data-path': 'Projektdatenordner (nur lesen)',
+        'label-settings': 'Beschriftungseinstellungen',
+        'collection-name-label': 'Sammlungsname-Beschriftung',
+        'uuid-label': 'UUID-Beschriftung',
+        'management-code-label': 'Verwaltungscode-Beschriftung',
+        'category-label': 'Kategorie-Beschriftung',
+        'tag1-label': 'Tag1-Beschriftung',
+        'tag2-label': 'Tag2-Beschriftung',
+        'tag3-label': 'Tag3-Beschriftung',
+        'edit-project-success': 'Projekteinstellungen erfolgreich gespeichert',
+        'edit-project-error': 'Fehler beim Speichern der Projekteinstellungen'
     },
     en: {
         'loading': 'Loading...',
@@ -406,7 +432,20 @@ const translations = {
         'delete-image-success': 'Image deleted successfully',
         'delete-image-error': 'Failed to delete image',
         'tab-image': 'Image',
-        'tab-data': 'Data'
+        'tab-data': 'Data',
+        'edit-project': 'Edit Project',
+        'project-name': 'Project Name',
+        'project-data-path': 'Project Data Folder (read-only)',
+        'label-settings': 'Label Settings',
+        'collection-name-label': 'Collection Name Label',
+        'uuid-label': 'UUID Label',
+        'management-code-label': 'Management Code Label',
+        'category-label': 'Category Label',
+        'tag1-label': 'Tag 1 Label',
+        'tag2-label': 'Tag 2 Label',
+        'tag3-label': 'Tag 3 Label',
+        'edit-project-success': 'Project settings saved successfully',
+        'edit-project-error': 'Failed to save project settings'
     }
 };
 
