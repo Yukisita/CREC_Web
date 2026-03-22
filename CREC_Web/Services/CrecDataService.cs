@@ -5,6 +5,7 @@ This software is released under the MIT License.
 */
 
 using CREC_Web.Extensions;
+using CREC_Web.Helpers;
 using CREC_Web.Models;
 using System.Runtime.Serialization.Json;
 using System.Text;
@@ -279,6 +280,30 @@ namespace CREC_Web.Services
                     }
                 }
 
+                // videosフォルダから動画を読み込む
+                // CREC構造: {dataPath}\{collectionId}\videos\
+                var videosPath = Path.Combine(directoryPath, "videos");
+                if (Directory.Exists(videosPath))
+                {
+                    _logger.LogInformation($"Loading videos from videos folder: {videosPath}");
+                    var videoFiles = Directory.GetFiles(videosPath);
+
+                    foreach (var file in videoFiles)
+                    {
+                        var fileName = Path.GetFileName(file);
+                        var extension = Path.GetExtension(file).ToLowerInvariant();
+
+                        if (VideoFormats.AllowedExtensions.Contains(extension))
+                        {
+                            if (!collection.VideoFiles.Contains(fileName))
+                            {
+                                collection.VideoFiles.Add(fileName);
+                                _logger.LogDebug($"Added video from videos folder: {fileName}");
+                            }
+                        }
+                    }
+                }
+
                 // dataフォルダからデータファイルを読み込む
                 // CREC構造: {dataPath}\{collectionId}\data\
                 var dataPath = Path.Combine(directoryPath, "data");
@@ -504,6 +529,28 @@ namespace CREC_Web.Services
                     collection.ImageFiles.Clear();
                     LoadFileList(collection, collection.CollectionFolderPath);
                     _logger.LogInformation("File cache refreshed for collection {CollectionId}", id.SanitizeForLog());
+                }
+            }
+        }
+        /// <summary>
+        /// 特定コレクションの動画リストキャッシュのみクリア（全体キャッシュは維持）
+        /// </summary>
+        /// <param name="id">コレクションID</param>
+        public void RefreshCollectionVideoFileCache(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                return;
+
+            lock (_cacheLock)
+            {
+                var collection = _collectionsCache.FirstOrDefault(c =>
+                    c.IndexData.SystemData.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+
+                if (collection != null)
+                {
+                    collection.VideoFiles.Clear();
+                    LoadFileList(collection, collection.CollectionFolderPath);
+                    _logger.LogInformation("Video file cache refreshed for collection {CollectionId}", id.SanitizeForLog());
                 }
             }
         }
