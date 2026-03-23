@@ -502,7 +502,21 @@ namespace CREC_Web.Controllers
                 }
 
                 // 拡張子に基づいてコンテンツタイプを判定
-                var extension = Path.GetExtension(fileName).ToLowerInvariant();
+                var extension = Path.GetExtension(fileName);
+                if (string.IsNullOrEmpty(extension))
+                {
+                    _logger.LogWarning("Unsupported video format (no extension) for file: {fileName}", (fileName ?? string.Empty).SanitizeForLog());
+                    return BadRequest("Unsupported video format");
+                }
+
+                extension = extension.ToLowerInvariant();
+
+                // サポートされている動画拡張子かを検証
+                if (!VideoFormats.AllowedExtensions.Contains(extension))
+                {
+                    _logger.LogWarning("Unsupported video format requested: {extension} for file: {fileName}", extension, (fileName ?? string.Empty).SanitizeForLog());
+                    return BadRequest("Unsupported video format");
+                }
                 var contentType = VideoFormats.GetContentType(extension);
 
                 _logger.LogInformation($"Serving video file with content type: {contentType}");
