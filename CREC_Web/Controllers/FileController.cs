@@ -528,7 +528,7 @@ namespace CREC_Web.Controllers
                 // サポートされている動画拡張子かを検証
                 if (!VideoFormats.AllowedExtensions.Contains(extension))
                 {
-                    _logger.LogWarning("Unsupported video format requested: {extension} for file: {fileName}", extension, (fileName ?? string.Empty).SanitizeForLog());
+                    _logger.LogWarning("Unsupported video format requested: {extension} for file: {fileName}", extension.SanitizeForLog(), (fileName ?? string.Empty).SanitizeForLog());
                     return BadRequest("Unsupported video format");
                 }
                 var contentType = VideoFormats.GetContentType(extension);
