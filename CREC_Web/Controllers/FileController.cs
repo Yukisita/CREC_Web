@@ -92,7 +92,7 @@ namespace CREC_Web.Controllers
                 // サポートされている画像拡張子かを検証
                 if (!ImageFormats.AllowedExtensions.Contains(extension))
                 {
-                    _logger.LogWarning("Unsupported image format requested: {extension} for file: {fileName}", extension, (fileName ?? string.Empty).SanitizeForLog());
+                    _logger.LogWarning("Unsupported image format requested: {extension} for file: {fileName}", extension.SanitizeForLog(), (fileName ?? string.Empty).SanitizeForLog());
                     return BadRequest("Unsupported image format");
                 }
                 var contentType = ImageFormats.GetContentType(extension);
