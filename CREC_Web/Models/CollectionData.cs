@@ -385,6 +385,11 @@ namespace CREC_Web.Models
         public List<string> ImageFiles { get; set; } = new List<string>();
 
         /// <summary>
+        /// 動画ファイルリスト
+        /// </summary>
+        public List<string> VideoFiles { get; set; } = new List<string>();
+
+        /// <summary>
         /// その他ファイルリスト
         /// </summary>
         public List<string> OtherFiles { get; set; } = new List<string>();

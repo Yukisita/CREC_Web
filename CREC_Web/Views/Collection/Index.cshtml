@@ -88,6 +88,13 @@
             border-radius: 0.5rem;
         }
 
+        .detail-video {
+            width: 100%;
+            max-height: 400px;
+            border-radius: 0.5rem;
+            background-color: #000;
+        }
+
         .detail-section {
             margin-bottom: 1.5rem;
             text-align: left;
@@ -258,12 +265,22 @@
                     <button class="nav-link active" id="images-tab" data-bs-toggle="tab" data-bs-target="#images-tab-pane" type="button" role="tab" aria-controls="images-tab-pane" aria-selected="true">Image</button>
                 </li>
                 <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="videos-tab" data-bs-toggle="tab" data-bs-target="#videos-tab-pane" type="button" role="tab" aria-controls="videos-tab-pane" aria-selected="false">Video</button>
+                </li>
+                <li class="nav-item" role="presentation">
                     <button class="nav-link" id="data-tab" data-bs-toggle="tab" data-bs-target="#data-tab-pane" type="button" role="tab" aria-controls="data-tab-pane" aria-selected="false">Data</button>
                 </li>
             </ul>
             <div class="tab-content" id="collectionTabContent">
                 <div class="tab-pane fade show active" id="images-tab-pane" role="tabpanel" aria-labelledby="images-tab" tabindex="0">
                     <div id="imageTabContent" class="loading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="videos-tab-pane" role="tabpanel" aria-labelledby="videos-tab" tabindex="0">
+                    <div id="videoTabContent" class="loading">
                         <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">Loading...</span>
                         </div>
@@ -441,6 +458,7 @@
                     </div>
                 `;
                 document.getElementById('imageTabContent').innerHTML = errorHtml;
+                document.getElementById('videoTabContent').innerHTML = errorHtml;
                 document.getElementById('dataTabContent').innerHTML = errorHtml;
                 document.getElementById('collectionIndexData').innerHTML = errorHtml;
                 document.getElementById('historyTableContainer').innerHTML = errorHtml;
@@ -532,6 +550,41 @@
             `;
         }
 
+        // 動画タブのHTMLを生成するヘルパー関数
+        function generateVideoTabHtml(collection, videos, currentVideoIndex) {
+            const videoHtml = videos.length > 0
+                ? `
+                    <div class="video-carousel">
+                        <video id="carouselVideo"
+                               src="/api/File/${encodeURIComponent(collection.indexData.systemData.id)}/video/${encodeURIComponent(videos[currentVideoIndex])}"
+                               class="detail-video"
+                               controls
+                               preload="metadata">
+                        </video>
+                        <div class="text-center mt-3" style="display: flex; justify-content: center; align-items: center; gap: 15px;">
+                            <button id="prevVideo" class="btn btn-outline-secondary btn-sm">◀</button>
+                            <span id="videoCounter" style="font-size: 14px; min-width: 60px;">${currentVideoIndex + 1} / ${videos.length}</span>
+                            <button id="nextVideo" class="btn btn-outline-secondary btn-sm">▶</button>
+                        </div>
+                        <p id="videoName" class="small text-muted text-center mt-2">${escapeHtml(videos[currentVideoIndex])}</p>
+                    </div>
+                    `
+                : `<p class="text-muted">${t('no-videos')}</p>`;
+
+            return `
+                ${videoHtml}
+                <div class="video-action-toolbar mt-2 d-flex flex-wrap gap-2 justify-content-center">
+                    <button id="addVideoBtn" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-plus-lg"></i> ${t('add-video')}
+                    </button>
+                    <button id="deleteVideoBtn" class="btn btn-sm btn-outline-danger" ${videos.length === 0 ? 'disabled' : ''}>
+                        <i class="bi bi-trash"></i> ${t('delete-video')}
+                    </button>
+                </div>
+                <input type="file" id="videoFileInput" accept=".mp4,.mov,.avi,.mkv,.webm,.wmv,.flv,.m4v" style="display:none;">
+            `;
+        }
+
         // データタブのHTMLを生成するヘルパー関数
         function generateDataTabHtml(collection) {
             const filesHtml = collection.otherFiles.length > 0
@@ -576,6 +629,7 @@
 
             // --- エリアB: タブ名を設定 ---
             document.getElementById('images-tab').textContent = t('tab-image');
+            document.getElementById('videos-tab').textContent = t('tab-video');
             document.getElementById('data-tab').textContent = t('tab-data');
 
             // --- エリアB: 画像タブの内容を構築 ---
@@ -649,6 +703,67 @@
                     if (images.length === 0) return;
                     if (!confirm(t('delete-image-confirm'))) return;
                     await deleteCollectionImage(collection.indexData.systemData.id, images[currentImageIndex], loadCollectionDetails);
+                });
+            }
+
+            // --- エリアB: 動画タブの内容を構築 ---
+            const videos = collection.videoFiles || [];
+            let currentVideoIndex = 0;
+            document.getElementById('videoTabContent').innerHTML = generateVideoTabHtml(collection, videos, currentVideoIndex);
+
+            // 動画がある場合はカルーセル制御を設定
+            if (videos.length > 0) {
+                const carouselVideo = document.getElementById('carouselVideo');
+                const videoCounter = document.getElementById('videoCounter');
+                const videoName = document.getElementById('videoName');
+                const prevVideoBtn = document.getElementById('prevVideo');
+                const nextVideoBtn = document.getElementById('nextVideo');
+
+                if (carouselVideo && videoCounter && videoName && prevVideoBtn && nextVideoBtn) {
+                    const updateVideo = () => {
+                        const collectionID = collection?.indexData?.systemData?.id;
+                        if (!collectionID) {
+                            console.error('Collection ID is missing.');
+                            return;
+                        }
+                        carouselVideo.src = `/api/File/${encodeURIComponent(collectionID)}/video/${encodeURIComponent(videos[currentVideoIndex])}`;
+                        videoCounter.textContent = `${currentVideoIndex + 1} / ${videos.length}`;
+                        videoName.textContent = videos[currentVideoIndex];
+                    };
+
+                    prevVideoBtn.addEventListener('click', () => {
+                        currentVideoIndex = (currentVideoIndex - 1 + videos.length) % videos.length;
+                        updateVideo();
+                    });
+
+                    nextVideoBtn.addEventListener('click', () => {
+                        currentVideoIndex = (currentVideoIndex + 1) % videos.length;
+                        updateVideo();
+                    });
+                }
+            }
+
+            // 動画追加ボタンのイベントリスナを設定
+            const addVideoBtn = document.getElementById('addVideoBtn');
+            const videoFileInput = document.getElementById('videoFileInput');
+            if (addVideoBtn && videoFileInput) {
+                addVideoBtn.addEventListener('click', () => videoFileInput.click());
+                videoFileInput.addEventListener('change', async (event) => {
+                    const file = event.target.files[0];
+                    if (file) {
+                        await uploadCollectionVideo(collection.indexData.systemData.id, file, loadCollectionDetails);
+                        event.target.value = '';
+                    }
+                });
+            }
+
+            // 動画削除ボタンのイベントリスナを設定
+            const deleteVideoBtn = document.getElementById('deleteVideoBtn');
+            if (deleteVideoBtn) {
+                deleteVideoBtn.addEventListener('click', async () => {
+                    if (videos.length === 0) return;
+                    if (!confirm(t('delete-video-confirm'))) return;
+                    await deleteCollectionVideo(collection.indexData.systemData.id, videos[currentVideoIndex], loadCollectionDetails);
                 });
             }
             

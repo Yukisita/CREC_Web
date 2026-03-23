@@ -448,6 +448,255 @@ namespace CREC_Web.Controllers
             }
         }
 
+        /// <summary>
+        /// 動画ファイル取得
+        /// </summary>
+        /// <param name="collectionId">コレクションID</param>
+        /// <param name="fileName">動画ファイル名</param>
+        /// <returns>動画ファイル</returns>
+        // 呼び出し例: /api/File/{collectionId}/video/{fileName}
+        [HttpGet("{collectionId}/video/{fileName}")]
+        public IActionResult GetVideoFile(string collectionId, string fileName)
+        {
+            try
+            {
+                // セキュリティ: コレクション ID を検証（英数字・ハイフン・アンダースコアのみ）
+                if (string.IsNullOrWhiteSpace(collectionId) ||
+                    !System.Text.RegularExpressions.Regex.IsMatch(collectionId, @"^[a-zA-Z0-9_-]+$") ||
+                    collectionId.Length > 255)
+                {
+                    _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
+                    return BadRequest("Invalid collection ID");
+                }
+
+                // セキュリティ: ファイル名を検証（パストラバーサル文字を禁止）
+                if (!IsSafePathComponent(fileName))
+                {
+                    _logger.LogWarning("Invalid file name: {fileName}", Path.GetFileName(fileName ?? "").SanitizeForLog());
+                    return BadRequest("Invalid file name");
+                }
+
+                // 設定からデータパスを取得。未設定の場合はカレントディレクトリを使用
+                var dataPath = _configuration["ProjectDataPath"] ?? Directory.GetCurrentDirectory();
+
+                // videos フォルダーへのパスを構築: dataPath\collectionId\videos\fileName
+                var filePath = Path.Combine(dataPath, collectionId, "videos", fileName);
+
+                // セキュリティ: 解決済みパスが videos ディレクトリ配下に留まっていることを確認
+                var fullPath = Path.GetFullPath(filePath);
+                var allowedPath = Path.GetFullPath(Path.Combine(dataPath, collectionId, "videos"));
+
+                // セキュリティ: 解決済みパスが videos ディレクトリ配下に留まっていることを確認
+                if (!IsPathWithinDirectory(filePath, allowedPath))
+                {
+                    _logger.LogWarning("Path traversal attempt detected: {fullPath}", fullPath.SanitizeForLog());
+                    return BadRequest("Invalid file path");
+                }
+
+                _logger.LogInformation("Attempting to serve file: {filePath}", filePath.SanitizeForLog());
+
+                if (!System.IO.File.Exists(filePath))
+                {
+                    _logger.LogWarning("Video file not found: {filePath}", filePath.SanitizeForLog());
+                    return NotFound();
+                }
+
+                // 拡張子に基づいてコンテンツタイプを判定
+                var extension = Path.GetExtension(fileName).ToLowerInvariant();
+                var contentType = VideoFormats.GetContentType(extension);
+
+                _logger.LogInformation($"Serving video file with content type: {contentType}");
+
+                // セキュリティヘッダー
+                Response.Headers["Access-Control-Allow-Origin"] = "*";
+                Response.Headers["Cache-Control"] = "public, max-age=3600";
+                Response.Headers["X-Content-Type-Options"] = "nosniff";
+
+                // 動画はレンジリクエスト対応（シークバー用）
+                return PhysicalFile(fullPath, contentType, enableRangeProcessing: true);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error serving video file {CollectionId}/{FileName}",
+                    collectionId.SanitizeForLog(), Path.GetFileName(fileName).SanitizeForLog());
+
+                return StatusCode(500, "Error retrieving video file");
+            }
+        }
+
+        /// <summary>
+        /// 動画ファイルアップロード
+        /// </summary>
+        /// <param name="collectionId">コレクションID</param>
+        /// <param name="video">アップロード動画ファイル</param>
+        /// <returns>アップロード結果</returns>
+        // 呼び出し例: POST /api/File/{collectionId}/upload/video
+        [HttpPost("{collectionId}/upload/video")]
+        public async Task<IActionResult> UploadVideo(string collectionId, IFormFile video)
+        {
+            try
+            {
+                // セキュリティ: コレクション ID を検証（英数字・ハイフン・アンダースコアのみ）
+                if (string.IsNullOrWhiteSpace(collectionId) ||
+                    !System.Text.RegularExpressions.Regex.IsMatch(collectionId, @"^[a-zA-Z0-9_-]+$") ||
+                    collectionId.Length > 255)
+                {
+                    _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
+                    return BadRequest("Invalid collection ID");
+                }
+
+                if (video == null || video.Length == 0)
+                {
+                    return BadRequest("No video file provided");
+                }
+
+                // ファイルサイズチェック（上限: 1024MB）
+                const long maxFileSize = 1024 * 1024 * 1024;
+                if (video.Length > maxFileSize)
+                {
+                    return BadRequest("File size exceeds the maximum allowed size (1024MB)");
+                }
+
+                // 許可する動画拡張子
+                var extension = Path.GetExtension(video.FileName).ToLowerInvariant();
+                if (!VideoFormats.AllowedExtensions.Contains(extension))
+                {
+                    return BadRequest("Unsupported file format. Supported formats: MP4, MOV, AVI, MKV, WebM, WMV, FLV, M4V");
+                }
+
+                // ファイル名を検証（パストラバーサル文字を禁止）
+                var sanitizedFileName = Path.GetFileName(video.FileName);
+                if (!IsSafePathComponent(sanitizedFileName))
+                {
+                    _logger.LogWarning("Invalid file name: {fileName}", video.FileName.SanitizeForLog());
+                    return BadRequest("Invalid file name");
+                }
+
+                // 設定からデータパスを取得
+                var dataPath = _configuration["ProjectDataPath"] ?? Directory.GetCurrentDirectory();
+
+                // videos フォルダのパスを構築
+                var videosPath = Path.GetFullPath(Path.Combine(dataPath, collectionId, "videos"));
+
+                // videos フォルダが存在しない場合は作成
+                if (!Directory.Exists(videosPath))
+                {
+                    Directory.CreateDirectory(videosPath);
+                }
+
+                // ファイルの保存先を決定
+                var filePath = Path.GetFullPath(Path.Combine(videosPath, sanitizedFileName));
+
+                // セキュリティ: 解決済みパスが videos ディレクトリ配下に留まっていることを確認
+                if (!IsPathWithinDirectory(filePath, videosPath))
+                {
+                    _logger.LogWarning("Path traversal attempt detected: {fullPath}", filePath.SanitizeForLog());
+                    return BadRequest("Invalid file path");
+                }
+
+                // 同名ファイルが存在する場合は連番を付与
+                if (System.IO.File.Exists(filePath))
+                {
+                    const int maxDuplicateFileNameAttempts = 1000;
+                    var fileNameWithoutExt = Path.GetFileNameWithoutExtension(sanitizedFileName);
+                    var counter = 1;
+                    do
+                    {
+                        var newFileName = $"{fileNameWithoutExt}_{counter}{extension}";
+                        filePath = Path.GetFullPath(Path.Combine(videosPath, newFileName));
+                        counter++;
+                    } while (System.IO.File.Exists(filePath) && counter <= maxDuplicateFileNameAttempts);
+
+                    if (counter > maxDuplicateFileNameAttempts && System.IO.File.Exists(filePath))
+                    {
+                        return BadRequest("Too many files with the same name exist in this collection");
+                    }
+                }
+
+                // ファイルを保存
+                using (var stream = System.IO.File.Create(filePath))
+                {
+                    await video.CopyToAsync(stream);
+                }
+
+                // コレクションの動画キャッシュを更新
+                _crecDataService.RefreshCollectionVideoFileCache(collectionId);
+
+                _logger.LogInformation("Video uploaded for collection {CollectionId}: {FileName}",
+                    collectionId.SanitizeForLog(), Path.GetFileName(filePath).SanitizeForLog());
+
+                return Ok(new { fileName = Path.GetFileName(filePath) });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error uploading video for collection {CollectionId}", collectionId.SanitizeForLog());
+                return StatusCode(500, "Error uploading video");
+            }
+        }
+
+        /// <summary>
+        /// 動画ファイル削除
+        /// </summary>
+        /// <param name="collectionId">コレクションID</param>
+        /// <param name="fileName">削除する動画ファイル名</param>
+        /// <returns>削除結果</returns>
+        // 呼び出し例: DELETE /api/File/{collectionId}/video?fileName=video.mp4
+        [HttpDelete("{collectionId}/video")]
+        public IActionResult DeleteVideo(string collectionId, [FromQuery] string fileName)
+        {
+            try
+            {
+                // セキュリティ: コレクション ID を検証（英数字・ハイフン・アンダースコアのみ）
+                if (string.IsNullOrWhiteSpace(collectionId) ||
+                    !System.Text.RegularExpressions.Regex.IsMatch(collectionId, @"^[a-zA-Z0-9_-]+$") ||
+                    collectionId.Length > 255)
+                {
+                    _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
+                    return BadRequest("Invalid collection ID");
+                }
+
+                // セキュリティ: ファイル名を検証（パストラバーサル文字を禁止）
+                if (!IsSafePathComponent(fileName))
+                {
+                    _logger.LogWarning("Invalid file name: {fileName}", Path.GetFileName(fileName ?? "").SanitizeForLog());
+                    return BadRequest("Invalid file name");
+                }
+
+                var dataPath = _configuration["ProjectDataPath"] ?? Directory.GetCurrentDirectory();
+
+                // videos フォルダーへのパスを構築
+                var videosPath = Path.GetFullPath(Path.Combine(dataPath, collectionId, "videos"));
+                var filePath = Path.GetFullPath(Path.Combine(videosPath, fileName));
+
+                // セキュリティ: 解決済みパスが videos ディレクトリ配下に留まっていることを確認
+                if (!IsPathWithinDirectory(filePath, videosPath))
+                {
+                    _logger.LogWarning("Path traversal attempt detected: {fullPath}", filePath.SanitizeForLog());
+                    return BadRequest("Invalid file path");
+                }
+
+                if (!System.IO.File.Exists(filePath))
+                {
+                    return NotFound("Video not found");
+                }
+
+                System.IO.File.Delete(filePath);
+
+                // コレクションの動画キャッシュを更新（ファイルシステムとキャッシュの整合性を保つため）
+                _crecDataService.RefreshCollectionVideoFileCache(collectionId);
+
+                _logger.LogInformation("Video deleted for collection {CollectionId}: {FileName}",
+                    collectionId.SanitizeForLog(), Path.GetFileName(filePath).SanitizeForLog());
+
+                return Ok(new { message = "Video deleted successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting video for collection {CollectionId}", collectionId.SanitizeForLog());
+                return StatusCode(500, "Error deleting video");
+            }
+        }
+
         // path セーフ判定用ヘルパー
         private static bool IsSafePathComponent(string component)
         {
