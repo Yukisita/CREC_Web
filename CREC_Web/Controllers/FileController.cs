@@ -476,6 +476,7 @@ namespace CREC_Web.Controllers
                     return BadRequest("Invalid file name");
                 }
 
+                // 設定からデータパスを取得。未設定の場合はカレントディレクトリを使用
                 var dataPath = _configuration["ProjectDataPath"] ?? Directory.GetCurrentDirectory();
 
                 // videos フォルダーへのパスを構築: dataPath\collectionId\videos\fileName
@@ -485,11 +486,14 @@ namespace CREC_Web.Controllers
                 var fullPath = Path.GetFullPath(filePath);
                 var allowedPath = Path.GetFullPath(Path.Combine(dataPath, collectionId, "videos"));
 
+                // セキュリティ: 解決済みパスが videos ディレクトリ配下に留まっていることを確認
                 if (!IsPathWithinDirectory(filePath, allowedPath))
                 {
                     _logger.LogWarning("Path traversal attempt detected: {fullPath}", fullPath.SanitizeForLog());
                     return BadRequest("Invalid file path");
                 }
+
+                _logger.LogInformation("Attempting to serve file: {filePath}", filePath.SanitizeForLog());
 
                 if (!System.IO.File.Exists(filePath))
                 {
