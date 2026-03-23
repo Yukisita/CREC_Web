@@ -546,11 +546,11 @@ namespace CREC_Web.Controllers
                     return BadRequest("No video file provided");
                 }
 
-                // ファイルサイズチェック（上限: 128MB）
-                const long maxFileSize = 128 * 1024 * 1024;
+                // ファイルサイズチェック（上限: 1024MB）
+                const long maxFileSize = 1024 * 1024 * 1024;
                 if (video.Length > maxFileSize)
                 {
-                    return BadRequest("File size exceeds the maximum allowed size (128MB)");
+                    return BadRequest("File size exceeds the maximum allowed size (1024MB)");
                 }
 
                 // 許可する動画拡張子
