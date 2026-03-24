@@ -692,7 +692,7 @@ namespace CREC_Web.Controllers
 
                 // 許可する動画拡張子かを検証
                 var extension = Path.GetExtension(fileName).ToLowerInvariant();
-                if (!VideoFormats.AllowedExtensions.Contains(extension))
+                if (string.IsNullOrEmpty(extension) || !VideoFormats.AllowedExtensions.Contains(extension))
                 {
                     _logger.LogWarning("Unsupported video format requested for deletion: {extension} for file: {fileName}", extension, fileName.SanitizeForLog());
                     return BadRequest("Unsupported video format");
