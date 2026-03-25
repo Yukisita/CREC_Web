@@ -83,8 +83,8 @@ namespace CREC_Web.Controllers
                 var extension = Path.GetExtension(fileName);
                 if (string.IsNullOrEmpty(extension))
                 {
-                    _logger.LogWarning("Unsupported video format (no extension) for file: {fileName}", (fileName ?? string.Empty).SanitizeForLog());
-                    return BadRequest("Unsupported video format");
+                    _logger.LogWarning("Unsupported image format (no extension) for file: {fileName}", (fileName ?? string.Empty).SanitizeForLog());
+                    return BadRequest("Unsupported image format");
                 }
 
                 extension = extension.ToLowerInvariant();
