@@ -19,6 +19,9 @@ namespace CREC_Web.Controllers
         private readonly ILogger<FileController> _logger;
         private readonly CrecDataService _crecDataService;
 
+        private const long MaxImageFileSizeBytes = 128L * 1024 * 1024;   // 128MB
+        private const long MaxVideoFileSizeBytes = 1024L * 1024 * 1024;  // 1024MB
+
         public FileController(IConfiguration configuration, ILogger<FileController> logger, CrecDataService crecDataService)
         {
             _configuration = configuration;
@@ -199,6 +202,8 @@ namespace CREC_Web.Controllers
         /// <returns>アップロード結果</returns>
         // 呼び出し例: POST /api/File/{collectionId}/upload/image
         [HttpPost("{collectionId}/upload/image")]
+        [RequestSizeLimit(MaxImageFileSizeBytes)]
+        [RequestFormLimits(MultipartBodyLengthLimit = MaxImageFileSizeBytes)]
         public async Task<IActionResult> UploadImage(string collectionId, IFormFile image)
         {
             try
@@ -218,8 +223,7 @@ namespace CREC_Web.Controllers
                 }
 
                 // ファイルサイズチェック（上限: 128MB）
-                const long maxFileSize = 128 * 1024 * 1024;
-                if (image.Length > maxFileSize)
+                if (image.Length > MaxImageFileSizeBytes)
                 {
                     return BadRequest("File size exceeds the maximum allowed size (128MB)");
                 }
@@ -560,6 +564,8 @@ namespace CREC_Web.Controllers
         /// <returns>アップロード結果</returns>
         // 呼び出し例: POST /api/File/{collectionId}/upload/video
         [HttpPost("{collectionId}/upload/video")]
+        [RequestSizeLimit(MaxVideoFileSizeBytes)]
+        [RequestFormLimits(MultipartBodyLengthLimit = MaxVideoFileSizeBytes)]
         public async Task<IActionResult> UploadVideo(string collectionId, IFormFile video)
         {
             try
@@ -579,8 +585,7 @@ namespace CREC_Web.Controllers
                 }
 
                 // ファイルサイズチェック（上限: 1024MB）
-                const long maxFileSize = 1024 * 1024 * 1024;
-                if (video.Length > maxFileSize)
+                if (video.Length > MaxVideoFileSizeBytes)
                 {
                     return BadRequest("File size exceeds the maximum allowed size (1024MB)");
                 }
