@@ -220,20 +220,47 @@
 
         /* Responsive layout: switch to vertical layout on narrow screens */
         @@media (max-width: 992px) {
+            body {
+                overflow: auto;
+            }
+
             .split-container {
                 flex-direction: column;
+                height: auto;
+                min-height: 100vh;
             }
 
             .left-panel {
                 flex: none;
                 border-right: none;
                 border-bottom: 2px solid #dee2e6;
-                max-height: 50vh;
+                max-height: none;
+                overflow: visible;
+            }
+
+            .left-panel-header {
+                overflow-y: visible;
+                max-height: none;
+            }
+
+            .left-panel-tabs {
+                overflow: visible;
+                min-height: 0;
+            }
+
+            .left-panel-tabs .tab-content {
+                overflow-y: visible;
             }
 
             .right-panel {
                 flex: none;
-                height: 50vh;
+                height: auto;
+            }
+
+            #historyTableContainer {
+                flex: none;
+                overflow-y: auto;
+                max-height: 50vh;
             }
         }
     </style>
