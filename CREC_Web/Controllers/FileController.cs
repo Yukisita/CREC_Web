@@ -125,7 +125,7 @@ namespace CREC_Web.Controllers
         /// <param name="collectionId">コレクションID</param>
         /// <param name="fileName">ファイル名</param>
         /// <returns>ファイル（配信用）</returns>
-        // 呼び出し例: /api/File/{collectionId}/data/{pictureFileName}
+        // 呼び出し例: /api/File/{collectionId}/data/{fileName}
         [HttpGet("{collectionId}/data/{fileName}")]
         public IActionResult GetDataFile(string collectionId, string fileName)
         {
