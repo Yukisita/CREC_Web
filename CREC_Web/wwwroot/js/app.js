@@ -483,6 +483,69 @@ async function deleteCollectionImage(collectionId, fileName, onSuccess) {
     }
 }
 
+/**
+ * 動画をコレクションにアップロードする
+ * @param {string} collectionId - コレクションID
+ * @param {File} file - アップロード動画ファイル
+ * @param {Function} onSuccess - アップロード成功後のコールバック
+ */
+async function uploadCollectionVideo(collectionId, file, onSuccess) {
+    const allowedExtensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.wmv', '.flv', '.m4v'];
+    const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+    if (!allowedExtensions.includes(fileExtension)) {
+        alert(t('add-video-invalid-format'));
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('video', file);
+
+    try {
+        const response = await fetch(`/api/File/${encodeURIComponent(collectionId)}/upload/video`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        alert(t('add-video-success'));
+        if (typeof onSuccess === 'function') {
+            await onSuccess();
+        }
+    } catch (error) {
+        console.error('Error uploading video:', error);
+        alert(t('add-video-error'));
+    }
+}
+
+/**
+ * 指定した動画をコレクションから削除する
+ * @param {string} collectionId - コレクションID
+ * @param {string} fileName - 削除する動画ファイル名
+ * @param {Function} onSuccess - 削除成功後のコールバック
+ */
+async function deleteCollectionVideo(collectionId, fileName, onSuccess) {
+    try {
+        const response = await fetch(`/api/File/${encodeURIComponent(collectionId)}/video?fileName=${encodeURIComponent(fileName)}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        alert(t('delete-video-success'));
+        if (typeof onSuccess === 'function') {
+            await onSuccess();
+        }
+    } catch (error) {
+        console.error('Error deleting video:', error);
+        alert(t('delete-video-error'));
+    }
+}
+
 // =====================
 // Admin Panel Functions
 // =====================
