@@ -431,6 +431,14 @@ namespace CREC_Web.Controllers
                     return BadRequest("Invalid file name");
                 }
 
+                // 許可する画像拡張子かを検証
+                var extension = Path.GetExtension(fileName).ToLowerInvariant();
+                if(string.IsNullOrEmpty(extension) || !ImageFormats.AllowedExtensions.Contains(extension))
+                {
+                    _logger.LogWarning("Unsupported image format requested for deletion: {extension} for file: {fileName}", extension.SanitizeForLog(), fileName.SanitizeForLog());
+                    return BadRequest("Unsupported image format");
+                }
+
                 var dataPath = _configuration["ProjectDataPath"] ?? Directory.GetCurrentDirectory();
 
                 // pictures フォルダーへのパスを構築
