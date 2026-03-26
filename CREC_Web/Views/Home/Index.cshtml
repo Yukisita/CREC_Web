@@ -840,7 +840,7 @@
             const imagesHtml = images.length > 0
                 ? `
                     <div class="image-carousel">
-                        <img id="carouselImage" src="/api/File/${encodeURIComponent(collection.indexData.systemData.id)}/${encodeURIComponent(images[0])}"
+                        <img id="carouselImage" src="/api/File/${encodeURIComponent(collection.indexData.systemData.id)}/picture/${encodeURIComponent(images[0])}"
                                 class="detail-image"
                                 alt="${escapeHtml(images[0])}"
                                 onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\'%3E%3Crect width=\'200\' height=\'200\' fill=\'%23ddd\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-family=\'sans-serif\' font-size=\'16\' fill=\'%23999\'%3EImage not found%3C/text%3E%3C/svg%3E';">
@@ -993,7 +993,7 @@
                             console.error('Collection ID is missing.');
                             return;
                         }
-                        carouselImage.src = `/api/File/${encodeURIComponent(collectionID)}/${encodeURIComponent(images[currentImageIndex])}`;
+                        carouselImage.src = `/api/File/${encodeURIComponent(collectionID)}/picture/${encodeURIComponent(images[currentImageIndex])}`;
                         carouselImage.alt = images[currentImageIndex];
                         imageCounter.textContent = `${currentImageIndex + 1} / ${images.length}`;
                         imageName.textContent = images[currentImageIndex];

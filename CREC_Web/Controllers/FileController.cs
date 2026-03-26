@@ -35,8 +35,8 @@ namespace CREC_Web.Controllers
         /// <param name="collectionId">コレクションID</param>
         /// <param name="fileName">画像ファイル名</param>
         /// <returns>画像ファイル</returns>
-        // 呼び出し例: /api/File/{collectionId}/{fileName}
-        [HttpGet("{collectionId}/{fileName}")]
+        // 呼び出し例: /api/File/{collectionId}/picture/{fileName}
+        [HttpGet("{collectionId}/picture/{fileName}")]
         public IActionResult GetFile(string collectionId, string fileName)
         {
             try
