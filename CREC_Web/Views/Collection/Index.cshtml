@@ -209,6 +209,10 @@
             padding: 0 1rem 1rem 1rem;
         }
 
+        .history-table-separator {
+            display: none;
+        }
+
         /* Fallback tab visibility rules (Bootstrap CSS handles this when CDN is available) */
         .tab-content > .tab-pane {
             display: none;
@@ -261,6 +265,12 @@
                 flex: none;
                 height: 300px;
                 overflow-y: auto;
+            }
+
+            .history-table-separator {
+                display: block;
+                margin: 0 1rem;
+                border-top: 2px solid #dee2e6;
             }
         }
     </style>
@@ -337,6 +347,7 @@
                 </div>
             </div>
         </div>
+        <hr class="history-table-separator" />
     </div>
 </div>
 
