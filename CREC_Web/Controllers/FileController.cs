@@ -183,8 +183,8 @@ namespace CREC_Web.Controllers
                 Response.Headers["Access-Control-Allow-Origin"] = "*";
                 Response.Headers["Cache-Control"] = "public, max-age=3600";
 
-                // 直接ファイルを配信するために PhysicalFile を使用
-                return PhysicalFile(fullFilePath, contentType);
+                // ファイルをダウンロードとして提供するために fileDownloadName を指定
+                return PhysicalFile(fullFilePath, contentType, fileDownloadName: fileName);
             }
             catch (Exception ex)
             {
