@@ -819,9 +819,9 @@
             document.querySelector('label[for="editManagementCode"]').textContent = t('management-code');
             document.querySelector('label[for="editRegistrationDate"]').textContent = t('registration-date-label');
             document.querySelector('label[for="editCategory"]').textContent = t('category');
-            document.querySelector('label[for="editFirstTag"]').textContent = t('first-tag');
-            document.querySelector('label[for="editSecondTag"]').textContent = t('second-tag');
-            document.querySelector('label[for="editThirdTag"]').textContent = t('third-tag');
+            document.querySelector('label[for="editFirstTag"]').textContent = projectSettings.tag1Name || t('first-tag');
+            document.querySelector('label[for="editSecondTag"]').textContent = projectSettings.tag2Name || t('second-tag');
+            document.querySelector('label[for="editThirdTag"]').textContent = projectSettings.tag3Name || t('third-tag');
             document.querySelector('label[for="editLocation"]').textContent = t('location');
             
             // ボタンのテキスト設定
