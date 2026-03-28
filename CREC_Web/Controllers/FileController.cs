@@ -182,9 +182,10 @@ namespace CREC_Web.Controllers
                 // CORS とキャッシュヘッダーを付与
                 Response.Headers["Access-Control-Allow-Origin"] = "*";
                 Response.Headers["Cache-Control"] = "public, max-age=3600";
+                Response.Headers["X-Content-Type-Options"] = "nosniff";
 
-                // 直接ファイルを配信するために PhysicalFile を使用
-                return PhysicalFile(fullFilePath, contentType);
+                // ファイルをダウンロードとして提供するために fileDownloadName を指定
+                return PhysicalFile(fullFilePath, contentType, fileDownloadName: Path.GetFileName(fileName));
             }
             catch (Exception ex)
             {
