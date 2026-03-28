@@ -53,4 +53,4 @@
 Copyright (c) 2025-2026 S.Yukisita
 
 サードパーティライセンスについては [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md) をご参照ください。   
-QRコードは株式会社デンソーウェーブの登録商標です
+QRコードは株式会社デンソーウェーブの登録商標です。
