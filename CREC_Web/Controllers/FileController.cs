@@ -184,7 +184,7 @@ namespace CREC_Web.Controllers
                 Response.Headers["Cache-Control"] = "public, max-age=3600";
 
                 // ファイルをダウンロードとして提供するために fileDownloadName を指定
-                return PhysicalFile(fullFilePath, contentType, fileDownloadName: fileName);
+                return PhysicalFile(fullFilePath, contentType, fileDownloadName: Path.GetFileName(fileName));
             }
             catch (Exception ex)
             {
