@@ -49,6 +49,6 @@
 ## ライセンス
 
 本ソフトウェアは [MIT License](LICENSE) のもとで公開されています。  
-Copyright (c) 2025 S.Yukisita
+Copyright (c) 2025-2026 S.Yukisita
 
 サードパーティライセンスについては [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md) をご参照ください。
