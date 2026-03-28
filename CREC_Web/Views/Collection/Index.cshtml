@@ -209,6 +209,10 @@
             padding: 0 1rem 1rem 1rem;
         }
 
+        .history-table-separator {
+            display: none;
+        }
+
         /* Fallback tab visibility rules (Bootstrap CSS handles this when CDN is available) */
         .tab-content > .tab-pane {
             display: none;
@@ -220,20 +224,52 @@
 
         /* Responsive layout: switch to vertical layout on narrow screens */
         @@media (max-width: 992px) {
+            body {
+                overflow: auto;
+            }
+
             .split-container {
                 flex-direction: column;
+                height: auto;
             }
 
             .left-panel {
                 flex: none;
                 border-right: none;
                 border-bottom: 2px solid #dee2e6;
-                max-height: 50vh;
+                max-height: none;
+                overflow: visible;
+            }
+
+            .left-panel-header {
+                overflow-y: visible;
+                max-height: none;
+            }
+
+            .left-panel-tabs {
+                overflow: visible;
+                min-height: 0;
+            }
+
+            .left-panel-tabs .tab-content {
+                overflow-y: visible;
             }
 
             .right-panel {
                 flex: none;
-                height: 50vh;
+                height: auto;
+            }
+
+            #historyTableContainer {
+                flex: none;
+                height: 275px;
+                overflow-y: auto;
+            }
+
+            .history-table-separator {
+                display: block;
+                margin: 0 1rem;
+                border-top: 2px solid #dee2e6;
             }
         }
     </style>
@@ -310,6 +346,7 @@
                 </div>
             </div>
         </div>
+        <hr class="history-table-separator" />
     </div>
 </div>
 
