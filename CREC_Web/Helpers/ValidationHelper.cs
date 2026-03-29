@@ -20,7 +20,7 @@ namespace CREC_Web.Helpers
             if (string.IsNullOrWhiteSpace(collectionId)) return false;
             if (collectionId.Length > MaxCollectionIdLength) return false;
 
-            // ".." のみ、または "." のみで構成されるIDは無効（パストラバーサル・ルートアクセス防止）
+            // "." や ".." など、ドットのみで構成されるIDは無効（パストラバーサル・ルートアクセス防止）
             if (collectionId.All(c => c == '.')) return false;
 
             // パス区切り文字を禁止
