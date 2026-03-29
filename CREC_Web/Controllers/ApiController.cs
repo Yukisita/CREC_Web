@@ -173,7 +173,7 @@ namespace CREC_Web.Controllers
         {
             try
             {
-                // コレクションIDの評価
+                // セキュリティ: コレクション ID を検証
                 if (!ValidationHelper.IsValidCollectionId(id))
                 {
                     return BadRequest("Invalid collection ID");
@@ -319,7 +319,7 @@ namespace CREC_Web.Controllers
         {
             try
             {
-                // コレクションIDの評価
+                // セキュリティ: コレクション ID を検証
                 if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
                     return BadRequest("Invalid collection ID");
@@ -438,6 +438,7 @@ namespace CREC_Web.Controllers
         {
             try
             {
+                // セキュリティ: コレクション ID を検証
                 if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
                     return BadRequest("Invalid collection ID");
@@ -574,6 +575,7 @@ namespace CREC_Web.Controllers
         {
             try
             {
+                // セキュリティ: コレクション ID を検証
                 if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
                     return BadRequest("Invalid collection ID");
@@ -632,7 +634,7 @@ namespace CREC_Web.Controllers
         {
             try
             {
-                // collectionId もバリデーション（GetThumbnail と同等）
+                // セキュリティ: コレクション ID を検証
                 if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
                     return BadRequest("Invalid collection ID");
@@ -734,7 +736,7 @@ namespace CREC_Web.Controllers
         {
             try
             {
-                // コレクションIDの評価
+                // セキュリティ: コレクション ID を検証
                 if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
                     return BadRequest("Invalid collection ID");

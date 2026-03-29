@@ -41,7 +41,7 @@ namespace CREC_Web.Controllers
         {
             try
             {
-                // セキュリティ: コレクション ID を検証（英数字・ハイフン・アンダースコアのみ）
+                // セキュリティ: コレクション ID を検証
                 if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
                     _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
@@ -207,7 +207,7 @@ namespace CREC_Web.Controllers
         {
             try
             {
-                // セキュリティ: コレクション ID を検証（英数字・ハイフン・アンダースコアのみ）
+                // セキュリティ: コレクション ID を検証
                 if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
                     _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
@@ -314,7 +314,7 @@ namespace CREC_Web.Controllers
         {
             try
             {
-                // セキュリティ: コレクション ID を検証（英数字・ハイフン・アンダースコアのみ）
+                // セキュリティ: コレクション ID を検証
                 if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
                     _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
@@ -410,7 +410,7 @@ namespace CREC_Web.Controllers
         {
             try
             {
-                // セキュリティ: コレクション ID を検証（英数字・ハイフン・アンダースコアのみ）
+                // セキュリティ: コレクション ID を検証
                 if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
                     _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
@@ -479,7 +479,7 @@ namespace CREC_Web.Controllers
         {
             try
             {
-                // セキュリティ: コレクション ID を検証（英数字・ハイフン・アンダースコアのみ）
+                // セキュリティ: コレクション ID を検証
                 if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
                     _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
@@ -569,7 +569,7 @@ namespace CREC_Web.Controllers
         {
             try
             {
-                // セキュリティ: コレクション ID を検証（英数字・ハイフン・アンダースコアのみ）
+                // セキュリティ: コレクション ID を検証
                 if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
                     _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
@@ -676,7 +676,7 @@ namespace CREC_Web.Controllers
         {
             try
             {
-                // セキュリティ: コレクション ID を検証（英数字・ハイフン・アンダースコアのみ）
+                // セキュリティ: コレクション ID を検証
                 if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
                     _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
