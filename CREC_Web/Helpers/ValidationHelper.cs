@@ -12,9 +12,9 @@ namespace CREC_Web.Helpers
 
         public static bool IsValidCollectionId(string collectionId)
         {
-            return !string.IsNullOrWhiteSpace(collectionId) &&
-                   System.Text.RegularExpressions.Regex.IsMatch(collectionId, @"^[a-zA-Z0-9_-]+$") &&
-                   collectionId.Length <= MaxCollectionIdLength;
+            return !string.IsNullOrWhiteSpace(collectionId) &&// 空白のみのIDは無効
+                   System.Text.RegularExpressions.Regex.IsMatch(collectionId, @"^[a-zA-Z0-9_-]+$") &&// 英数字、アンダースコア、ハイフンのみ許可
+                   collectionId.Length <= MaxCollectionIdLength;// 最大長確認
         }
     }
 }
