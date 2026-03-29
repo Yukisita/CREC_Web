@@ -174,8 +174,7 @@ namespace CREC_Web.Controllers
             try
             {
                 // コレクションIDの評価
-                if (string.IsNullOrWhiteSpace(id) ||
-                    id.Contains("..") || id.Contains("/") || id.Contains("\\"))
+                if (!ValidationHelper.IsValidCollectionId(id))
                 {
                     return BadRequest("Invalid collection ID");
                 }
@@ -321,8 +320,7 @@ namespace CREC_Web.Controllers
             try
             {
                 // コレクションIDの評価
-                if (string.IsNullOrWhiteSpace(collectionId) ||
-                    collectionId.Contains("..") || collectionId.Contains("/") || collectionId.Contains("\\"))
+                if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
                     return BadRequest("Invalid collection ID");
                 }
@@ -440,7 +438,12 @@ namespace CREC_Web.Controllers
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(collectionId) || settings == null)
+                if (!ValidationHelper.IsValidCollectionId(collectionId))
+                {
+                    return BadRequest("Invalid collection ID");
+                }
+
+                if (settings == null)
                 {
                     return BadRequest("Invalid request");
                 }
@@ -571,8 +574,7 @@ namespace CREC_Web.Controllers
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(collectionId) ||
-                    collectionId.Contains("..") || collectionId.Contains("/") || collectionId.Contains("\\"))
+                if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
                     return BadRequest("Invalid collection ID");
                 }
@@ -631,8 +633,7 @@ namespace CREC_Web.Controllers
             try
             {
                 // collectionId もバリデーション（GetThumbnail と同等）
-                if (string.IsNullOrWhiteSpace(collectionId) ||
-                    collectionId.Contains("..") || collectionId.Contains("/") || collectionId.Contains("\\"))
+                if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
                     return BadRequest("Invalid collection ID");
                 }
@@ -734,8 +735,7 @@ namespace CREC_Web.Controllers
             try
             {
                 // コレクションIDの評価
-                if (string.IsNullOrWhiteSpace(collectionId) ||
-                    collectionId.Contains("..") || collectionId.Contains("/") || collectionId.Contains("\\"))
+                if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
                     return BadRequest("Invalid collection ID");
                 }
