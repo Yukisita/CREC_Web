@@ -513,44 +513,46 @@ namespace CREC_Web.Services
         /// <summary>
         /// 特定コレクションの画像リストキャッシュのみクリア（全体キャッシュは維持）
         /// </summary>
-        /// <param name="id">コレクションID</param>
-        public void RefreshCollectionImageFileCache(string id)
+        /// <param name="collectionId">コレクションID</param>
+        public void RefreshCollectionImageFileCache(string collectionId)
         {
-            if (string.IsNullOrWhiteSpace(id))
+            // セキュリティ: コレクション ID を検証
+            if (!ValidationHelper.IsValidCollectionId(collectionId))
                 return;
 
             lock (_cacheLock)
             {
                 var collection = _collectionsCache.FirstOrDefault(c =>
-                    c.IndexData.SystemData.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+                    c.IndexData.SystemData.Id.Equals(collectionId, StringComparison.OrdinalIgnoreCase));
 
                 if (collection != null)
                 {
                     collection.ImageFiles.Clear();
                     LoadFileList(collection, collection.CollectionFolderPath);
-                    _logger.LogInformation("File cache refreshed for collection {CollectionId}", id.SanitizeForLog());
+                    _logger.LogInformation("File cache refreshed for collection {CollectionId}", collectionId.SanitizeForLog());
                 }
             }
         }
         /// <summary>
         /// 特定コレクションの動画リストキャッシュのみクリア（全体キャッシュは維持）
         /// </summary>
-        /// <param name="id">コレクションID</param>
-        public void RefreshCollectionVideoFileCache(string id)
+        /// <param name="collectionId">コレクションID</param>
+        public void RefreshCollectionVideoFileCache(string collectionId)
         {
-            if (string.IsNullOrWhiteSpace(id))
+            // セキュリティ: コレクション ID を検証
+            if (!ValidationHelper.IsValidCollectionId(collectionId))
                 return;
 
             lock (_cacheLock)
             {
                 var collection = _collectionsCache.FirstOrDefault(c =>
-                    c.IndexData.SystemData.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+                    c.IndexData.SystemData.Id.Equals(collectionId, StringComparison.OrdinalIgnoreCase));
 
                 if (collection != null)
                 {
                     collection.VideoFiles.Clear();
                     LoadFileList(collection, collection.CollectionFolderPath);
-                    _logger.LogInformation("Video file cache refreshed for collection {CollectionId}", id.SanitizeForLog());
+                    _logger.LogInformation("Video file cache refreshed for collection {CollectionId}", collectionId.SanitizeForLog());
                 }
             }
         }
