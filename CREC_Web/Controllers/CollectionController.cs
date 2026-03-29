@@ -17,7 +17,7 @@ namespace CREC_Web.Controllers
             // セキュリティ: コレクション ID を検証
             if (!ValidationHelper.IsValidCollectionId(collectionId))
             {
-                return BadRequest("Collection ID is required");
+                return BadRequest("Invalid collection ID");
             }
 
             // Store the ID in ViewData - it will be properly encoded when rendered
