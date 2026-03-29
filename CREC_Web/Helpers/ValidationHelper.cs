@@ -1,5 +1,5 @@
 ﻿/*
-CREC Web - File Controller
+CREC Web - Validation Helper
 Copyright (c) [2025 - 2026] [S.Yukisita]
 This software is released under the MIT License.
 */
