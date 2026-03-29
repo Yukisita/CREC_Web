@@ -518,7 +518,10 @@ namespace CREC_Web.Services
         {
             // セキュリティ: コレクション ID を検証
             if (!ValidationHelper.IsValidCollectionId(collectionId))
+            {
+                _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
                 return;
+            }
 
             lock (_cacheLock)
             {
@@ -541,7 +544,10 @@ namespace CREC_Web.Services
         {
             // セキュリティ: コレクション ID を検証
             if (!ValidationHelper.IsValidCollectionId(collectionId))
+            {
+                _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
                 return;
+            }
 
             lock (_cacheLock)
             {
