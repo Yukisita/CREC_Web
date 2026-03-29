@@ -44,7 +44,7 @@ namespace CREC_Web.Controllers
                 // セキュリティ: コレクション ID を検証
                 if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
-                    _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
+                    _logger.LogError("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
                     return BadRequest("Invalid collection ID");
                 }
 
@@ -210,7 +210,7 @@ namespace CREC_Web.Controllers
                 // セキュリティ: コレクション ID を検証
                 if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
-                    _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
+                    _logger.LogError("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
                     return BadRequest("Invalid collection ID");
                 }
 
@@ -317,7 +317,7 @@ namespace CREC_Web.Controllers
                 // セキュリティ: コレクション ID を検証
                 if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
-                    _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
+                    _logger.LogError("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
                     return BadRequest("Invalid collection ID");
                 }
 
@@ -413,7 +413,7 @@ namespace CREC_Web.Controllers
                 // セキュリティ: コレクション ID を検証
                 if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
-                    _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
+                    _logger.LogError("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
                     return BadRequest("Invalid collection ID");
                 }
 
@@ -482,7 +482,7 @@ namespace CREC_Web.Controllers
                 // セキュリティ: コレクション ID を検証
                 if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
-                    _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
+                    _logger.LogError("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
                     return BadRequest("Invalid collection ID");
                 }
 
@@ -572,7 +572,7 @@ namespace CREC_Web.Controllers
                 // セキュリティ: コレクション ID を検証
                 if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
-                    _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
+                    _logger.LogError("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
                     return BadRequest("Invalid collection ID");
                 }
 
@@ -679,7 +679,7 @@ namespace CREC_Web.Controllers
                 // セキュリティ: コレクション ID を検証
                 if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
-                    _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
+                    _logger.LogError("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
                     return BadRequest("Invalid collection ID");
                 }
 
