@@ -10,6 +10,12 @@ namespace CREC_Web.Helpers
     {
         private const int MaxCollectionIdLength = 255;
 
+        // Windows無効ファイル名文字を明示的に定義（クロスプラットフォーム対応）
+        private static readonly char[] WindowsInvalidFileNameChars = new[]
+        {
+            '<', '>', ':', '"', '/', '\\', '|', '?', '*'
+        };
+
         /// <summary>
         /// コレクションIDの妥当性検証
         /// </summary>
@@ -26,8 +32,14 @@ namespace CREC_Web.Helpers
             // パス区切り文字を禁止
             if (collectionId.Contains('/') || collectionId.Contains('\\')) return false;
 
-            // Windows無効ファイル名文字を禁止（':'など）
+            // Windows無効ファイル名文字を禁止（クロスプラットフォーム対応）
+            if (collectionId.IndexOfAny(WindowsInvalidFileNameChars) >= 0) return false;
+
+            // OS固有の無効文字を追加で禁止
             if (collectionId.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) return false;
+
+            // 制御文字を禁止
+            if (collectionId.Any(c => char.IsControl(c))) return false;
 
             // 末尾のドット・スペースを禁止（Windowsでのファイル名正規化によるID衝突防止）
             if (collectionId[^1] == '.' || collectionId[^1] == ' ') return false;
