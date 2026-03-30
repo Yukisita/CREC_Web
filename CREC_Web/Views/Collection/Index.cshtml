@@ -584,6 +584,12 @@
                         <i class="bi bi-trash"></i> ${t('delete-image')}
                     </button>
                 </div>
+                <div id="imageUploadProgress" class="mt-2" style="display:none;">
+                    <small class="text-muted" id="imageUploadLabel">${t('uploading')}</small>
+                    <div class="progress" style="height: 20px;">
+                        <div id="imageUploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                    </div>
+                </div>
                 <input type="file" id="imageFileInput" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp" style="display:none;">
             `;
         }
@@ -618,6 +624,12 @@
                     <button id="deleteVideoBtn" class="btn btn-sm btn-outline-danger" ${videos.length === 0 ? 'disabled' : ''}>
                         <i class="bi bi-trash"></i> ${t('delete-video')}
                     </button>
+                </div>
+                <div id="videoUploadProgress" class="mt-2" style="display:none;">
+                    <small class="text-muted" id="videoUploadLabel">${t('uploading')}</small>
+                    <div class="progress" style="height: 20px;">
+                        <div id="videoUploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                    </div>
                 </div>
                 <input type="file" id="videoFileInput" accept=".mp4,.mov,.avi,.mkv,.webm,.wmv,.flv,.m4v" style="display:none;">
             `;

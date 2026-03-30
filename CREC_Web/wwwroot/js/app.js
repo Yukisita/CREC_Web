@@ -408,15 +408,43 @@ async function uploadCollectionImage(collectionId, file, onSuccess) {
     const formData = new FormData();
     formData.append('image', file);
 
-    try {
-        const response = await fetch(`/api/File/${encodeURIComponent(collectionId)}/upload/image`, {
-            method: 'POST',
-            body: formData
-        });
+    const progressContainer = document.getElementById('imageUploadProgress');
+    const progressBar = document.getElementById('imageUploadProgressBar');
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+    if (progressContainer && progressBar) {
+        progressContainer.style.display = '';
+        progressBar.style.width = '0%';
+        progressBar.textContent = '0%';
+        progressBar.setAttribute('aria-valuenow', '0');
+    }
+
+    try {
+        await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `/api/File/${encodeURIComponent(collectionId)}/upload/image`);
+
+            xhr.upload.addEventListener('progress', (event) => {
+                if (event.lengthComputable && progressBar) {
+                    const percent = Math.round((event.loaded / event.total) * 100);
+                    progressBar.style.width = percent + '%';
+                    progressBar.textContent = percent + '%';
+                    progressBar.setAttribute('aria-valuenow', String(percent));
+                }
+            });
+
+            xhr.addEventListener('load', () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    resolve();
+                } else {
+                    reject(new Error(`HTTP error! status: ${xhr.status}`));
+                }
+            });
+
+            xhr.addEventListener('error', () => reject(new Error('Network error')));
+            xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
+
+            xhr.send(formData);
+        });
 
         alert(t('add-image-success'));
         if (typeof onSuccess === 'function') {
@@ -425,6 +453,10 @@ async function uploadCollectionImage(collectionId, file, onSuccess) {
     } catch (error) {
         console.error('Error uploading image:', error);
         alert(t('add-image-error'));
+    } finally {
+        if (progressContainer) {
+            progressContainer.style.display = 'none';
+        }
     }
 }
 
@@ -500,15 +532,43 @@ async function uploadCollectionVideo(collectionId, file, onSuccess) {
     const formData = new FormData();
     formData.append('video', file);
 
-    try {
-        const response = await fetch(`/api/File/${encodeURIComponent(collectionId)}/upload/video`, {
-            method: 'POST',
-            body: formData
-        });
+    const progressContainer = document.getElementById('videoUploadProgress');
+    const progressBar = document.getElementById('videoUploadProgressBar');
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+    if (progressContainer && progressBar) {
+        progressContainer.style.display = '';
+        progressBar.style.width = '0%';
+        progressBar.textContent = '0%';
+        progressBar.setAttribute('aria-valuenow', '0');
+    }
+
+    try {
+        await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `/api/File/${encodeURIComponent(collectionId)}/upload/video`);
+
+            xhr.upload.addEventListener('progress', (event) => {
+                if (event.lengthComputable && progressBar) {
+                    const percent = Math.round((event.loaded / event.total) * 100);
+                    progressBar.style.width = percent + '%';
+                    progressBar.textContent = percent + '%';
+                    progressBar.setAttribute('aria-valuenow', String(percent));
+                }
+            });
+
+            xhr.addEventListener('load', () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    resolve();
+                } else {
+                    reject(new Error(`HTTP error! status: ${xhr.status}`));
+                }
+            });
+
+            xhr.addEventListener('error', () => reject(new Error('Network error')));
+            xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
+
+            xhr.send(formData);
+        });
 
         alert(t('add-video-success'));
         if (typeof onSuccess === 'function') {
@@ -517,6 +577,10 @@ async function uploadCollectionVideo(collectionId, file, onSuccess) {
     } catch (error) {
         console.error('Error uploading video:', error);
         alert(t('add-video-error'));
+    } finally {
+        if (progressContainer) {
+            progressContainer.style.display = 'none';
+        }
     }
 }
 
