@@ -425,7 +425,7 @@ async function uploadCollectionImage(collectionId, file, onSuccess) {
 
             xhr.upload.addEventListener('progress', (event) => {
                 if (event.lengthComputable && progressBar) {
-                    const percent = Math.round((event.loaded / event.total) * 100);
+                    const percent = Math.round((event.loaded / event.total) * 95);
                     progressBar.style.width = percent + '%';
                     progressBar.textContent = percent + '%';
                     progressBar.setAttribute('aria-valuenow', String(percent));
@@ -433,6 +433,11 @@ async function uploadCollectionImage(collectionId, file, onSuccess) {
             });
 
             xhr.addEventListener('load', () => {
+                if (progressBar) {
+                    progressBar.style.width = '100%';
+                    progressBar.textContent = '100%';
+                    progressBar.setAttribute('aria-valuenow', '100');
+                }
                 if (xhr.status >= 200 && xhr.status < 300) {
                     resolve();
                 } else {
@@ -549,7 +554,7 @@ async function uploadCollectionVideo(collectionId, file, onSuccess) {
 
             xhr.upload.addEventListener('progress', (event) => {
                 if (event.lengthComputable && progressBar) {
-                    const percent = Math.round((event.loaded / event.total) * 100);
+                    const percent = Math.round((event.loaded / event.total) * 95);
                     progressBar.style.width = percent + '%';
                     progressBar.textContent = percent + '%';
                     progressBar.setAttribute('aria-valuenow', String(percent));
@@ -557,6 +562,11 @@ async function uploadCollectionVideo(collectionId, file, onSuccess) {
             });
 
             xhr.addEventListener('load', () => {
+                if (progressBar) {
+                    progressBar.style.width = '100%';
+                    progressBar.textContent = '100%';
+                    progressBar.setAttribute('aria-valuenow', '100');
+                }
                 if (xhr.status >= 200 && xhr.status < 300) {
                     resolve();
                 } else {
