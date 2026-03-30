@@ -8,6 +8,7 @@ namespace CREC_Web.Helpers
 {
     public static class ValidationHelper
     {
+        // コレクションIDの最大長を定義（255文字以下に制限）
         private const int MaxCollectionIdLength = 255;
 
         // Windows無効ファイル名文字を明示的に定義（クロスプラットフォーム対応）
