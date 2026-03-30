@@ -16,6 +16,14 @@ namespace CREC_Web.Helpers
             '<', '>', ':', '"', '/', '\\', '|', '?', '*'
         };
 
+        // Windows予約デバイス名
+        private static readonly HashSet<string> WindowsReservedDeviceNames = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "CON", "PRN", "AUX", "NUL",
+            "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+            "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
+        };
+
         /// <summary>
         /// コレクションIDの妥当性検証
         /// </summary>
@@ -43,6 +51,10 @@ namespace CREC_Web.Helpers
 
             // 末尾のドット・スペースを禁止（Windowsでのファイル名正規化によるID衝突防止）
             if (collectionId[^1] == '.' || collectionId[^1] == ' ') return false;
+
+            // IDをフォルダ名として使用するためWindows予約デバイス名を禁止（拡張子を除いて判定）
+            var collectionIdWithoutExtension = Path.GetFileNameWithoutExtension(collectionId);
+            if (WindowsReservedDeviceNames.Contains(collectionIdWithoutExtension)) return false;
 
             // 予約済みシステムIDを禁止
             if (string.Equals(collectionId, "$SystemData", StringComparison.OrdinalIgnoreCase)) return false;
