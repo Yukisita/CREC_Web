@@ -1255,6 +1255,8 @@
                 }
             });
 
+            // プロジェクト設定を先に読み込んでからコレクション詳細を読み込む（競合状態の防止）
+            await loadProjectSettings();
             await loadCollectionDetails();
             // URLに ?edit=1 が含まれる場合は編集モーダルを自動で開く（リロード時に再度開かないようURLから edit フラグのみ除去）
             if (new URLSearchParams(window.location.search).get('edit') === '1' && currentCollection) {
