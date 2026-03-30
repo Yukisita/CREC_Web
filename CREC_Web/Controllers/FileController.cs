@@ -41,10 +41,8 @@ namespace CREC_Web.Controllers
         {
             try
             {
-                // セキュリティ: コレクション ID を検証（英数字・ハイフン・アンダースコアのみ）
-                if (string.IsNullOrWhiteSpace(collectionId) ||
-                    !System.Text.RegularExpressions.Regex.IsMatch(collectionId, @"^[a-zA-Z0-9_-]+$") ||
-                    collectionId.Length > 255)
+                // セキュリティ: コレクション ID を検証
+                if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
                     _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
                     return BadRequest("Invalid collection ID");
@@ -209,10 +207,8 @@ namespace CREC_Web.Controllers
         {
             try
             {
-                // セキュリティ: コレクション ID を検証（英数字・ハイフン・アンダースコアのみ）
-                if (string.IsNullOrWhiteSpace(collectionId) ||
-                    !System.Text.RegularExpressions.Regex.IsMatch(collectionId, @"^[a-zA-Z0-9_-]+$") ||
-                    collectionId.Length > 255)
+                // セキュリティ: コレクション ID を検証
+                if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
                     _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
                     return BadRequest("Invalid collection ID");
@@ -318,10 +314,8 @@ namespace CREC_Web.Controllers
         {
             try
             {
-                // セキュリティ: コレクション ID を検証（英数字・ハイフン・アンダースコアのみ）
-                if (string.IsNullOrWhiteSpace(collectionId) ||
-                    !System.Text.RegularExpressions.Regex.IsMatch(collectionId, @"^[a-zA-Z0-9_-]+$") ||
-                    collectionId.Length > 255)
+                // セキュリティ: コレクション ID を検証
+                if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
                     _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
                     return BadRequest("Invalid collection ID");
@@ -416,10 +410,8 @@ namespace CREC_Web.Controllers
         {
             try
             {
-                // セキュリティ: コレクション ID を検証（英数字・ハイフン・アンダースコアのみ）
-                if (string.IsNullOrWhiteSpace(collectionId) ||
-                    !System.Text.RegularExpressions.Regex.IsMatch(collectionId, @"^[a-zA-Z0-9_-]+$") ||
-                    collectionId.Length > 255)
+                // セキュリティ: コレクション ID を検証
+                if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
                     _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
                     return BadRequest("Invalid collection ID");
@@ -487,10 +479,8 @@ namespace CREC_Web.Controllers
         {
             try
             {
-                // セキュリティ: コレクション ID を検証（英数字・ハイフン・アンダースコアのみ）
-                if (string.IsNullOrWhiteSpace(collectionId) ||
-                    !System.Text.RegularExpressions.Regex.IsMatch(collectionId, @"^[a-zA-Z0-9_-]+$") ||
-                    collectionId.Length > 255)
+                // セキュリティ: コレクション ID を検証
+                if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
                     _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
                     return BadRequest("Invalid collection ID");
@@ -579,10 +569,8 @@ namespace CREC_Web.Controllers
         {
             try
             {
-                // セキュリティ: コレクション ID を検証（英数字・ハイフン・アンダースコアのみ）
-                if (string.IsNullOrWhiteSpace(collectionId) ||
-                    !System.Text.RegularExpressions.Regex.IsMatch(collectionId, @"^[a-zA-Z0-9_-]+$") ||
-                    collectionId.Length > 255)
+                // セキュリティ: コレクション ID を検証
+                if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
                     _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
                     return BadRequest("Invalid collection ID");
@@ -688,10 +676,8 @@ namespace CREC_Web.Controllers
         {
             try
             {
-                // セキュリティ: コレクション ID を検証（英数字・ハイフン・アンダースコアのみ）
-                if (string.IsNullOrWhiteSpace(collectionId) ||
-                    !System.Text.RegularExpressions.Regex.IsMatch(collectionId, @"^[a-zA-Z0-9_-]+$") ||
-                    collectionId.Length > 255)
+                // セキュリティ: コレクション ID を検証
+                if (!ValidationHelper.IsValidCollectionId(collectionId))
                 {
                     _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
                     return BadRequest("Invalid collection ID");
