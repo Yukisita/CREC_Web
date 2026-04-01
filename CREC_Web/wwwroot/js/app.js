@@ -534,6 +534,14 @@ async function uploadCollectionVideo(collectionId, file, onSuccess) {
         return;
     }
 
+    const uploadBtn = document.getElementById('addVideoBtn');
+    let originalBtnHtml = '';
+    if (uploadBtn) {
+        originalBtnHtml = uploadBtn.innerHTML;
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${t('uploading')}`;
+    }
+
     const formData = new FormData();
     formData.append('video', file);
 
@@ -588,6 +596,10 @@ async function uploadCollectionVideo(collectionId, file, onSuccess) {
         console.error('Error uploading video:', error);
         alert(t('add-video-error'));
     } finally {
+        if (uploadBtn) {
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = originalBtnHtml;
+        }
         if (progressContainer) {
             progressContainer.style.display = 'none';
         }
