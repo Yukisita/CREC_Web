@@ -585,9 +585,8 @@
                     </button>
                 </div>
                 <div id="imageUploadProgress" class="mt-2" style="display:none;">
-                    <small id="imageUploadProgressLabel" class="text-muted">${t('uploading')}</small>
                     <div class="progress" style="height: 20px;">
-                        <div id="imageUploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-labelledby="imageUploadProgressLabel" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                        <div id="imageUploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-label="${t('uploading')}" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
                     </div>
                 </div>
                 <input type="file" id="imageFileInput" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp" style="display:none;">

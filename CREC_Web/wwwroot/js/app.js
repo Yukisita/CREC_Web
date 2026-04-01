@@ -405,6 +405,14 @@ async function uploadCollectionImage(collectionId, file, onSuccess) {
         return;
     }
 
+    const uploadBtn = document.getElementById('addImageBtn');
+    let originalBtnHtml = '';
+    if (uploadBtn) {
+        originalBtnHtml = uploadBtn.innerHTML;
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${t('uploading')}`;
+    }
+
     const formData = new FormData();
     formData.append('image', file);
 
@@ -459,6 +467,10 @@ async function uploadCollectionImage(collectionId, file, onSuccess) {
         console.error('Error uploading image:', error);
         alert(t('add-image-error'));
     } finally {
+        if (uploadBtn) {
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = originalBtnHtml;
+        }
         if (progressContainer) {
             progressContainer.style.display = 'none';
         }
