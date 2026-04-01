@@ -392,6 +392,56 @@ function openCollectionWindow(collectionId, openEdit = false, targetWindow = nul
 }
 
 /**
+ * XHRを使用してファイルをアップロードし、プログレスバーを更新する
+ * @param {string} url - アップロード先URL
+ * @param {FormData} formData - アップロードするフォームデータ
+ * @param {HTMLElement|null} progressBar - プログレスバー要素
+ * @param {HTMLElement|null} progressContainer - プログレスバーコンテナ要素
+ * @returns {Promise<void>}
+ */
+function uploadWithProgress(url, formData, progressBar, progressContainer) {
+    if (progressContainer && progressBar) {
+        progressContainer.style.display = '';
+        progressBar.style.width = '0%';
+        progressBar.textContent = '0%';
+        progressBar.setAttribute('aria-valuenow', '0');
+    }
+
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', url);
+
+        xhr.upload.addEventListener('progress', (event) => {
+            if (event.lengthComputable && progressBar) {
+                // サーバー側処理の余裕を残すため95%で上限を設ける
+                const percent = Math.round((event.loaded / event.total) * 95);
+                progressBar.style.width = percent + '%';
+                progressBar.textContent = percent + '%';
+                progressBar.setAttribute('aria-valuenow', String(percent));
+            }
+        });
+
+        xhr.addEventListener('load', () => {
+            if (progressBar) {
+                progressBar.style.width = '100%';
+                progressBar.textContent = '100%';
+                progressBar.setAttribute('aria-valuenow', '100');
+            }
+            if (xhr.status >= 200 && xhr.status < 300) {
+                resolve();
+            } else {
+                reject(new Error(`HTTP error! status: ${xhr.status}`));
+            }
+        });
+
+        xhr.addEventListener('error', () => reject(new Error('Network error')));
+        xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
+
+        xhr.send(formData);
+    });
+}
+
+/**
  * 画像をコレクションにアップロードする
  * @param {string} collectionId - コレクションID
  * @param {File} file - アップロード画像ファイル
@@ -419,45 +469,13 @@ async function uploadCollectionImage(collectionId, file, onSuccess) {
     const progressContainer = document.getElementById('imageUploadProgress');
     const progressBar = document.getElementById('imageUploadProgressBar');
 
-    if (progressContainer && progressBar) {
-        progressContainer.style.display = '';
-        progressBar.style.width = '0%';
-        progressBar.textContent = '0%';
-        progressBar.setAttribute('aria-valuenow', '0');
-    }
-
     try {
-        await new Promise((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', `/api/File/${encodeURIComponent(collectionId)}/upload/image`);
-
-            xhr.upload.addEventListener('progress', (event) => {
-                if (event.lengthComputable && progressBar) {
-                    const percent = Math.round((event.loaded / event.total) * 95);
-                    progressBar.style.width = percent + '%';
-                    progressBar.textContent = percent + '%';
-                    progressBar.setAttribute('aria-valuenow', String(percent));
-                }
-            });
-
-            xhr.addEventListener('load', () => {
-                if (progressBar) {
-                    progressBar.style.width = '100%';
-                    progressBar.textContent = '100%';
-                    progressBar.setAttribute('aria-valuenow', '100');
-                }
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    resolve();
-                } else {
-                    reject(new Error(`HTTP error! status: ${xhr.status}`));
-                }
-            });
-
-            xhr.addEventListener('error', () => reject(new Error('Network error')));
-            xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
-
-            xhr.send(formData);
-        });
+        await uploadWithProgress(
+            `/api/File/${encodeURIComponent(collectionId)}/upload/image`,
+            formData,
+            progressBar,
+            progressContainer
+        );
 
         alert(t('add-image-success'));
         if (typeof onSuccess === 'function') {
@@ -560,45 +578,13 @@ async function uploadCollectionVideo(collectionId, file, onSuccess) {
     const progressContainer = document.getElementById('videoUploadProgress');
     const progressBar = document.getElementById('videoUploadProgressBar');
 
-    if (progressContainer && progressBar) {
-        progressContainer.style.display = '';
-        progressBar.style.width = '0%';
-        progressBar.textContent = '0%';
-        progressBar.setAttribute('aria-valuenow', '0');
-    }
-
     try {
-        await new Promise((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', `/api/File/${encodeURIComponent(collectionId)}/upload/video`);
-
-            xhr.upload.addEventListener('progress', (event) => {
-                if (event.lengthComputable && progressBar) {
-                    const percent = Math.round((event.loaded / event.total) * 95);
-                    progressBar.style.width = percent + '%';
-                    progressBar.textContent = percent + '%';
-                    progressBar.setAttribute('aria-valuenow', String(percent));
-                }
-            });
-
-            xhr.addEventListener('load', () => {
-                if (progressBar) {
-                    progressBar.style.width = '100%';
-                    progressBar.textContent = '100%';
-                    progressBar.setAttribute('aria-valuenow', '100');
-                }
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    resolve();
-                } else {
-                    reject(new Error(`HTTP error! status: ${xhr.status}`));
-                }
-            });
-
-            xhr.addEventListener('error', () => reject(new Error('Network error')));
-            xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
-
-            xhr.send(formData);
-        });
+        await uploadWithProgress(
+            `/api/File/${encodeURIComponent(collectionId)}/upload/video`,
+            formData,
+            progressBar,
+            progressContainer
+        );
 
         alert(t('add-video-success'));
         if (typeof onSuccess === 'function') {
