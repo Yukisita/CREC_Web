@@ -501,6 +501,14 @@
 </div>
 
 @section Scripts {
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+    </script>
 
     <script>
 		// コレクションのIDをサーバーから取得
@@ -754,9 +762,9 @@
             if (THREE) return Promise.resolve();
             if (threeJsLoadPromise) return threeJsLoadPromise;
             threeJsLoadPromise = Promise.all([
-                import('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js'),
-                import('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js'),
-                import('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/STLLoader.js'),
+                import('three'),
+                import('three/addons/controls/OrbitControls.js'),
+                import('three/addons/loaders/STLLoader.js'),
             ]).then(([threeModule, { OrbitControls }, { STLLoader }]) => {
                 THREE = threeModule;
                 OrbitControlsClass = OrbitControls;
