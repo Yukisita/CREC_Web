@@ -708,7 +708,7 @@
                 ? `
                     <div class="stl-viewer-container" id="stlViewerContainer">
                         <div class="stl-viewer-toolbar">
-                            <button id="resetViewBtn" class="btn btn-sm btn-outline-secondary btn-sm" title="${t('3d-reset-view')}">
+                            <button id="resetViewBtn" class="btn btn-sm btn-outline-secondary" title="${t('3d-reset-view')}">
                                 <i class="bi bi-arrow-counterclockwise"></i>
                             </button>
                             <button id="fullscreen3DBtn" class="btn btn-sm btn-outline-secondary" title="${t('3d-fullscreen')}">
@@ -830,23 +830,6 @@
                 stlRenderer.setSize(nw, nh);
             });
             stlResizeObserver.observe(container);
-
-            // 全画面ボタン
-            const fullscreenBtn = document.getElementById('fullscreen3DBtn');
-            if (fullscreenBtn) {
-                fullscreenBtn.addEventListener('click', () => {
-                    if (container.requestFullscreen) container.requestFullscreen();
-                    else if (container.webkitRequestFullscreen) container.webkitRequestFullscreen();
-                });
-            }
-
-            // 表示リセットボタン
-            const resetBtn = document.getElementById('resetViewBtn');
-            if (resetBtn) {
-                resetBtn.addEventListener('click', () => {
-                    if (stlControls) stlControls.reset();
-                });
-            }
 
             // 最初のモデルをロード
             load3DModel(collectionId, threeDFiles[startIndex]);
@@ -1083,32 +1066,45 @@
             let currentThreeDIndex = 0;
             document.getElementById('threeDTabContent').innerHTML = generate3DDataTabHtml(collection, threeDFiles, currentThreeDIndex);
 
-            // 3Dビューアを初期化
+            // 3Dビューアを初期化（ファイルがない場合は既存ビューアを破棄）
             if (threeDFiles.length > 0) {
                 init3DViewer(collection.indexData.systemData.id, threeDFiles, currentThreeDIndex);
+            } else {
+                dispose3DViewer();
             }
+
+            // 全画面・リセットボタンのイベントリスナを設定
+            const fullscreen3DBtn = document.getElementById('fullscreen3DBtn');
+            if (fullscreen3DBtn) {
+                fullscreen3DBtn.addEventListener('click', () => {
+                    const stlContainer = document.getElementById('stlViewerContainer');
+                    if (stlContainer?.requestFullscreen) stlContainer.requestFullscreen();
+                    else if (stlContainer?.webkitRequestFullscreen) stlContainer.webkitRequestFullscreen();
+                });
+            }
+            const resetViewBtn = document.getElementById('resetViewBtn');
+            if (resetViewBtn) {
+                resetViewBtn.addEventListener('click', () => {
+                    if (stlControls) stlControls.reset();
+                });
+            }
+
+            // 3Dモデル切り替えヘルパー（カウンター・ファイル名表示を更新してモデルを読み込む）
+            const navigate3DTo = (newIndex) => {
+                currentThreeDIndex = newIndex;
+                const counter = document.getElementById('threeDCounter');
+                const nameEl = document.getElementById('threeDName');
+                if (counter) counter.textContent = `${currentThreeDIndex + 1} / ${threeDFiles.length}`;
+                if (nameEl) nameEl.textContent = threeDFiles[currentThreeDIndex];
+                load3DModel(collection.indexData.systemData.id, threeDFiles[currentThreeDIndex]);
+            };
 
             // 3Dデータナビゲーションボタンのイベントリスナを設定
             const prev3DBtn = document.getElementById('prev3D');
             const next3DBtn = document.getElementById('next3D');
             if (prev3DBtn && next3DBtn && threeDFiles.length > 0) {
-                prev3DBtn.addEventListener('click', () => {
-                    currentThreeDIndex = (currentThreeDIndex - 1 + threeDFiles.length) % threeDFiles.length;
-                    const counter = document.getElementById('threeDCounter');
-                    const nameEl = document.getElementById('threeDName');
-                    if (counter) counter.textContent = `${currentThreeDIndex + 1} / ${threeDFiles.length}`;
-                    if (nameEl) nameEl.textContent = threeDFiles[currentThreeDIndex];
-                    load3DModel(collection.indexData.systemData.id, threeDFiles[currentThreeDIndex]);
-                });
-
-                next3DBtn.addEventListener('click', () => {
-                    currentThreeDIndex = (currentThreeDIndex + 1) % threeDFiles.length;
-                    const counter = document.getElementById('threeDCounter');
-                    const nameEl = document.getElementById('threeDName');
-                    if (counter) counter.textContent = `${currentThreeDIndex + 1} / ${threeDFiles.length}`;
-                    if (nameEl) nameEl.textContent = threeDFiles[currentThreeDIndex];
-                    load3DModel(collection.indexData.systemData.id, threeDFiles[currentThreeDIndex]);
-                });
+                prev3DBtn.addEventListener('click', () => navigate3DTo((currentThreeDIndex - 1 + threeDFiles.length) % threeDFiles.length));
+                next3DBtn.addEventListener('click', () => navigate3DTo((currentThreeDIndex + 1) % threeDFiles.length));
             }
 
             // 3Dデータ追加ボタンのイベントリスナを設定
