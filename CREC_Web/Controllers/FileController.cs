@@ -21,6 +21,7 @@ namespace CREC_Web.Controllers
 
         private const long MaxImageFileSizeBytes = 128L * 1024 * 1024;   // 128MB
         private const long MaxVideoFileSizeBytes = 1024L * 1024 * 1024;  // 1024MB
+        private const long Max3dFileSizeBytes = 1024L * 1024 * 1024;  // 1024MB
 
         public FileController(IConfiguration configuration, ILogger<FileController> logger, CrecDataService crecDataService)
         {
@@ -828,8 +829,8 @@ namespace CREC_Web.Controllers
         /// <returns>アップロード結果</returns>
         // 呼び出し例: POST /api/File/{collectionId}/upload/3ddata
         [HttpPost("{collectionId}/upload/3ddata")]
-        [RequestSizeLimit(MaxVideoFileSizeBytes)]
-        [RequestFormLimits(MultipartBodyLengthLimit = MaxVideoFileSizeBytes)]
+        [RequestSizeLimit(Max3dFileSizeBytes)]
+        [RequestFormLimits(MultipartBodyLengthLimit = Max3dFileSizeBytes)]
         public async Task<IActionResult> Upload3DFile(string collectionId, IFormFile file)
         {
             try
@@ -847,7 +848,7 @@ namespace CREC_Web.Controllers
                 }
 
                 // ファイルサイズチェック（上限: 1024MB）
-                if (file.Length > MaxVideoFileSizeBytes)
+                if (file.Length > Max3dFileSizeBytes)
                 {
                     return BadRequest("File size exceeds the maximum allowed size (1024MB)");
                 }
