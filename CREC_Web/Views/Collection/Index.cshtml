@@ -501,9 +501,7 @@
 </div>
 
 @section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
     <script>
 		// コレクションのIDをサーバーから取得
         const collectionId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewData["CollectionId"]));
@@ -739,6 +737,10 @@
         }
 
         // Three.js 3Dビューア インスタンス管理
+        let THREE = null;
+        let OrbitControlsClass = null;
+        let STLLoaderClass = null;
+        let threeJsLoadPromise = null;
         let stlRenderer = null;
         let stlScene = null;
         let stlCamera = null;
@@ -747,13 +749,30 @@
         let stlCurrentMesh = null;
         let stlResizeObserver = null;
 
+        // Three.js をダイナミックインポートで遅延読み込みする（最新バージョン、ESモジュール形式）
+        function loadThreeJS() {
+            if (THREE) return Promise.resolve();
+            if (threeJsLoadPromise) return threeJsLoadPromise;
+            threeJsLoadPromise = Promise.all([
+                import('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js'),
+                import('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js'),
+                import('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/STLLoader.js'),
+            ]).then(([threeModule, { OrbitControls }, { STLLoader }]) => {
+                THREE = threeModule;
+                OrbitControlsClass = OrbitControls;
+                STLLoaderClass = STLLoader;
+            });
+            return threeJsLoadPromise;
+        }
+
         // 3Dビューアを初期化する
-        function init3DViewer(collectionId, threeDFiles, startIndex) {
-            // 既存のビューアがあれば破棄
+        async function init3DViewer(collectionId, threeDFiles, startIndex) {
+            // Three.js を読み込んでから既存のビューアを破棄
+            await loadThreeJS();
             dispose3DViewer();
 
             const container = document.getElementById('stlViewerContainer');
-            if (!container || typeof THREE === 'undefined') return;
+            if (!container || !THREE) return;
 
             const w = container.clientWidth || 400;
             const h = container.clientHeight || 350;
@@ -778,7 +797,7 @@
             stlScene.add(dirLight);
 
             // OrbitControls（回転、ズーム、パン）
-            stlControls = new THREE.OrbitControls(stlCamera, stlRenderer.domElement);
+            stlControls = new OrbitControlsClass(stlCamera, stlRenderer.domElement);
             stlControls.enableDamping = true;
             stlControls.dampingFactor = 0.1;
 
@@ -852,7 +871,7 @@
 
         // STLモデルをロード・表示する
         function load3DModel(collectionId, fileName) {
-            if (!stlScene || !stlCamera || !stlControls || typeof THREE === 'undefined') return;
+            if (!stlScene || !stlCamera || !stlControls || !THREE) return;
 
             // 既存のメッシュを削除
             if (stlCurrentMesh) {
@@ -863,7 +882,7 @@
             }
 
             const url = `/api/File/${encodeURIComponent(collectionId)}/3ddata/${encodeURIComponent(fileName)}`;
-            const loader = new THREE.STLLoader();
+            const loader = new STLLoaderClass();
             loader.load(url, (geometry) => {
                 if (!stlScene || !stlCamera || !stlControls) return;
                 geometry.computeBoundingBox();
