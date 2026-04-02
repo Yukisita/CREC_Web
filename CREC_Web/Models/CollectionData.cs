@@ -390,7 +390,7 @@ namespace CREC_Web.Models
         public List<string> VideoFiles { get; set; } = new List<string>();
 
         /// <summary>
-        /// 3DデータファイルリストSTL）
+        /// 3Dデータファイルリスト
         /// </summary>
         public List<string> ThreeDFiles { get; set; } = new List<string>();
 
