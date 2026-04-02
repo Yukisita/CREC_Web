@@ -911,6 +911,7 @@
                 stlCamera.position.set(0, 0, cameraDist);
                 stlControls.target.set(0, 0, 0);
                 stlControls.update();
+                stlControls.saveState();
 
                 const material = new THREE.MeshPhongMaterial({ color: 0x4488aa, specular: 0x222222, shininess: 200 });
                 stlCurrentMesh = new THREE.Mesh(geometry, material);
