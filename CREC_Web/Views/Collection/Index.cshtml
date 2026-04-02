@@ -757,7 +757,7 @@
         let stlCurrentMesh = null;
         let stlResizeObserver = null;
 
-        // Three.js をダイナミックインポートで遅延読み込みする（最新バージョン、ESモジュール形式）
+        // Three.js をダイナミックインポートで遅延読み込みする（v0.160.0、ESモジュール形式）
         function loadThreeJS() {
             if (THREE) return Promise.resolve();
             if (threeJsLoadPromise) return threeJsLoadPromise;
