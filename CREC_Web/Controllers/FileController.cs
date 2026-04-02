@@ -733,6 +733,271 @@ namespace CREC_Web.Controllers
             }
         }
 
+        /// <summary>
+        /// 3DデータファイルSTL）取得
+        /// </summary>
+        /// <param name="collectionId">コレクションID</param>
+        /// <param name="fileName">3Dファイル名</param>
+        /// <returns>3Dファイル</returns>
+        // 呼び出し例: /api/File/{collectionId}/3ddata/{fileName}
+        [HttpGet("{collectionId}/3ddata/{fileName}")]
+        public IActionResult Get3DFile(string collectionId, string fileName)
+        {
+            try
+            {
+                // セキュリティ: コレクション ID を検証
+                if (!ValidationHelper.IsValidCollectionId(collectionId))
+                {
+                    _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
+                    return BadRequest("Invalid collection ID");
+                }
+
+                // セキュリティ: ファイル名を検証（パストラバーサル文字を禁止）
+                if (!IsSafePathComponent(fileName))
+                {
+                    _logger.LogWarning("Invalid file name: {fileName}", Path.GetFileName(fileName ?? "").SanitizeForLog());
+                    return BadRequest("Invalid file name");
+                }
+
+                // 設定からデータパスを取得。未設定の場合はカレントディレクトリを使用
+                var dataPath = _configuration["ProjectDataPath"] ?? Directory.GetCurrentDirectory();
+
+                // 3DData フォルダーへのパスを構築: dataPath\collectionId\3DData\fileName
+                var filePath = Path.Combine(dataPath, collectionId, "3DData", fileName);
+
+                // セキュリティ: 解決済みパスが 3DData ディレクトリ配下に留まっていることを確認
+                var fullPath = Path.GetFullPath(filePath);
+                var allowedPath = Path.GetFullPath(Path.Combine(dataPath, collectionId, "3DData"));
+
+                if (!IsPathWithinDirectory(filePath, allowedPath))
+                {
+                    _logger.LogWarning("Path traversal attempt detected: {fullPath}", fullPath.SanitizeForLog());
+                    return BadRequest("Invalid file path");
+                }
+
+                _logger.LogInformation("Attempting to serve 3D file: {filePath}", filePath.SanitizeForLog());
+
+                if (!System.IO.File.Exists(filePath))
+                {
+                    _logger.LogWarning("3D file not found: {filePath}", filePath.SanitizeForLog());
+                    return NotFound();
+                }
+
+                // 拡張子に基づいてコンテンツタイプを判定
+                var extension = Path.GetExtension(fileName);
+                if (string.IsNullOrEmpty(extension))
+                {
+                    _logger.LogWarning("Unsupported 3D format (no extension) for file: {fileName}", (fileName ?? string.Empty).SanitizeForLog());
+                    return BadRequest("Unsupported 3D format");
+                }
+
+                extension = extension.ToLowerInvariant();
+
+                // サポートされている3D拡張子かを検証
+                if (!StlFormats.AllowedExtensions.Contains(extension))
+                {
+                    _logger.LogWarning("Unsupported 3D format requested: {extension} for file: {fileName}", extension.SanitizeForLog(), (fileName ?? string.Empty).SanitizeForLog());
+                    return BadRequest("Unsupported 3D format");
+                }
+
+                var contentType = StlFormats.GetContentType(extension);
+
+                _logger.LogInformation($"Serving 3D file with content type: {contentType}");
+
+                // セキュリティヘッダー
+                Response.Headers["Access-Control-Allow-Origin"] = "*";
+                Response.Headers["Cache-Control"] = "public, max-age=3600";
+                Response.Headers["X-Content-Type-Options"] = "nosniff";
+
+                return PhysicalFile(fullPath, contentType, enableRangeProcessing: true);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error serving 3D file {CollectionId}/{FileName}",
+                    collectionId.SanitizeForLog(), Path.GetFileName(fileName).SanitizeForLog());
+
+                return StatusCode(500, "Error retrieving 3D file");
+            }
+        }
+
+        /// <summary>
+        /// 3DデータファイルSTL）アップロード
+        /// </summary>
+        /// <param name="collectionId">コレクションID</param>
+        /// <param name="file">アップロード3Dファイル</param>
+        /// <returns>アップロード結果</returns>
+        // 呼び出し例: POST /api/File/{collectionId}/upload/3ddata
+        [HttpPost("{collectionId}/upload/3ddata")]
+        [RequestSizeLimit(MaxVideoFileSizeBytes)]
+        [RequestFormLimits(MultipartBodyLengthLimit = MaxVideoFileSizeBytes)]
+        public async Task<IActionResult> Upload3DFile(string collectionId, IFormFile file)
+        {
+            try
+            {
+                // セキュリティ: コレクション ID を検証
+                if (!ValidationHelper.IsValidCollectionId(collectionId))
+                {
+                    _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
+                    return BadRequest("Invalid collection ID");
+                }
+
+                if (file == null || file.Length == 0)
+                {
+                    return BadRequest("No 3D file provided");
+                }
+
+                // ファイルサイズチェック（上限: 1024MB）
+                if (file.Length > MaxVideoFileSizeBytes)
+                {
+                    return BadRequest("File size exceeds the maximum allowed size (1024MB)");
+                }
+
+                // 許可する3D拡張子
+                var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                if (!StlFormats.AllowedExtensions.Contains(extension))
+                {
+                    return BadRequest("Unsupported file format. Supported formats: STL");
+                }
+
+                // ファイル名を検証（パストラバーサル文字を禁止）
+                var sanitizedFileName = Path.GetFileName(file.FileName);
+                if (!IsSafePathComponent(sanitizedFileName))
+                {
+                    _logger.LogWarning("Invalid file name: {fileName}", file.FileName.SanitizeForLog());
+                    return BadRequest("Invalid file name");
+                }
+
+                // 設定からデータパスを取得
+                var dataPath = _configuration["ProjectDataPath"] ?? Directory.GetCurrentDirectory();
+
+                // 3DData フォルダのパスを構築
+                var threeDDataPath = Path.GetFullPath(Path.Combine(dataPath, collectionId, "3DData"));
+
+                // 3DData フォルダが存在しない場合は作成
+                if (!Directory.Exists(threeDDataPath))
+                {
+                    Directory.CreateDirectory(threeDDataPath);
+                }
+
+                // ファイルの保存先を決定
+                var filePath = Path.GetFullPath(Path.Combine(threeDDataPath, sanitizedFileName));
+
+                // セキュリティ: 解決済みパスが 3DData ディレクトリ配下に留まっていることを確認
+                if (!IsPathWithinDirectory(filePath, threeDDataPath))
+                {
+                    _logger.LogWarning("Path traversal attempt detected: {fullPath}", filePath.SanitizeForLog());
+                    return BadRequest("Invalid file path");
+                }
+
+                // 同名ファイルが存在する場合は連番を付与
+                if (System.IO.File.Exists(filePath))
+                {
+                    const int maxDuplicateFileNameAttempts = 1000;
+                    var fileNameWithoutExt = Path.GetFileNameWithoutExtension(sanitizedFileName);
+                    var counter = 1;
+                    do
+                    {
+                        var newFileName = $"{fileNameWithoutExt}_{counter}{extension}";
+                        filePath = Path.GetFullPath(Path.Combine(threeDDataPath, newFileName));
+                        counter++;
+                    } while (System.IO.File.Exists(filePath) && counter <= maxDuplicateFileNameAttempts);
+
+                    if (counter > maxDuplicateFileNameAttempts && System.IO.File.Exists(filePath))
+                    {
+                        return BadRequest("Too many files with the same name exist in this collection");
+                    }
+                }
+
+                // ファイルを保存
+                using (var stream = System.IO.File.Create(filePath))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                // コレクションの3Dファイルキャッシュを更新
+                _crecDataService.RefreshCollection3DFileCache(collectionId);
+
+                _logger.LogInformation("3D file uploaded for collection {CollectionId}: {FileName}",
+                    collectionId.SanitizeForLog(), Path.GetFileName(filePath).SanitizeForLog());
+
+                return Ok(new { fileName = Path.GetFileName(filePath) });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error uploading 3D file for collection {CollectionId}", collectionId.SanitizeForLog());
+                return StatusCode(500, "Error uploading 3D file");
+            }
+        }
+
+        /// <summary>
+        /// 3DデータファイルSTL）削除
+        /// </summary>
+        /// <param name="collectionId">コレクションID</param>
+        /// <param name="fileName">削除する3Dファイル名</param>
+        /// <returns>削除結果</returns>
+        // 呼び出し例: DELETE /api/File/{collectionId}/3ddata?fileName=model.stl
+        [HttpDelete("{collectionId}/3ddata")]
+        public IActionResult Delete3DFile(string collectionId, [FromQuery] string fileName)
+        {
+            try
+            {
+                // セキュリティ: コレクション ID を検証
+                if (!ValidationHelper.IsValidCollectionId(collectionId))
+                {
+                    _logger.LogWarning("Invalid collection ID: {collectionId}", collectionId.SanitizeForLog());
+                    return BadRequest("Invalid collection ID");
+                }
+
+                // セキュリティ: ファイル名を検証（パストラバーサル文字を禁止）
+                if (!IsSafePathComponent(fileName))
+                {
+                    _logger.LogWarning("Invalid file name: {fileName}", Path.GetFileName(fileName ?? "").SanitizeForLog());
+                    return BadRequest("Invalid file name");
+                }
+
+                // 許可する3D拡張子かを検証
+                var extension = Path.GetExtension(fileName).ToLowerInvariant();
+                if (string.IsNullOrEmpty(extension) || !StlFormats.AllowedExtensions.Contains(extension))
+                {
+                    _logger.LogWarning("Unsupported 3D format requested for deletion: {extension} for file: {fileName}", extension.SanitizeForLog(), fileName.SanitizeForLog());
+                    return BadRequest("Unsupported 3D format");
+                }
+
+                var dataPath = _configuration["ProjectDataPath"] ?? Directory.GetCurrentDirectory();
+
+                // 3DData フォルダーへのパスを構築
+                var threeDDataPath = Path.GetFullPath(Path.Combine(dataPath, collectionId, "3DData"));
+                var filePath = Path.GetFullPath(Path.Combine(threeDDataPath, fileName));
+
+                // セキュリティ: 解決済みパスが 3DData ディレクトリ配下に留まっていることを確認
+                if (!IsPathWithinDirectory(filePath, threeDDataPath))
+                {
+                    _logger.LogWarning("Path traversal attempt detected: {fullPath}", filePath.SanitizeForLog());
+                    return BadRequest("Invalid file path");
+                }
+
+                if (!System.IO.File.Exists(filePath))
+                {
+                    return NotFound("3D file not found");
+                }
+
+                System.IO.File.Delete(filePath);
+
+                // コレクションの3Dファイルキャッシュを更新
+                _crecDataService.RefreshCollection3DFileCache(collectionId);
+
+                _logger.LogInformation("3D file deleted for collection {CollectionId}: {FileName}",
+                    collectionId.SanitizeForLog(), Path.GetFileName(filePath).SanitizeForLog());
+
+                return Ok(new { message = "3D file deleted successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting 3D file for collection {CollectionId}", collectionId.SanitizeForLog());
+                return StatusCode(500, "Error deleting 3D file");
+            }
+        }
+
         // path セーフ判定用ヘルパー
         private static bool IsSafePathComponent(string component)
         {
