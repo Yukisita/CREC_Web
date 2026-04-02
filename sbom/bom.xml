@@ -98,6 +98,28 @@
         </reference>
       </externalReferences>
     </component>
+    <component type="library" bom-ref="pkg:npm/three@0.160.0">
+      <name>three</name>
+      <version>0.160.0</version>
+      <description>JavaScript 3D library. The aim of this project is to create an easy-to-use, lightweight, cross-browser, general-purpose 3D library.</description>
+      <purl>pkg:npm/three@0.160.0</purl>
+      <licenses>
+        <license>
+          <id>MIT</id>
+        </license>
+      </licenses>
+      <externalReferences>
+        <reference type="website">
+          <url>https://threejs.org/</url>
+        </reference>
+        <reference type="vcs">
+          <url>https://github.com/mrdoob/three.js</url>
+        </reference>
+        <reference type="distribution">
+          <url>https://cdn.jsdelivr.net/npm/three@0.160.0/</url>
+        </reference>
+      </externalReferences>
+    </component>
   </components>
   <dependencies>
     <dependency ref="CREC_Web@0.0.0">
@@ -105,6 +127,7 @@
       <dependency ref="pkg:npm/bootstrap@5.3.0" />
       <dependency ref="pkg:npm/bootstrap-icons@1.10.0" />
       <dependency ref="pkg:npm/jsqr@1.4.0" />
+      <dependency ref="pkg:npm/three@0.160.0" />
     </dependency>
   </dependencies>
 </bom>
