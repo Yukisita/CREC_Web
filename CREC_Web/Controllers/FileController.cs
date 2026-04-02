@@ -770,6 +770,7 @@ namespace CREC_Web.Controllers
                 var fullPath = Path.GetFullPath(filePath);
                 var allowedPath = Path.GetFullPath(Path.Combine(dataPath, collectionId, "3DData"));
 
+                // セキュリティ: 解決済みパスが pictures ディレクトリ配下に留まっていることを確認
                 if (!IsPathWithinDirectory(filePath, allowedPath))
                 {
                     _logger.LogWarning("Path traversal attempt detected: {fullPath}", fullPath.SanitizeForLog());
@@ -800,7 +801,6 @@ namespace CREC_Web.Controllers
                     _logger.LogWarning("Unsupported 3D format requested: {extension} for file: {fileName}", extension.SanitizeForLog(), (fileName ?? string.Empty).SanitizeForLog());
                     return BadRequest("Unsupported 3D format");
                 }
-
                 var contentType = StlFormats.GetContentType(extension);
 
                 _logger.LogInformation($"Serving 3D file with content type: {contentType}");
