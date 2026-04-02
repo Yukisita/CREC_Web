@@ -734,7 +734,7 @@ namespace CREC_Web.Controllers
         }
 
         /// <summary>
-        /// 3DデータファイルSTL）取得
+        /// 3Dデータファイル（STL）取得
         /// </summary>
         /// <param name="collectionId">コレクションID</param>
         /// <param name="fileName">3Dファイル名</param>
@@ -821,10 +821,10 @@ namespace CREC_Web.Controllers
         }
 
         /// <summary>
-        /// 3DデータファイルSTL）アップロード
+        /// 3Dデータファイル（STL）アップロード
         /// </summary>
         /// <param name="collectionId">コレクションID</param>
-        /// <param name="file">アップロード3Dファイル</param>
+        /// <param name="file">アップロードする3Dファイル</param>
         /// <returns>アップロード結果</returns>
         // 呼び出し例: POST /api/File/{collectionId}/upload/3ddata
         [HttpPost("{collectionId}/upload/3ddata")]
@@ -930,7 +930,7 @@ namespace CREC_Web.Controllers
         }
 
         /// <summary>
-        /// 3DデータファイルSTL）削除
+        /// 3Dデータファイル（STL）削除
         /// </summary>
         /// <param name="collectionId">コレクションID</param>
         /// <param name="fileName">削除する3Dファイル名</param>

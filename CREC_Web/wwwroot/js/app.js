@@ -631,7 +631,7 @@ async function deleteCollectionVideo(collectionId, fileName, onSuccess) {
 }
 
 /**
- * 3DファイルSTL）をコレクションにアップロードする
+ * 3Dファイル（STL）をコレクションにアップロードする
  * @param {string} collectionId - コレクションID
  * @param {File} file - アップロード3Dファイル
  * @param {Function} onSuccess - アップロード成功後のコールバック
@@ -685,7 +685,7 @@ async function uploadCollection3DFile(collectionId, file, onSuccess) {
 }
 
 /**
- * 指定した3DファイルをコレクションSTL）から削除する
+ * 指定した3Dファイル（STL）をコレクションから削除する
  * @param {string} collectionId - コレクションID
  * @param {string} fileName - 削除する3Dファイル名
  * @param {Function} onSuccess - 削除成功後のコールバック
