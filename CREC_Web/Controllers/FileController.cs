@@ -831,7 +831,7 @@ namespace CREC_Web.Controllers
         [HttpPost("{collectionId}/upload/3ddata")]
         [RequestSizeLimit(Max3dFileSizeBytes)]
         [RequestFormLimits(MultipartBodyLengthLimit = Max3dFileSizeBytes)]
-        public async Task<IActionResult> Upload3DFile(string collectionId, IFormFile file)
+        public async Task<IActionResult> Upload3DFile(string collectionId, IFormFile stl)
         {
             try
             {
@@ -842,29 +842,29 @@ namespace CREC_Web.Controllers
                     return BadRequest("Invalid collection ID");
                 }
 
-                if (file == null || file.Length == 0)
+                if (stl == null || stl.Length == 0)
                 {
                     return BadRequest("No 3D file provided");
                 }
 
                 // ファイルサイズチェック（上限: 1024MB）
-                if (file.Length > Max3dFileSizeBytes)
+                if (stl.Length > Max3dFileSizeBytes)
                 {
                     return BadRequest("File size exceeds the maximum allowed size (1024MB)");
                 }
 
                 // 許可する3D拡張子
-                var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                var extension = Path.GetExtension(stl.FileName).ToLowerInvariant();
                 if (!StlFormats.AllowedExtensions.Contains(extension))
                 {
                     return BadRequest("Unsupported file format. Supported formats: STL");
                 }
 
                 // ファイル名を検証（パストラバーサル文字を禁止）
-                var sanitizedFileName = Path.GetFileName(file.FileName);
+                var sanitizedFileName = Path.GetFileName(stl.FileName);
                 if (!IsSafePathComponent(sanitizedFileName))
                 {
-                    _logger.LogWarning("Invalid file name: {fileName}", file.FileName.SanitizeForLog());
+                    _logger.LogWarning("Invalid file name: {fileName}", stl.FileName.SanitizeForLog());
                     return BadRequest("Invalid file name");
                 }
 
@@ -912,7 +912,7 @@ namespace CREC_Web.Controllers
                 // ファイルを保存
                 using (var stream = System.IO.File.Create(filePath))
                 {
-                    await file.CopyToAsync(stream);
+                    await stl.CopyToAsync(stream);
                 }
 
                 // コレクションの3Dファイルキャッシュを更新

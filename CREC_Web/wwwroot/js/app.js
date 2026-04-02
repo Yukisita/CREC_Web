@@ -653,7 +653,7 @@ async function uploadCollection3DFile(collectionId, file, onSuccess) {
     }
 
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('stl', file);
 
     const progressContainer = document.getElementById('threeDUploadProgress');
     const progressBar = document.getElementById('threeDUploadProgressBar');
