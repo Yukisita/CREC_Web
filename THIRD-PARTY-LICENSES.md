@@ -10,7 +10,8 @@ This document contains the licenses for all third-party software and libraries, 
 2. [Bootstrap Icons](#bootstrap-icons)
 3. [jsQR](#jsqr)
 4. [.NET Runtime](#net-runtime)
-5. [QR Code](#qr-code)
+5. [Three.js](#threejs)
+6. [QR Code](#qr-code)
 
 ---
 
@@ -304,6 +305,40 @@ SOFTWARE.
 
 ---
 
+## Three.js
+
+**Version:** 0.160.0  
+**Source:** https://threejs.org/  
+**CDN URL:** https://cdn.jsdelivr.net/npm/three@0.160.0/  
+**License:** MIT License  
+**Copyright:** Copyright (c) 2010-2024 three.js authors
+
+```
+The MIT License
+
+Copyright © 2010-2024 three.js authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+---
+
 ## QR Code
 
 ```
@@ -317,7 +352,7 @@ QR Code is a registered trademark of DENSO WAVE INCORPORATED in Japan and in oth
 
 All third-party libraries used in this project are licensed under permissive open-source licenses:
 
-- **MIT License**: Bootstrap, Bootstrap Icons, .NET Runtime
+- **MIT License**: Bootstrap, Bootstrap Icons, .NET Runtime, Three.js
 - **Apache License 2.0**: jsQR
 
 These licenses allow for commercial and private use, modification, and distribution, provided that the original copyright notices and license terms are retained.
@@ -327,3 +362,4 @@ For the most up-to-date license information, please refer to the respective proj
 - Bootstrap Icons: https://github.com/twbs/icons
 - jsQR: https://github.com/cozmo/jsQR
 - .NET: https://github.com/dotnet/runtime
+- Three.js: https://github.com/mrdoob/three.js
