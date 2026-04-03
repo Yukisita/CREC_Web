@@ -97,6 +97,15 @@ function updateUILanguage() {
             element.textContent = translation;
         }
     });
+
+    // data-lang-placeholder 属性を持つ全要素のプレースホルダーを更新
+    document.querySelectorAll('[data-lang-placeholder]').forEach(element => {
+        const key = element.getAttribute('data-lang-placeholder');
+        const translation = translations[lang]?.[key];
+        if (translation !== undefined) {
+            element.placeholder = translation;
+        }
+    });
 }
 
 /**

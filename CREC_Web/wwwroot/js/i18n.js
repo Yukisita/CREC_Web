@@ -174,7 +174,18 @@ const translations = {
         'tag2-label': 'タグ2ラベル',
         'tag3-label': 'タグ3ラベル',
         'edit-project-success': 'プロジェクト設定を保存しました',
-        'edit-project-error': 'プロジェクト設定の保存に失敗しました'
+        'edit-project-error': 'プロジェクト設定の保存に失敗しました',
+        'chat-title': 'AIアシスタント',
+        'chat-placeholder': 'メッセージを入力...',
+        'chat-welcome': 'こんにちは！CREC Webのサポートアシスタントです。使い方に関するご質問や操作の依頼があればお気軽にどうぞ。',
+        'chat-thinking': '考え中...',
+        'chat-no-api-key': 'Gemini APIキーが設定されていません。⚙ボタンから設定してください。',
+        'chat-error': 'エラーが発生しました',
+        'chat-error-empty-response': '応答が空でした。もう一度お試しください。',
+        'chat-settings-title': 'チャット設定',
+        'chat-api-key-label': 'Gemini APIキー',
+        'chat-api-key-info': 'APIキーの取得: ',
+        'chat-api-key-storage-note': '※ APIキーはこのブラウザの localStorage に保存されます。当サーバーには送信されません。'
     },
     de: {
         'loading': 'Laden...',
@@ -344,7 +355,18 @@ const translations = {
         'tag2-label': 'Tag2-Beschriftung',
         'tag3-label': 'Tag3-Beschriftung',
         'edit-project-success': 'Projekteinstellungen erfolgreich gespeichert',
-        'edit-project-error': 'Fehler beim Speichern der Projekteinstellungen'
+        'edit-project-error': 'Fehler beim Speichern der Projekteinstellungen',
+        'chat-title': 'KI-Assistent',
+        'chat-placeholder': 'Nachricht eingeben...',
+        'chat-welcome': 'Hallo! Ich bin der Support-Assistent von CREC Web. Bei Fragen zur Verwendung oder Wünschen nach bestimmten Aktionen helfe ich gerne weiter.',
+        'chat-thinking': 'Denke nach...',
+        'chat-no-api-key': 'Kein Gemini API-Schlüssel konfiguriert. Bitte über die ⚙-Schaltfläche einrichten.',
+        'chat-error': 'Ein Fehler ist aufgetreten',
+        'chat-error-empty-response': 'Die Antwort war leer. Bitte erneut versuchen.',
+        'chat-settings-title': 'Chat-Einstellungen',
+        'chat-api-key-label': 'Gemini API-Schlüssel',
+        'chat-api-key-info': 'API-Schlüssel erhalten: ',
+        'chat-api-key-storage-note': '※ Der API-Schlüssel wird im localStorage dieses Browsers gespeichert und nicht an unseren Server übertragen.'
     },
     en: {
         'loading': 'Loading...',
@@ -514,7 +536,18 @@ const translations = {
         'tag2-label': 'Tag 2 Label',
         'tag3-label': 'Tag 3 Label',
         'edit-project-success': 'Project settings saved successfully',
-        'edit-project-error': 'Failed to save project settings'
+        'edit-project-error': 'Failed to save project settings',
+        'chat-title': 'AI Assistant',
+        'chat-placeholder': 'Type a message...',
+        'chat-welcome': "Hello! I'm the CREC Web support assistant. Feel free to ask questions about how to use the system or request any operations.",
+        'chat-thinking': 'Thinking...',
+        'chat-no-api-key': 'No Gemini API key configured. Please set it via the ⚙ button.',
+        'chat-error': 'An error occurred',
+        'chat-error-empty-response': 'Response was empty. Please try again.',
+        'chat-settings-title': 'Chat Settings',
+        'chat-api-key-label': 'Gemini API Key',
+        'chat-api-key-info': 'Get an API key: ',
+        'chat-api-key-storage-note': '※ The API key is stored in this browser\'s localStorage and is never sent to our server.'
     }
 };
 
