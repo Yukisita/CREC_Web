@@ -95,6 +95,31 @@
             background-color: #000;
         }
 
+        .three-d-viewer-container {
+            position: relative;
+            width: 100%;
+            height: 350px;
+            background-color: #f0f0f0;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        .three-d-viewer-container canvas {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .three-d-viewer-toolbar {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            gap: 4px;
+            z-index: 10;
+        }
+
         .detail-section {
             margin-bottom: 1.5rem;
             text-align: left;
@@ -305,6 +330,9 @@
                     <button class="nav-link" id="videos-tab" data-bs-toggle="tab" data-bs-target="#videos-tab-pane" type="button" role="tab" aria-controls="videos-tab-pane" aria-selected="false">Video</button>
                 </li>
                 <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="threed-tab" data-bs-toggle="tab" data-bs-target="#threed-tab-pane" type="button" role="tab" aria-controls="threed-tab-pane" aria-selected="false">3D Data</button>
+                </li>
+                <li class="nav-item" role="presentation">
                     <button class="nav-link" id="data-tab" data-bs-toggle="tab" data-bs-target="#data-tab-pane" type="button" role="tab" aria-controls="data-tab-pane" aria-selected="false">Data</button>
                 </li>
             </ul>
@@ -318,6 +346,13 @@
                 </div>
                 <div class="tab-pane fade" id="videos-tab-pane" role="tabpanel" aria-labelledby="videos-tab" tabindex="0">
                     <div id="videoTabContent" class="loading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="threed-tab-pane" role="tabpanel" aria-labelledby="threed-tab" tabindex="0">
+                    <div id="threeDTabContent" class="loading">
                         <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">Loading...</span>
                         </div>
@@ -466,6 +501,15 @@
 </div>
 
 @section Scripts {
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.183.2/examples/jsm/"
+      }
+    }
+    </script>
+
     <script>
 		// コレクションのIDをサーバーから取得
         const collectionId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewData["CollectionId"]));
@@ -497,6 +541,7 @@
                 `;
                 document.getElementById('imageTabContent').innerHTML = errorHtml;
                 document.getElementById('videoTabContent').innerHTML = errorHtml;
+                document.getElementById('threeDTabContent').innerHTML = errorHtml;
                 document.getElementById('dataTabContent').innerHTML = errorHtml;
                 document.getElementById('collectionIndexData').innerHTML = errorHtml;
                 document.getElementById('historyTableContainer').innerHTML = errorHtml;
@@ -657,6 +702,217 @@
             `;
         }
 
+        // 3DデータタブのHTMLを生成するヘルパー関数
+        function generate3DDataTabHtml(collection, threeDFiles, currentThreeDIndex) {
+            const viewerHtml = threeDFiles.length > 0
+                ? `
+                    <div class="three-d-viewer-container" id="threeDViewerContainer">
+                        <div class="three-d-viewer-toolbar">
+                            <button id="resetViewBtn" class="btn btn-sm btn-outline-secondary" title="${t('3d-reset-view')}" aria-label="${t('3d-reset-view')}">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                            </button>
+                            <button id="fullscreen3DBtn" class="btn btn-sm btn-outline-secondary" title="${t('3d-fullscreen')}" aria-label="${t('3d-fullscreen')}">
+                                <i class="bi bi-fullscreen"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="text-center mt-3" style="display: flex; justify-content: center; align-items: center; gap: 15px;">
+                        <button id="prev3D" class="btn btn-outline-secondary btn-sm">◀</button>
+                        <span id="threeDCounter" style="font-size: 14px; min-width: 60px;">${currentThreeDIndex + 1} / ${threeDFiles.length}</span>
+                        <button id="next3D" class="btn btn-outline-secondary btn-sm">▶</button>
+                    </div>
+                    <p id="threeDName" class="small text-muted text-center mt-2">${escapeHtml(threeDFiles[currentThreeDIndex])}</p>
+                    `
+                : `<p class="text-muted">${t('no-3d-files')}</p>`;
+
+            return `
+                ${viewerHtml}
+                <div class="threed-action-toolbar mt-2 d-flex flex-wrap gap-2 justify-content-center">
+                    <button id="add3DBtn" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-plus-lg"></i> ${t('add-3d')}
+                    </button>
+                    <button id="delete3DBtn" class="btn btn-sm btn-outline-danger" ${threeDFiles.length === 0 ? 'disabled' : ''}>
+                        <i class="bi bi-trash"></i> ${t('delete-3d')}
+                    </button>
+                </div>
+                <div id="threeDUploadProgress" class="mt-2" style="display:none;">
+                    <div class="progress" style="height: 20px;">
+                        <div id="threeDUploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-label="${t('uploading')}" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                    </div>
+                </div>
+                <input type="file" id="threeDFileInput" accept=".stl" style="display:none;">
+            `;
+        }
+
+        // Three.js 3Dビューア インスタンス管理
+        let THREE = null;
+        let OrbitControlsClass = null;
+        let ThreeDLoaderClass = null;
+        let threeJsLoadPromise = null;
+        let threeDRenderer = null;
+        let threeDScene = null;
+        let threeDCamera = null;
+        let threeDControls = null;
+        let threeDAnimFrameId = null;
+        let threeDCurrentMesh = null;
+        let threeDResizeObserver = null;
+
+        // Three.js をダイナミックインポートで遅延読み込みする（v0.183.2、ESモジュール形式）
+        function loadThreeJS() {
+            if (THREE) return Promise.resolve();
+            if (threeJsLoadPromise) return threeJsLoadPromise;
+            threeJsLoadPromise = Promise.all([
+                import('three'),
+                import('three/addons/controls/OrbitControls.js'),
+                import('three/addons/loaders/STLLoader.js'),
+            ]).then(([threeModule, { OrbitControls }, { STLLoader }]) => {
+                THREE = threeModule;
+                OrbitControlsClass = OrbitControls;
+                ThreeDLoaderClass = STLLoader;
+            });
+            return threeJsLoadPromise;
+        }
+
+        // 3Dビューアを初期化する
+        async function init3DViewer(collectionId, threeDFiles, startIndex) {
+            // Three.js を読み込んでから既存のビューアを破棄
+            await loadThreeJS();
+            dispose3DViewer();
+
+            const container = document.getElementById('threeDViewerContainer');
+            if (!container || !THREE) return;
+
+            const w = container.clientWidth || 400;
+            const h = container.clientHeight || 350;
+
+            // シーン、カメラ、レンダラーを作成
+            threeDScene = new THREE.Scene();
+            threeDScene.background = new THREE.Color(0xf0f0f0);
+
+            threeDCamera = new THREE.PerspectiveCamera(45, w / h, 0.1, 10000);
+            threeDCamera.position.set(0, 0, 200);
+
+            threeDRenderer = new THREE.WebGLRenderer({ antialias: true });
+            threeDRenderer.setSize(w, h);
+            threeDRenderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(threeDRenderer.domElement);
+
+            // ライトを追加
+            // アンビエントライトは空間内に固定（全体を均一に照らす）
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            threeDScene.add(ambientLight);
+            // ディレクショナルライトはカメラに追従
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(1, 2, 3);
+            threeDCamera.add(dirLight);
+            threeDScene.add(threeDCamera);
+
+            // OrbitControls（回転、ズーム、パン）
+            threeDControls = new OrbitControlsClass(threeDCamera, threeDRenderer.domElement);
+            threeDControls.enableDamping = true;
+            threeDControls.dampingFactor = 0.1;
+
+            // アニメーションループ
+            function animate() {
+                threeDAnimFrameId = requestAnimationFrame(animate);
+                if (threeDControls) threeDControls.update();
+                if (threeDRenderer && threeDScene && threeDCamera) threeDRenderer.render(threeDScene, threeDCamera);
+            }
+            animate();
+
+            // リサイズハンドラ（モジュールレベルで管理）
+            threeDResizeObserver = new ResizeObserver(() => {
+                if (!threeDRenderer || !threeDCamera) return;
+                const c = document.getElementById('threeDViewerContainer');
+                if (!c) return;
+                const nw = c.clientWidth;
+                const nh = c.clientHeight;
+                if (nw === 0 || nh === 0) return;
+                threeDCamera.aspect = nw / nh;
+                threeDCamera.updateProjectionMatrix();
+                threeDRenderer.setSize(nw, nh);
+            });
+            threeDResizeObserver.observe(container);
+
+            // 最初のモデルをロード
+            load3DModel(collectionId, threeDFiles[startIndex]);
+        }
+
+        // 既存の3Dビューアを破棄する
+        function dispose3DViewer() {
+            if (threeDAnimFrameId !== null) {
+                cancelAnimationFrame(threeDAnimFrameId);
+                threeDAnimFrameId = null;
+            }
+            if (threeDResizeObserver) {
+                threeDResizeObserver.disconnect();
+                threeDResizeObserver = null;
+            }
+            if (threeDControls) { threeDControls.dispose(); threeDControls = null; }
+            if (threeDCurrentMesh) {
+                if (threeDScene) threeDScene.remove(threeDCurrentMesh);
+                if (threeDCurrentMesh.geometry) threeDCurrentMesh.geometry.dispose();
+                if (threeDCurrentMesh.material) threeDCurrentMesh.material.dispose();
+                threeDCurrentMesh = null;
+            }
+            if (threeDRenderer) {
+                threeDRenderer.dispose();
+                threeDRenderer = null;
+            }
+            threeDScene = null;
+            threeDCamera = null;
+        }
+
+        // 3Dモデルをロード・表示する
+        function load3DModel(collectionId, fileName) {
+            if (!threeDScene || !threeDCamera || !threeDControls || !THREE) return;
+
+            // 既存のメッシュを削除
+            if (threeDCurrentMesh) {
+                threeDScene.remove(threeDCurrentMesh);
+                if (threeDCurrentMesh.geometry) threeDCurrentMesh.geometry.dispose();
+                if (threeDCurrentMesh.material) threeDCurrentMesh.material.dispose();
+                threeDCurrentMesh = null;
+            }
+
+            const url = `/api/File/${encodeURIComponent(collectionId)}/3ddata/${encodeURIComponent(fileName)}`;
+            const loader = new ThreeDLoaderClass();
+            loader.load(
+                url,
+                (geometry) => {
+                    if (!threeDScene || !threeDCamera || !threeDControls) return;
+                    geometry.computeBoundingBox();
+                    geometry.computeVertexNormals();
+
+                    // モデルを中央に配置
+                    const bbox = geometry.boundingBox;
+                    const center = new THREE.Vector3();
+                    bbox.getCenter(center);
+                    geometry.translate(-center.x, -center.y, -center.z);
+
+                    // カメラをモデルサイズに合わせて調整
+                    const size = new THREE.Vector3();
+                    bbox.getSize(size);
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const fov = threeDCamera.fov * (Math.PI / 180);
+                    const cameraDist = Math.abs(maxDim / Math.sin(fov / 2)) * 0.8;
+                    threeDCamera.position.set(0, 0, cameraDist);
+                    threeDControls.target.set(0, 0, 0);
+                    threeDControls.update();
+                    threeDControls.saveState();
+
+                    const material = new THREE.MeshPhongMaterial({ color: 0x4488aa, specular: 0x222222, shininess: 200 });
+                    threeDCurrentMesh = new THREE.Mesh(geometry, material);
+                    threeDScene.add(threeDCurrentMesh);
+                },
+                undefined,
+                (error) => {
+                    console.error('Failed to load STL model:', error);
+                    alert('3Dモデルの読み込みに失敗しました。');
+                }
+            );
+        }
+
         // コレクションの詳細を表示する関数
         function displayCollectionDetails(collection) {
 			// タイトルを設定
@@ -678,6 +934,7 @@
             // --- エリアB: タブ名を設定 ---
             document.getElementById('images-tab').textContent = t('tab-image');
             document.getElementById('videos-tab').textContent = t('tab-video');
+            document.getElementById('threed-tab').textContent = t('tab-3d');
             document.getElementById('data-tab').textContent = t('tab-data');
 
             // --- エリアB: 画像タブの内容を構築 ---
@@ -812,6 +1069,76 @@
                     if (videos.length === 0) return;
                     if (!confirm(t('delete-video-confirm'))) return;
                     await deleteCollectionVideo(collection.indexData.systemData.id, videos[currentVideoIndex], loadCollectionDetails);
+                });
+            }
+
+            // --- エリアB: 3Dデータタブの内容を構築 ---
+            const threeDFiles = collection.threeDFiles || [];
+            let currentThreeDIndex = 0;
+            document.getElementById('threeDTabContent').innerHTML = generate3DDataTabHtml(collection, threeDFiles, currentThreeDIndex);
+
+            // 3Dビューアを初期化（ファイルがない場合は既存ビューアを破棄）
+            if (threeDFiles.length > 0) {
+                init3DViewer(collection.indexData.systemData.id, threeDFiles, currentThreeDIndex);
+            } else {
+                dispose3DViewer();
+            }
+
+            // 全画面・リセットボタンのイベントリスナを設定
+            const fullscreen3DBtn = document.getElementById('fullscreen3DBtn');
+            if (fullscreen3DBtn) {
+                fullscreen3DBtn.addEventListener('click', () => {
+                    const threeDContainer = document.getElementById('threeDViewerContainer');
+                    if (threeDContainer?.requestFullscreen) threeDContainer.requestFullscreen();
+                    else if (threeDContainer?.webkitRequestFullscreen) threeDContainer.webkitRequestFullscreen();
+                });
+            }
+            const resetViewBtn = document.getElementById('resetViewBtn');
+            if (resetViewBtn) {
+                resetViewBtn.addEventListener('click', () => {
+                    if (threeDControls) threeDControls.reset();
+                });
+            }
+
+            // 3Dモデル切り替えヘルパー（カウンター・ファイル名表示を更新してモデルを読み込む）
+            const navigate3DTo = (newIndex) => {
+                currentThreeDIndex = newIndex;
+                const counter = document.getElementById('threeDCounter');
+                const nameEl = document.getElementById('threeDName');
+                if (counter) counter.textContent = `${currentThreeDIndex + 1} / ${threeDFiles.length}`;
+                if (nameEl) nameEl.textContent = threeDFiles[currentThreeDIndex];
+                load3DModel(collection.indexData.systemData.id, threeDFiles[currentThreeDIndex]);
+            };
+
+            // 3Dデータナビゲーションボタンのイベントリスナを設定
+            const prev3DBtn = document.getElementById('prev3D');
+            const next3DBtn = document.getElementById('next3D');
+            if (prev3DBtn && next3DBtn && threeDFiles.length > 0) {
+                prev3DBtn.addEventListener('click', () => navigate3DTo((currentThreeDIndex - 1 + threeDFiles.length) % threeDFiles.length));
+                next3DBtn.addEventListener('click', () => navigate3DTo((currentThreeDIndex + 1) % threeDFiles.length));
+            }
+
+            // 3Dデータ追加ボタンのイベントリスナを設定
+            const add3DBtn = document.getElementById('add3DBtn');
+            const threeDFileInput = document.getElementById('threeDFileInput');
+            if (add3DBtn && threeDFileInput) {
+                add3DBtn.addEventListener('click', () => threeDFileInput.click());
+                threeDFileInput.addEventListener('change', async (event) => {
+                    const file = event.target.files[0];
+                    if (file) {
+                        await uploadCollection3DFile(collection.indexData.systemData.id, file, loadCollectionDetails);
+                        event.target.value = '';
+                    }
+                });
+            }
+
+            // 3Dデータ削除ボタンのイベントリスナを設定
+            const delete3DBtn = document.getElementById('delete3DBtn');
+            if (delete3DBtn) {
+                delete3DBtn.addEventListener('click', async () => {
+                    if (threeDFiles.length === 0) return;
+                    if (!confirm(t('delete-3d-confirm'))) return;
+                    await deleteCollection3DFile(collection.indexData.systemData.id, threeDFiles[currentThreeDIndex], loadCollectionDetails);
                 });
             }
             

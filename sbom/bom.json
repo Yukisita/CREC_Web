@@ -128,6 +128,35 @@
           "url": "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"
         }
       ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/three@0.183.2",
+      "name": "three",
+      "version": "0.183.2",
+      "description": "JavaScript 3D library. The aim of this project is to create an easy-to-use, lightweight, cross-browser, general-purpose 3D library.",
+      "purl": "pkg:npm/three@0.183.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://threejs.org/"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/mrdoob/three.js"
+        },
+        {
+          "type": "distribution",
+          "url": "https://cdn.jsdelivr.net/npm/three@0.183.2/"
+        }
+      ]
     }
   ],
   "dependencies": [
@@ -137,7 +166,8 @@
         "pkg:nuget/Microsoft.AspNetCore.App@8.0",
         "pkg:npm/bootstrap@5.3.0",
         "pkg:npm/bootstrap-icons@1.10.0",
-        "pkg:npm/jsqr@1.4.0"
+        "pkg:npm/jsqr@1.4.0",
+        "pkg:npm/three@0.183.2"
       ]
     }
   ]
