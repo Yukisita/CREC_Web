@@ -3,23 +3,42 @@ CREC Web - AI Chat Support
 Copyright (c) [2025 - 2026] [S.Yukisita]
 This software is released under the MIT License.
 
-Uses Google Gemini API
-(Google LLC, Mountain View, California, USA)
-API key is stored only in the user's browser localStorage and is
-sent exclusively to Google's Gemini API over HTTPS.
+Uses Ollama (https://ollama.com/) for local LLM inference.
+The request is sent exclusively to the Ollama endpoint configured by the user
+(default: http://localhost:11434). No data is sent to any external server.
 */
 
-// チャット設定定数
-const CHAT_API_KEY_STORAGE = 'crec_chat_gemini_api_key';
-const CHAT_MODEL = 'gemini-2.0-flash';
-const CHAT_MAX_OUTPUT_TOKENS = 1024;
-const CHAT_HISTORY_MAX = 20; // コンテキストに保持する最大メッセージ数
+// チャット設定の localStorage キー
+const CHAT_OLLAMA_URL_STORAGE  = 'crec_chat_ollama_url';
+const CHAT_OLLAMA_MODEL_STORAGE = 'crec_chat_ollama_model';
+
+// デフォルト値
+const CHAT_OLLAMA_URL_DEFAULT   = 'http://localhost:11434';
+const CHAT_OLLAMA_MODEL_DEFAULT = 'llama3.2';
+
+const CHAT_HISTORY_MAX      = 20;   // コンテキストに保持する最大メッセージ数
 const CHAT_PAGE_CONTEXT_MAX = 2000; // RAGに含めるページコンテンツの最大文字数
 
 // チャット状態
-let chatMessages = []; // { role: 'user'|'model', text: string }
+let chatMessages = []; // { role: 'user'|'assistant', content: string }
 let chatIsOpen = false;
 let chatIsSending = false;
+
+/**
+ * ユーザーが設定した Ollama ベース URL を返す（末尾スラッシュなし）
+ * @returns {string}
+ */
+function getChatOllamaUrl() {
+    return (localStorage.getItem(CHAT_OLLAMA_URL_STORAGE) || CHAT_OLLAMA_URL_DEFAULT).replace(/\/+$/, '');
+}
+
+/**
+ * ユーザーが設定した Ollama モデル名を返す
+ * @returns {string}
+ */
+function getChatOllamaModel() {
+    return (localStorage.getItem(CHAT_OLLAMA_MODEL_STORAGE) || CHAT_OLLAMA_MODEL_DEFAULT).trim();
+}
 
 /**
  * 現在のページのコンテキストを取得する（RAG用）
@@ -241,51 +260,35 @@ function renderChatMarkdown(text) {
 }
 
 /**
- * Gemini APIにメッセージを送信し、レスポンスを取得する
+ * Ollama の OpenAI 互換 API にメッセージを送信し、レスポンスを取得する
  * @param {string} userText - ユーザーのメッセージ
  * @returns {Promise<{error: boolean, text?: string, message?: string}>}
  */
-async function sendChatToGemini(userText) {
-    const apiKey = localStorage.getItem(CHAT_API_KEY_STORAGE);
-    if (!apiKey || !apiKey.trim()) {
-        return { error: true, message: t('chat-no-api-key') };
-    }
-
+async function sendChatToOllama(userText) {
+    const baseUrl = getChatOllamaUrl();
+    const model   = getChatOllamaModel();
     const systemPrompt = buildChatSystemPrompt();
 
     // 会話履歴を構築（最新 CHAT_HISTORY_MAX 件のみ）
     const recentMessages = chatMessages.slice(-CHAT_HISTORY_MAX);
-    const contents = recentMessages.map(msg => ({
-        role: msg.role,
-        parts: [{ text: msg.text }]
-    }));
-
-    // 現在のユーザーメッセージを追加
-    contents.push({
-        role: 'user',
-        parts: [{ text: userText }]
-    });
+    const messages = [
+        { role: 'system', content: systemPrompt },
+        ...recentMessages,
+        { role: 'user', content: userText }
+    ];
 
     const requestBody = {
-        system_instruction: {
-            parts: [{ text: systemPrompt }]
-        },
-        contents,
-        generationConfig: {
-            maxOutputTokens: CHAT_MAX_OUTPUT_TOKENS,
-            temperature: 0.7
-        }
+        model,
+        messages,
+        stream: false
     };
 
     try {
-        const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${CHAT_MODEL}:generateContent?key=${encodeURIComponent(apiKey.trim())}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody)
-            }
-        );
+        const response = await fetch(`${baseUrl}/v1/chat/completions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
 
         if (!response.ok) {
             let errorMsg = `HTTP ${response.status}`;
@@ -297,7 +300,7 @@ async function sendChatToGemini(userText) {
         }
 
         const data = await response.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        const text = data.choices?.[0]?.message?.content;
         if (!text) {
             return { error: true, message: t('chat-error-empty-response') };
         }
@@ -314,7 +317,7 @@ async function sendChatToGemini(userText) {
 
 /**
  * チャットメッセージリストの末尾にメッセージを追加する
- * @param {'user'|'model'} role - メッセージのロール
+ * @param {'user'|'assistant'} role - メッセージのロール
  * @param {string} htmlContent - 表示するHTMLコンテンツ（信頼済み）
  * @param {string} [elementId] - 後から参照するためのID（省略可）
  */
@@ -323,7 +326,8 @@ function appendChatMessage(role, htmlContent, elementId) {
     if (!messages) return;
 
     const div = document.createElement('div');
-    div.className = `chat-message chat-message-${role}`;
+    // 'user' はそのまま、'assistant' は 'model' クラスとしてスタイルを適用
+    div.className = `chat-message chat-message-${role === 'user' ? 'user' : 'model'}`;
     if (elementId) div.id = elementId;
 
     const bubble = document.createElement('div');
@@ -362,8 +366,8 @@ async function submitChatMessage() {
     // ユーザーメッセージを表示
     appendChatMessage('user', escapeHtml(userText));
 
-    // 履歴に追加
-    chatMessages.push({ role: 'user', text: userText });
+    // 履歴に追加（OpenAI 互換形式）
+    chatMessages.push({ role: 'user', content: userText });
 
     // 送信中フラグ
     chatIsSending = true;
@@ -373,13 +377,13 @@ async function submitChatMessage() {
     // 思考中インジケーターを表示
     const thinkingId = 'chat-thinking-' + Date.now();
     appendChatMessage(
-        'model',
+        'assistant',
         `<span class="chat-thinking"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${escapeHtml(t('chat-thinking'))}</span>`,
         thinkingId
     );
 
     try {
-        const result = await sendChatToGemini(userText);
+        const result = await sendChatToOllama(userText);
 
         // 思考中インジケーターを削除
         const thinkingEl = document.getElementById(thinkingId);
@@ -387,17 +391,17 @@ async function submitChatMessage() {
 
         if (result.error) {
             appendChatMessage(
-                'model',
+                'assistant',
                 `<span class="text-danger"><i class="bi bi-exclamation-triangle-fill"></i> ${escapeHtml(result.message)}</span>`
             );
         } else {
             // アクションを処理してテキストを整形
             const cleanText = processChatActions(result.text);
             const renderedHtml = renderChatMarkdown(cleanText);
-            appendChatMessage('model', renderedHtml);
+            appendChatMessage('assistant', renderedHtml);
 
             // 履歴に保存（元テキスト、アクションタグも含む）
-            chatMessages.push({ role: 'model', text: result.text });
+            chatMessages.push({ role: 'assistant', content: result.text });
         }
     } finally {
         chatIsSending = false;
@@ -447,22 +451,22 @@ function toggleChatPanel() {
 }
 
 // =====================
-// API キー設定
+// Ollama 設定
 // =====================
 
 /**
  * チャット設定モーダルを開く
  */
 function openChatSettings() {
-    const overlay = document.getElementById('chatSettingsOverlay');
-    const modal = document.getElementById('chatSettingsModal');
-    const input = document.getElementById('chatApiKeyInput');
+    const overlay  = document.getElementById('chatSettingsOverlay');
+    const modal    = document.getElementById('chatSettingsModal');
+    const urlInput = document.getElementById('chatOllamaUrl');
+    const mdlInput = document.getElementById('chatOllamaModel');
 
-    if (input) {
-        input.value = localStorage.getItem(CHAT_API_KEY_STORAGE) || '';
-    }
+    if (urlInput) urlInput.value = getChatOllamaUrl();
+    if (mdlInput) mdlInput.value = getChatOllamaModel();
     if (overlay) overlay.classList.add('show');
-    if (modal) modal.classList.add('show');
+    if (modal)   modal.classList.add('show');
 }
 
 /**
@@ -470,37 +474,23 @@ function openChatSettings() {
  */
 function closeChatSettings() {
     const overlay = document.getElementById('chatSettingsOverlay');
-    const modal = document.getElementById('chatSettingsModal');
+    const modal   = document.getElementById('chatSettingsModal');
     if (overlay) overlay.classList.remove('show');
-    if (modal) modal.classList.remove('show');
+    if (modal)   modal.classList.remove('show');
 }
 
 /**
- * Gemini APIキーを localStorage に保存する
- *
- * セキュリティ上の注意:
- * このキーはユーザー自身が提供するサードパーティのAPIキーであり、当サーバーには
- * 送信されません。キーはこのブラウザの localStorage にのみ保存され、Google の
- * Gemini API エンドポイントに対してのみ HTTPS 経由で使用されます。
- * ブラウザの localStorage はプレーンテキストであることをユーザーに通知済みです。
- *
- * Security note: The value stored here is a user-supplied third-party API key
- * that is never sent to our server. It is persisted only in this browser's
- * localStorage and is transmitted exclusively to Google's Gemini API over HTTPS.
- * The settings UI informs the user that the key is stored in the browser.
+ * Ollama の URL とモデル名を localStorage に保存する
  */
-function saveChatApiKey() {
-    const input = document.getElementById('chatApiKeyInput');
-    if (!input) return;
+function saveChatSettings() {
+    const urlInput = document.getElementById('chatOllamaUrl');
+    const mdlInput = document.getElementById('chatOllamaModel');
 
-    const key = input.value.trim();
-    if (key) {
-        // The API key is a user-supplied credential stored at the user's own request.
-        // It is only transmitted to the Google Gemini API (HTTPS) and never to our server.
-        localStorage.setItem(CHAT_API_KEY_STORAGE, key); // lgtm[js/clear-text-storage-of-sensitive-data]
-    } else {
-        localStorage.removeItem(CHAT_API_KEY_STORAGE);
-    }
+    const url = urlInput ? urlInput.value.trim() : '';
+    const model = mdlInput ? mdlInput.value.trim() : '';
+
+    localStorage.setItem(CHAT_OLLAMA_URL_STORAGE, url || CHAT_OLLAMA_URL_DEFAULT);
+    localStorage.setItem(CHAT_OLLAMA_MODEL_STORAGE, model || CHAT_OLLAMA_MODEL_DEFAULT);
 
     closeChatSettings();
 }
@@ -513,7 +503,7 @@ function clearChatHistory() {
     const messages = document.getElementById('chatMessages');
     if (messages) {
         messages.innerHTML = '';
-        appendChatMessage('model', escapeHtml(t('chat-welcome')));
+        appendChatMessage('assistant', escapeHtml(t('chat-welcome')));
     }
 }
 
@@ -527,15 +517,15 @@ function clearChatHistory() {
  */
 function initializeChat() {
     setupEventListeners([
-        { id: 'chatToggleBtn',         event: 'click', handler: toggleChatPanel },
-        { id: 'chatCloseBtn',          event: 'click', handler: closeChatPanel },
-        { id: 'chatSettingsBtn',       event: 'click', handler: openChatSettings },
-        { id: 'chatClearBtn',          event: 'click', handler: clearChatHistory },
-        { id: 'chatSendBtn',           event: 'click', handler: submitChatMessage },
-        { id: 'chatSettingsSave',      event: 'click', handler: saveChatApiKey },
-        { id: 'chatSettingsCancel',    event: 'click', handler: closeChatSettings },
-        { id: 'chatSettingsClose',     event: 'click', handler: closeChatSettings },
-        { id: 'chatSettingsOverlay',   event: 'click', handler: closeChatSettings },
+        { id: 'chatToggleBtn',       event: 'click', handler: toggleChatPanel },
+        { id: 'chatCloseBtn',        event: 'click', handler: closeChatPanel },
+        { id: 'chatSettingsBtn',     event: 'click', handler: openChatSettings },
+        { id: 'chatClearBtn',        event: 'click', handler: clearChatHistory },
+        { id: 'chatSendBtn',         event: 'click', handler: submitChatMessage },
+        { id: 'chatSettingsSave',    event: 'click', handler: saveChatSettings },
+        { id: 'chatSettingsCancel',  event: 'click', handler: closeChatSettings },
+        { id: 'chatSettingsClose',   event: 'click', handler: closeChatSettings },
+        { id: 'chatSettingsOverlay', event: 'click', handler: closeChatSettings },
     ]);
 
     // Enterキーで送信、Shift+Enterで改行
@@ -550,9 +540,10 @@ function initializeChat() {
     }
 
     // ウェルカムメッセージを表示
-    appendChatMessage('model', escapeHtml(t('chat-welcome')));
+    appendChatMessage('assistant', escapeHtml(t('chat-welcome')));
 }
 
 document.addEventListener('DOMContentLoaded', function () {
     initializeChat();
 });
+
