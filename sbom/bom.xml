@@ -1,0 +1,133 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<bom xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" serialNumber="urn:uuid:c57ed591-5261-4e18-8ed9-cab3f84779fa" version="2" xmlns="http://cyclonedx.org/schema/bom/1.6">
+  <metadata>
+    <timestamp>2026-03-18T07:50:00Z</timestamp>
+    <tools>
+      <tool>
+        <vendor>CycloneDX</vendor>
+        <name>CycloneDX module for .NET</name>
+        <version>6.0.0.0</version>
+      </tool>
+    </tools>
+    <component type="application" bom-ref="CREC_Web@0.0.0">
+      <name>CREC_Web</name>
+      <version>0.0.0</version>
+    </component>
+  </metadata>
+  <components>
+    <component type="framework" bom-ref="pkg:nuget/Microsoft.AspNetCore.App@8.0">
+      <name>Microsoft.AspNetCore.App</name>
+      <version>8.0</version>
+      <description>.NET Runtime and ASP.NET Core framework (net8.0)</description>
+      <purl>pkg:nuget/Microsoft.AspNetCore.App@8.0</purl>
+      <licenses>
+        <license>
+          <id>MIT</id>
+          <url>https://github.com/dotnet/runtime/blob/main/LICENSE.TXT</url>
+        </license>
+      </licenses>
+      <externalReferences>
+        <reference type="website">
+          <url>https://dotnet.microsoft.com/</url>
+        </reference>
+        <reference type="vcs">
+          <url>https://github.com/dotnet/runtime</url>
+        </reference>
+      </externalReferences>
+    </component>
+    <component type="library" bom-ref="pkg:npm/bootstrap@5.3.0">
+      <name>bootstrap</name>
+      <version>5.3.0</version>
+      <description>The most popular HTML, CSS, and JavaScript framework for developing responsive, mobile first projects on the web.</description>
+      <purl>pkg:npm/bootstrap@5.3.0</purl>
+      <licenses>
+        <license>
+          <id>MIT</id>
+        </license>
+      </licenses>
+      <externalReferences>
+        <reference type="website">
+          <url>https://getbootstrap.com/</url>
+        </reference>
+        <reference type="vcs">
+          <url>https://github.com/twbs/bootstrap</url>
+        </reference>
+        <reference type="distribution">
+          <url>https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/</url>
+        </reference>
+      </externalReferences>
+    </component>
+    <component type="library" bom-ref="pkg:npm/bootstrap-icons@1.10.0">
+      <name>bootstrap-icons</name>
+      <version>1.10.0</version>
+      <description>Official open source SVG icon library for Bootstrap.</description>
+      <purl>pkg:npm/bootstrap-icons@1.10.0</purl>
+      <licenses>
+        <license>
+          <id>MIT</id>
+        </license>
+      </licenses>
+      <externalReferences>
+        <reference type="website">
+          <url>https://icons.getbootstrap.com/</url>
+        </reference>
+        <reference type="vcs">
+          <url>https://github.com/twbs/icons</url>
+        </reference>
+        <reference type="distribution">
+          <url>https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/</url>
+        </reference>
+      </externalReferences>
+    </component>
+    <component type="library" bom-ref="pkg:npm/jsqr@1.4.0">
+      <name>jsqr</name>
+      <version>1.4.0</version>
+      <description>A pure javascript QR code reading library.</description>
+      <purl>pkg:npm/jsqr@1.4.0</purl>
+      <licenses>
+        <license>
+          <id>Apache-2.0</id>
+        </license>
+      </licenses>
+      <externalReferences>
+        <reference type="vcs">
+          <url>https://github.com/cozmo/jsQR</url>
+        </reference>
+        <reference type="distribution">
+          <url>https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js</url>
+        </reference>
+      </externalReferences>
+    </component>
+    <component type="library" bom-ref="pkg:npm/three@0.183.2">
+      <name>three</name>
+      <version>0.183.2</version>
+      <description>JavaScript 3D library. The aim of this project is to create an easy-to-use, lightweight, cross-browser, general-purpose 3D library.</description>
+      <purl>pkg:npm/three@0.183.2</purl>
+      <licenses>
+        <license>
+          <id>MIT</id>
+        </license>
+      </licenses>
+      <externalReferences>
+        <reference type="website">
+          <url>https://threejs.org/</url>
+        </reference>
+        <reference type="vcs">
+          <url>https://github.com/mrdoob/three.js</url>
+        </reference>
+        <reference type="distribution">
+          <url>https://cdn.jsdelivr.net/npm/three@0.183.2/</url>
+        </reference>
+      </externalReferences>
+    </component>
+  </components>
+  <dependencies>
+    <dependency ref="CREC_Web@0.0.0">
+      <dependency ref="pkg:nuget/Microsoft.AspNetCore.App@8.0" />
+      <dependency ref="pkg:npm/bootstrap@5.3.0" />
+      <dependency ref="pkg:npm/bootstrap-icons@1.10.0" />
+      <dependency ref="pkg:npm/jsqr@1.4.0" />
+      <dependency ref="pkg:npm/three@0.183.2" />
+    </dependency>
+  </dependencies>
+</bom>

@@ -1,0 +1,174 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:557024ea-22eb-4bbe-9a70-cc6af6138a8f",
+  "version": 2,
+  "metadata": {
+    "timestamp": "2026-03-18T07:50:00Z",
+    "tools": [
+      {
+        "vendor": "CycloneDX",
+        "name": "CycloneDX module for .NET",
+        "version": "6.0.0.0"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "bom-ref": "CREC_Web@0.0.0",
+      "name": "CREC_Web",
+      "version": "0.0.0"
+    }
+  },
+  "components": [
+    {
+      "type": "framework",
+      "bom-ref": "pkg:nuget/Microsoft.AspNetCore.App@8.0",
+      "name": "Microsoft.AspNetCore.App",
+      "version": "8.0",
+      "description": ".NET Runtime and ASP.NET Core framework (net8.0)",
+      "purl": "pkg:nuget/Microsoft.AspNetCore.App@8.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT",
+            "url": "https://github.com/dotnet/runtime/blob/main/LICENSE.TXT"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://dotnet.microsoft.com/"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/dotnet/runtime"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/bootstrap@5.3.0",
+      "name": "bootstrap",
+      "version": "5.3.0",
+      "description": "The most popular HTML, CSS, and JavaScript framework for developing responsive, mobile first projects on the web.",
+      "purl": "pkg:npm/bootstrap@5.3.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://getbootstrap.com/"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/twbs/bootstrap"
+        },
+        {
+          "type": "distribution",
+          "url": "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/bootstrap-icons@1.10.0",
+      "name": "bootstrap-icons",
+      "version": "1.10.0",
+      "description": "Official open source SVG icon library for Bootstrap.",
+      "purl": "pkg:npm/bootstrap-icons@1.10.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://icons.getbootstrap.com/"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/twbs/icons"
+        },
+        {
+          "type": "distribution",
+          "url": "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/jsqr@1.4.0",
+      "name": "jsqr",
+      "version": "1.4.0",
+      "description": "A pure javascript QR code reading library.",
+      "purl": "pkg:npm/jsqr@1.4.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/cozmo/jsQR"
+        },
+        {
+          "type": "distribution",
+          "url": "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/three@0.183.2",
+      "name": "three",
+      "version": "0.183.2",
+      "description": "JavaScript 3D library. The aim of this project is to create an easy-to-use, lightweight, cross-browser, general-purpose 3D library.",
+      "purl": "pkg:npm/three@0.183.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://threejs.org/"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/mrdoob/three.js"
+        },
+        {
+          "type": "distribution",
+          "url": "https://cdn.jsdelivr.net/npm/three@0.183.2/"
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "CREC_Web@0.0.0",
+      "dependsOn": [
+        "pkg:nuget/Microsoft.AspNetCore.App@8.0",
+        "pkg:npm/bootstrap@5.3.0",
+        "pkg:npm/bootstrap-icons@1.10.0",
+        "pkg:npm/jsqr@1.4.0",
+        "pkg:npm/three@0.183.2"
+      ]
+    }
+  ]
+}

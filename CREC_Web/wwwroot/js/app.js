@@ -630,6 +630,86 @@ async function deleteCollectionVideo(collectionId, fileName, onSuccess) {
     }
 }
 
+/**
+ * 3Dファイル（STL）をコレクションにアップロードする
+ * @param {string} collectionId - コレクションID
+ * @param {File} file - アップロード3Dファイル
+ * @param {Function} onSuccess - アップロード成功後のコールバック
+ */
+async function uploadCollection3DFile(collectionId, file, onSuccess) {
+    const allowedExtensions = ['.stl'];
+    const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+    if (!allowedExtensions.includes(fileExtension)) {
+        alert(t('add-3d-invalid-format'));
+        return;
+    }
+
+    const uploadBtn = document.getElementById('add3DBtn');
+    let originalBtnHtml = '';
+    if (uploadBtn) {
+        originalBtnHtml = uploadBtn.innerHTML;
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${t('uploading')}`;
+    }
+
+    const formData = new FormData();
+    formData.append('threeDFile', file);
+
+    const progressContainer = document.getElementById('threeDUploadProgress');
+    const progressBar = document.getElementById('threeDUploadProgressBar');
+
+    try {
+        await uploadWithProgress(
+            `/api/File/${encodeURIComponent(collectionId)}/upload/3ddata`,
+            formData,
+            progressBar,
+            progressContainer
+        );
+
+        alert(t('add-3d-success'));
+        if (typeof onSuccess === 'function') {
+            await onSuccess();
+        }
+    } catch (error) {
+        console.error('Error uploading 3D file:', error);
+        alert(t('add-3d-error'));
+    } finally {
+        if (uploadBtn) {
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = originalBtnHtml;
+        }
+        if (progressContainer) {
+            progressContainer.style.display = 'none';
+        }
+    }
+}
+
+/**
+ * 指定した3Dファイル（STL）をコレクションから削除する
+ * @param {string} collectionId - コレクションID
+ * @param {string} fileName - 削除する3Dファイル名
+ * @param {Function} onSuccess - 削除成功後のコールバック
+ */
+async function deleteCollection3DFile(collectionId, fileName, onSuccess) {
+    try {
+        const response = await fetch(`/api/File/${encodeURIComponent(collectionId)}/3ddata?fileName=${encodeURIComponent(fileName)}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        alert(t('delete-3d-success'));
+        if (typeof onSuccess === 'function') {
+            await onSuccess();
+        }
+    } catch (error) {
+        console.error('Error deleting 3D file:', error);
+        alert(t('delete-3d-error'));
+    }
+}
+
 // =====================
 // Admin Panel Functions
 // =====================

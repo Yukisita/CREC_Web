@@ -304,6 +304,30 @@ namespace CREC_Web.Services
                     }
                 }
 
+                // 3DDataフォルダから3Dファイルを読み込む
+                // CREC構造: {dataPath}\{collectionId}\3DData\
+                var threeDDataPath = Path.Combine(directoryPath, "3DData");
+                if (Directory.Exists(threeDDataPath))
+                {
+                    _logger.LogInformation($"Loading 3D files from 3DData folder: {threeDDataPath}");
+                    var threeDFiles = Directory.GetFiles(threeDDataPath);
+
+                    foreach (var file in threeDFiles)
+                    {
+                        var fileName = Path.GetFileName(file);
+                        var extension = Path.GetExtension(file).ToLowerInvariant();
+
+                        if (StlFormats.AllowedExtensions.Contains(extension))
+                        {
+                            if (!collection.ThreeDFiles.Contains(fileName))
+                            {
+                                collection.ThreeDFiles.Add(fileName);
+                                _logger.LogDebug($"Added 3D file from 3DData folder: {fileName}");
+                            }
+                        }
+                    }
+                }
+
                 // dataフォルダからデータファイルを読み込む
                 // CREC構造: {dataPath}\{collectionId}\data\
                 var dataPath = Path.Combine(directoryPath, "data");
@@ -559,6 +583,33 @@ namespace CREC_Web.Services
                     collection.VideoFiles.Clear();
                     LoadFileList(collection, collection.CollectionFolderPath);
                     _logger.LogInformation("Video file cache refreshed for collection {CollectionId}", collectionId.SanitizeForLog());
+                }
+            }
+        }
+
+        /// <summary>
+        /// 特定コレクションの3Dファイルリストキャッシュのみクリア（全体キャッシュは維持）
+        /// </summary>
+        /// <param name="collectionId">コレクションID</param>
+        public void RefreshCollection3DFileCache(string collectionId)
+        {
+            // セキュリティ: コレクション ID を検証
+            if (!ValidationHelper.IsValidCollectionId(collectionId))
+            {
+                _logger.LogWarning("Invalid collection ID: {CollectionId}", collectionId.SanitizeForLog());
+                return;
+            }
+
+            lock (_cacheLock)
+            {
+                var collection = _collectionsCache.FirstOrDefault(c =>
+                    c.IndexData.SystemData.Id.Equals(collectionId, StringComparison.OrdinalIgnoreCase));
+
+                if (collection != null)
+                {
+                    collection.ThreeDFiles.Clear();
+                    LoadFileList(collection, collection.CollectionFolderPath);
+                    _logger.LogInformation("3D file cache refreshed for collection {CollectionId}", collectionId.SanitizeForLog());
                 }
             }
         }
