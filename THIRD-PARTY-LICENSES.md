@@ -307,9 +307,9 @@ SOFTWARE.
 
 ## Three.js
 
-**Version:** 0.160.0  
+**Version:** 0.183.2  
 **Source:** https://threejs.org/  
-**CDN URL:** https://cdn.jsdelivr.net/npm/three@0.160.0/  
+**CDN URL:** https://cdn.jsdelivr.net/npm/three@0.183.2/  
 **License:** MIT License  
 **Copyright:** Copyright (c) 2010-2024 three.js authors
 

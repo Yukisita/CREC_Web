@@ -504,8 +504,8 @@
     <script type="importmap">
     {
       "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        "three": "https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.183.2/examples/jsm/"
       }
     }
     </script>
@@ -757,7 +757,7 @@
         let stlCurrentMesh = null;
         let stlResizeObserver = null;
 
-        // Three.js をダイナミックインポートで遅延読み込みする（v0.160.0、ESモジュール形式）
+        // Three.js をダイナミックインポートで遅延読み込みする（v0.183.2、ESモジュール形式）
         function loadThreeJS() {
             if (THREE) return Promise.resolve();
             if (threeJsLoadPromise) return threeJsLoadPromise;
