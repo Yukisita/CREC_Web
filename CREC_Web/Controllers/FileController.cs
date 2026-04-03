@@ -770,7 +770,7 @@ namespace CREC_Web.Controllers
                 var fullPath = Path.GetFullPath(filePath);
                 var allowedPath = Path.GetFullPath(Path.Combine(dataPath, collectionId, "3DData"));
 
-                // セキュリティ: 解決済みパスが pictures ディレクトリ配下に留まっていることを確認
+                // セキュリティ: 解決済みパスが 3DData ディレクトリ配下に留まっていることを確認
                 if (!IsPathWithinDirectory(filePath, allowedPath))
                 {
                     _logger.LogWarning("Path traversal attempt detected: {fullPath}", fullPath.SanitizeForLog());
