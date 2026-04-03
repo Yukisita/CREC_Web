@@ -95,7 +95,7 @@
             background-color: #000;
         }
 
-        .stl-viewer-container {
+        .three-d-viewer-container {
             position: relative;
             width: 100%;
             height: 350px;
@@ -105,13 +105,13 @@
             touch-action: none;
         }
 
-        .stl-viewer-container canvas {
+        .three-d-viewer-container canvas {
             display: block;
             width: 100% !important;
             height: 100% !important;
         }
 
-        .stl-viewer-toolbar {
+        .three-d-viewer-toolbar {
             position: absolute;
             top: 8px;
             right: 8px;
@@ -706,8 +706,8 @@
         function generate3DDataTabHtml(collection, threeDFiles, currentThreeDIndex) {
             const viewerHtml = threeDFiles.length > 0
                 ? `
-                    <div class="stl-viewer-container" id="stlViewerContainer">
-                        <div class="stl-viewer-toolbar">
+                    <div class="three-d-viewer-container" id="threeDViewerContainer">
+                        <div class="three-d-viewer-toolbar">
                             <button id="resetViewBtn" class="btn btn-sm btn-outline-secondary" title="${t('3d-reset-view')}" aria-label="${t('3d-reset-view')}">
                                 <i class="bi bi-arrow-counterclockwise"></i>
                             </button>
@@ -747,15 +747,15 @@
         // Three.js 3Dビューア インスタンス管理
         let THREE = null;
         let OrbitControlsClass = null;
-        let STLLoaderClass = null;
+        let ThreeDLoaderClass = null;
         let threeJsLoadPromise = null;
-        let stlRenderer = null;
-        let stlScene = null;
-        let stlCamera = null;
-        let stlControls = null;
-        let stlAnimFrameId = null;
-        let stlCurrentMesh = null;
-        let stlResizeObserver = null;
+        let threeDRenderer = null;
+        let threeDScene = null;
+        let threeDCamera = null;
+        let threeDControls = null;
+        let threeDAnimFrameId = null;
+        let threeDCurrentMesh = null;
+        let threeDResizeObserver = null;
 
         // Three.js をダイナミックインポートで遅延読み込みする（v0.183.2、ESモジュール形式）
         function loadThreeJS() {
@@ -768,7 +768,7 @@
             ]).then(([threeModule, { OrbitControls }, { STLLoader }]) => {
                 THREE = threeModule;
                 OrbitControlsClass = OrbitControls;
-                STLLoaderClass = STLLoader;
+                ThreeDLoaderClass = STLLoader;
             });
             return threeJsLoadPromise;
         }
@@ -779,60 +779,60 @@
             await loadThreeJS();
             dispose3DViewer();
 
-            const container = document.getElementById('stlViewerContainer');
+            const container = document.getElementById('threeDViewerContainer');
             if (!container || !THREE) return;
 
             const w = container.clientWidth || 400;
             const h = container.clientHeight || 350;
 
             // シーン、カメラ、レンダラーを作成
-            stlScene = new THREE.Scene();
-            stlScene.background = new THREE.Color(0xf0f0f0);
+            threeDScene = new THREE.Scene();
+            threeDScene.background = new THREE.Color(0xf0f0f0);
 
-            stlCamera = new THREE.PerspectiveCamera(45, w / h, 0.1, 10000);
-            stlCamera.position.set(0, 0, 200);
+            threeDCamera = new THREE.PerspectiveCamera(45, w / h, 0.1, 10000);
+            threeDCamera.position.set(0, 0, 200);
 
-            stlRenderer = new THREE.WebGLRenderer({ antialias: true });
-            stlRenderer.setSize(w, h);
-            stlRenderer.setPixelRatio(window.devicePixelRatio);
-            container.appendChild(stlRenderer.domElement);
+            threeDRenderer = new THREE.WebGLRenderer({ antialias: true });
+            threeDRenderer.setSize(w, h);
+            threeDRenderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(threeDRenderer.domElement);
 
             // ライトを追加
             // アンビエントライトは空間内に固定（全体を均一に照らす）
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-            stlScene.add(ambientLight);
+            threeDScene.add(ambientLight);
             // ディレクショナルライトはカメラに追従
             const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
             dirLight.position.set(1, 2, 3);
-            stlCamera.add(dirLight);
-            stlScene.add(stlCamera);
+            threeDCamera.add(dirLight);
+            threeDScene.add(threeDCamera);
 
             // OrbitControls（回転、ズーム、パン）
-            stlControls = new OrbitControlsClass(stlCamera, stlRenderer.domElement);
-            stlControls.enableDamping = true;
-            stlControls.dampingFactor = 0.1;
+            threeDControls = new OrbitControlsClass(threeDCamera, threeDRenderer.domElement);
+            threeDControls.enableDamping = true;
+            threeDControls.dampingFactor = 0.1;
 
             // アニメーションループ
             function animate() {
-                stlAnimFrameId = requestAnimationFrame(animate);
-                if (stlControls) stlControls.update();
-                if (stlRenderer && stlScene && stlCamera) stlRenderer.render(stlScene, stlCamera);
+                threeDAnimFrameId = requestAnimationFrame(animate);
+                if (threeDControls) threeDControls.update();
+                if (threeDRenderer && threeDScene && threeDCamera) threeDRenderer.render(threeDScene, threeDCamera);
             }
             animate();
 
             // リサイズハンドラ（モジュールレベルで管理）
-            stlResizeObserver = new ResizeObserver(() => {
-                if (!stlRenderer || !stlCamera) return;
-                const c = document.getElementById('stlViewerContainer');
+            threeDResizeObserver = new ResizeObserver(() => {
+                if (!threeDRenderer || !threeDCamera) return;
+                const c = document.getElementById('threeDViewerContainer');
                 if (!c) return;
                 const nw = c.clientWidth;
                 const nh = c.clientHeight;
                 if (nw === 0 || nh === 0) return;
-                stlCamera.aspect = nw / nh;
-                stlCamera.updateProjectionMatrix();
-                stlRenderer.setSize(nw, nh);
+                threeDCamera.aspect = nw / nh;
+                threeDCamera.updateProjectionMatrix();
+                threeDRenderer.setSize(nw, nh);
             });
-            stlResizeObserver.observe(container);
+            threeDResizeObserver.observe(container);
 
             // 最初のモデルをロード
             load3DModel(collectionId, threeDFiles[startIndex]);
@@ -840,47 +840,47 @@
 
         // 既存の3Dビューアを破棄する
         function dispose3DViewer() {
-            if (stlAnimFrameId !== null) {
-                cancelAnimationFrame(stlAnimFrameId);
-                stlAnimFrameId = null;
+            if (threeDAnimFrameId !== null) {
+                cancelAnimationFrame(threeDAnimFrameId);
+                threeDAnimFrameId = null;
             }
-            if (stlResizeObserver) {
-                stlResizeObserver.disconnect();
-                stlResizeObserver = null;
+            if (threeDResizeObserver) {
+                threeDResizeObserver.disconnect();
+                threeDResizeObserver = null;
             }
-            if (stlControls) { stlControls.dispose(); stlControls = null; }
-            if (stlCurrentMesh) {
-                if (stlScene) stlScene.remove(stlCurrentMesh);
-                if (stlCurrentMesh.geometry) stlCurrentMesh.geometry.dispose();
-                if (stlCurrentMesh.material) stlCurrentMesh.material.dispose();
-                stlCurrentMesh = null;
+            if (threeDControls) { threeDControls.dispose(); threeDControls = null; }
+            if (threeDCurrentMesh) {
+                if (threeDScene) threeDScene.remove(threeDCurrentMesh);
+                if (threeDCurrentMesh.geometry) threeDCurrentMesh.geometry.dispose();
+                if (threeDCurrentMesh.material) threeDCurrentMesh.material.dispose();
+                threeDCurrentMesh = null;
             }
-            if (stlRenderer) {
-                stlRenderer.dispose();
-                stlRenderer = null;
+            if (threeDRenderer) {
+                threeDRenderer.dispose();
+                threeDRenderer = null;
             }
-            stlScene = null;
-            stlCamera = null;
+            threeDScene = null;
+            threeDCamera = null;
         }
 
         // STLモデルをロード・表示する
         function load3DModel(collectionId, fileName) {
-            if (!stlScene || !stlCamera || !stlControls || !THREE) return;
+            if (!threeDScene || !threeDCamera || !threeDControls || !THREE) return;
 
             // 既存のメッシュを削除
-            if (stlCurrentMesh) {
-                stlScene.remove(stlCurrentMesh);
-                if (stlCurrentMesh.geometry) stlCurrentMesh.geometry.dispose();
-                if (stlCurrentMesh.material) stlCurrentMesh.material.dispose();
-                stlCurrentMesh = null;
+            if (threeDCurrentMesh) {
+                threeDScene.remove(threeDCurrentMesh);
+                if (threeDCurrentMesh.geometry) threeDCurrentMesh.geometry.dispose();
+                if (threeDCurrentMesh.material) threeDCurrentMesh.material.dispose();
+                threeDCurrentMesh = null;
             }
 
             const url = `/api/File/${encodeURIComponent(collectionId)}/3ddata/${encodeURIComponent(fileName)}`;
-            const loader = new STLLoaderClass();
+            const loader = new ThreeDLoaderClass();
             loader.load(
                 url,
                 (geometry) => {
-                    if (!stlScene || !stlCamera || !stlControls) return;
+                    if (!threeDScene || !threeDCamera || !threeDControls) return;
                     geometry.computeBoundingBox();
                     geometry.computeVertexNormals();
 
@@ -894,16 +894,16 @@
                     const size = new THREE.Vector3();
                     bbox.getSize(size);
                     const maxDim = Math.max(size.x, size.y, size.z);
-                    const fov = stlCamera.fov * (Math.PI / 180);
+                    const fov = threeDCamera.fov * (Math.PI / 180);
                     const cameraDist = Math.abs(maxDim / Math.sin(fov / 2)) * 0.8;
-                    stlCamera.position.set(0, 0, cameraDist);
-                    stlControls.target.set(0, 0, 0);
-                    stlControls.update();
-                    stlControls.saveState();
+                    threeDCamera.position.set(0, 0, cameraDist);
+                    threeDControls.target.set(0, 0, 0);
+                    threeDControls.update();
+                    threeDControls.saveState();
 
                     const material = new THREE.MeshPhongMaterial({ color: 0x4488aa, specular: 0x222222, shininess: 200 });
-                    stlCurrentMesh = new THREE.Mesh(geometry, material);
-                    stlScene.add(stlCurrentMesh);
+                    threeDCurrentMesh = new THREE.Mesh(geometry, material);
+                    threeDScene.add(threeDCurrentMesh);
                 },
                 undefined,
                 (error) => {
@@ -1088,15 +1088,15 @@
             const fullscreen3DBtn = document.getElementById('fullscreen3DBtn');
             if (fullscreen3DBtn) {
                 fullscreen3DBtn.addEventListener('click', () => {
-                    const stlContainer = document.getElementById('stlViewerContainer');
-                    if (stlContainer?.requestFullscreen) stlContainer.requestFullscreen();
-                    else if (stlContainer?.webkitRequestFullscreen) stlContainer.webkitRequestFullscreen();
+                    const threeDContainer = document.getElementById('threeDViewerContainer');
+                    if (threeDContainer?.requestFullscreen) threeDContainer.requestFullscreen();
+                    else if (threeDContainer?.webkitRequestFullscreen) threeDContainer.webkitRequestFullscreen();
                 });
             }
             const resetViewBtn = document.getElementById('resetViewBtn');
             if (resetViewBtn) {
                 resetViewBtn.addEventListener('click', () => {
-                    if (stlControls) stlControls.reset();
+                    if (threeDControls) threeDControls.reset();
                 });
             }
 
