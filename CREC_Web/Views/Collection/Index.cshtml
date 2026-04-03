@@ -863,7 +863,7 @@
             threeDCamera = null;
         }
 
-        // STLモデルをロード・表示する
+        // 3Dモデルをロード・表示する
         function load3DModel(collectionId, fileName) {
             if (!threeDScene || !threeDCamera || !threeDControls || !THREE) return;
 
@@ -1072,7 +1072,7 @@
                 });
             }
 
-            // --- エリアB: 3Dデータタブの（STL）内容を構築 ---
+            // --- エリアB: 3Dデータタブの内容を構築 ---
             const threeDFiles = collection.threeDFiles || [];
             let currentThreeDIndex = 0;
             document.getElementById('threeDTabContent').innerHTML = generate3DDataTabHtml(collection, threeDFiles, currentThreeDIndex);
