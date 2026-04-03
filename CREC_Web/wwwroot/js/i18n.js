@@ -547,7 +547,7 @@ const translations = {
         'chat-settings-title': 'Chat Settings',
         'chat-api-key-label': 'Gemini API Key',
         'chat-api-key-info': 'Get an API key: ',
-        'chat-api-key-storage-note': '※ The API key is stored in this browser\'s localStorage and is never sent to our server.'
+        'chat-api-key-storage-note': "※ The API key is stored in this browser's localStorage and is never sent to our server."
     }
 };
 
