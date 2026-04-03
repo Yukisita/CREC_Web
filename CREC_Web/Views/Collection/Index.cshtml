@@ -798,11 +798,16 @@
             container.appendChild(stlRenderer.domElement);
 
             // ライトを追加
+            // アンビエントライトは空間内に固定（全体を均一に照らす）
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
             stlScene.add(ambientLight);
+            // ディレクショナルライトはカメラに追従させることで、
+            // モデルを回転させてもライトの方向がカメラ視点から変わらず、
+            // 裏側も暗くならないようにする
             const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
             dirLight.position.set(1, 2, 3);
-            stlScene.add(dirLight);
+            stlCamera.add(dirLight);
+            stlScene.add(stlCamera);
 
             // OrbitControls（回転、ズーム、パン）
             stlControls = new OrbitControlsClass(stlCamera, stlRenderer.domElement);
