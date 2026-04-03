@@ -796,12 +796,12 @@ namespace CREC_Web.Controllers
                 extension = extension.ToLowerInvariant();
 
                 // サポートされている3D拡張子かを検証
-                if (!StlFormats.AllowedExtensions.Contains(extension))
+                if (!ThreeDDataFormats.AllowedExtensions.Contains(extension))
                 {
                     _logger.LogWarning("Unsupported 3D format requested: {extension} for file: {fileName}", extension.SanitizeForLog(), (fileName ?? string.Empty).SanitizeForLog());
                     return BadRequest("Unsupported 3D format");
                 }
-                var contentType = StlFormats.GetContentType(extension);
+                var contentType = ThreeDDataFormats.GetContentType(extension);
 
                 _logger.LogInformation($"Serving 3D file with content type: {contentType}");
 
@@ -855,7 +855,7 @@ namespace CREC_Web.Controllers
 
                 // 許可する3D拡張子
                 var extension = Path.GetExtension(threeDFile.FileName).ToLowerInvariant();
-                if (!StlFormats.AllowedExtensions.Contains(extension))
+                if (!ThreeDDataFormats.AllowedExtensions.Contains(extension))
                 {
                     return BadRequest("Unsupported file format. Supported formats: STL");
                 }
@@ -958,7 +958,7 @@ namespace CREC_Web.Controllers
 
                 // 許可する3D拡張子かを検証
                 var extension = Path.GetExtension(fileName).ToLowerInvariant();
-                if (string.IsNullOrEmpty(extension) || !StlFormats.AllowedExtensions.Contains(extension))
+                if (string.IsNullOrEmpty(extension) || !ThreeDDataFormats.AllowedExtensions.Contains(extension))
                 {
                     _logger.LogWarning("Unsupported 3D format requested for deletion: {extension} for file: {fileName}", extension.SanitizeForLog(), fileName.SanitizeForLog());
                     return BadRequest("Unsupported 3D format");

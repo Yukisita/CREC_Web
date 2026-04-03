@@ -317,7 +317,7 @@ namespace CREC_Web.Services
                         var fileName = Path.GetFileName(file);
                         var extension = Path.GetExtension(file).ToLowerInvariant();
 
-                        if (StlFormats.AllowedExtensions.Contains(extension))
+                        if (ThreeDDataFormats.AllowedExtensions.Contains(extension))
                         {
                             if (!collection.ThreeDFiles.Contains(fileName))
                             {

@@ -1,5 +1,5 @@
 /*
-CREC Web - STL Format Helpers
+CREC Web - ThreeDData Format Helpers
 Copyright (c) [2025 - 2026] [S.Yukisita]
 This software is released under the MIT License.
 */
@@ -9,7 +9,7 @@ namespace CREC_Web.Helpers
     /// <summary>
     /// サポートする3Dファイル形式の定義と関連ヘルパー
     /// </summary>
-    public static class StlFormats
+    public static class ThreeDDataFormats
     {
         /// <summary>
         /// アップロードに対応する3D拡張子（小文字、ドット付き）
