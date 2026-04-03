@@ -179,13 +179,8 @@ const translations = {
         'chat-placeholder': 'メッセージを入力...',
         'chat-welcome': 'こんにちは！CREC Webのサポートアシスタントです。使い方に関するご質問や操作の依頼があればお気軽にどうぞ。',
         'chat-thinking': '考え中...',
-        'chat-no-api-key': 'Ollama URLとモデルを設定してください。⚙ボタンから設定できます。',
         'chat-error': 'エラーが発生しました',
-        'chat-error-empty-response': '応答が空でした。もう一度お試しください。',
-        'chat-settings-title': 'チャット設定（Ollama）',
-        'chat-ollama-url-label': 'OllamaエンドポイントURL',
-        'chat-ollama-model-label': 'モデル名',
-        'chat-ollama-info': 'Ollamaのインストールと起動方法: '
+        'chat-error-empty-response': '応答が空でした。もう一度お試しください。'
     },
     de: {
         'loading': 'Laden...',
@@ -360,13 +355,8 @@ const translations = {
         'chat-placeholder': 'Nachricht eingeben...',
         'chat-welcome': 'Hallo! Ich bin der Support-Assistent von CREC Web. Bei Fragen zur Verwendung oder Wünschen nach bestimmten Aktionen helfe ich gerne weiter.',
         'chat-thinking': 'Denke nach...',
-        'chat-no-api-key': 'Bitte Ollama-URL und Modell konfigurieren. Einstellungen über die ⚙-Schaltfläche.',
         'chat-error': 'Ein Fehler ist aufgetreten',
-        'chat-error-empty-response': 'Die Antwort war leer. Bitte erneut versuchen.',
-        'chat-settings-title': 'Chat-Einstellungen (Ollama)',
-        'chat-ollama-url-label': 'Ollama-Endpunkt-URL',
-        'chat-ollama-model-label': 'Modellname',
-        'chat-ollama-info': 'Ollama installieren und starten: '
+        'chat-error-empty-response': 'Die Antwort war leer. Bitte erneut versuchen.'
     },
     en: {
         'loading': 'Loading...',
@@ -541,13 +531,8 @@ const translations = {
         'chat-placeholder': 'Type a message...',
         'chat-welcome': "Hello! I'm the CREC Web support assistant. Feel free to ask questions about how to use the system or request any operations.",
         'chat-thinking': 'Thinking...',
-        'chat-no-api-key': 'Please configure the Ollama URL and model via the ⚙ button.',
         'chat-error': 'An error occurred',
-        'chat-error-empty-response': 'Response was empty. Please try again.',
-        'chat-settings-title': 'Chat Settings (Ollama)',
-        'chat-ollama-url-label': 'Ollama Endpoint URL',
-        'chat-ollama-model-label': 'Model Name',
-        'chat-ollama-info': 'Install and start Ollama: '
+        'chat-error-empty-response': 'Response was empty. Please try again.'
     }
 };
 

@@ -56,6 +56,9 @@ builder.Services.AddSingleton(projectSettingsService);
 // Add CREC data service
 builder.Services.AddSingleton<CrecDataService>();
 
+// Add HttpClient for server-side Ollama calls
+builder.Services.AddHttpClient();
+
 // Add CORS for browser access
 builder.Services.AddCors(options =>
 {

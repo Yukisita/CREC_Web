@@ -3,18 +3,10 @@ CREC Web - AI Chat Support
 Copyright (c) [2025 - 2026] [S.Yukisita]
 This software is released under the MIT License.
 
-Uses Ollama (https://ollama.com/) for local LLM inference.
-The request is sent exclusively to the Ollama endpoint configured by the user
-(default: http://localhost:11434). No data is sent to any external server.
+Chat requests are handled by the CREC Web server (/api/Chat), which proxies
+them to a local Ollama instance. No data is sent to any external service.
+Ollama URL and model are configured in appsettings.json on the server.
 */
-
-// チャット設定の localStorage キー
-const CHAT_OLLAMA_URL_STORAGE  = 'crec_chat_ollama_url';
-const CHAT_OLLAMA_MODEL_STORAGE = 'crec_chat_ollama_model';
-
-// デフォルト値
-const CHAT_OLLAMA_URL_DEFAULT   = 'http://localhost:11434';
-const CHAT_OLLAMA_MODEL_DEFAULT = 'llama3.2';
 
 const CHAT_HISTORY_MAX      = 20;   // コンテキストに保持する最大メッセージ数
 const CHAT_PAGE_CONTEXT_MAX = 2000; // RAGに含めるページコンテンツの最大文字数
@@ -23,22 +15,6 @@ const CHAT_PAGE_CONTEXT_MAX = 2000; // RAGに含めるページコンテンツ�
 let chatMessages = []; // { role: 'user'|'assistant', content: string }
 let chatIsOpen = false;
 let chatIsSending = false;
-
-/**
- * ユーザーが設定した Ollama ベース URL を返す（末尾スラッシュなし）
- * @returns {string}
- */
-function getChatOllamaUrl() {
-    return (localStorage.getItem(CHAT_OLLAMA_URL_STORAGE) || CHAT_OLLAMA_URL_DEFAULT).replace(/\/+$/, '');
-}
-
-/**
- * ユーザーが設定した Ollama モデル名を返す
- * @returns {string}
- */
-function getChatOllamaModel() {
-    return (localStorage.getItem(CHAT_OLLAMA_MODEL_STORAGE) || CHAT_OLLAMA_MODEL_DEFAULT).trim();
-}
 
 /**
  * 現在のページのコンテキストを取得する（RAG用）
@@ -62,100 +38,6 @@ function getChatPageContext() {
 
     const text = stripHtmlToText(clone.innerHTML);
     return text.substring(0, CHAT_PAGE_CONTEXT_MAX);
-}
-
-/**
- * システムプロンプトを現在の言語に合わせて構築する
- * @returns {string}
- */
-function buildChatSystemPrompt() {
-    const lang = currentLanguage || 'ja';
-    const pageTitle = document.title || 'CREC Web';
-    const pageContext = getChatPageContext();
-    const projectName = (typeof projectSettings !== 'undefined' && projectSettings.projectName)
-        ? projectSettings.projectName
-        : 'CREC Web';
-
-    const actionDocs = {
-        ja: `## 実行可能な操作
-ユーザーが操作を要求した場合は、返答の中に以下のJSON形式でアクションを含めることができます（複数可）:
-<action>{"type":"search","text":"検索テキスト"}</action>  — ホームページで指定テキストを検索する
-<action>{"type":"openCollection","id":"コレクションID"}</action>  — 指定IDのコレクションを新しいタブで開く
-<action>{"type":"showAdminPanel"}</action>  — 管理パネルを表示する
-<action>{"type":"navigate","path":"/"}</action>  — 指定パスのページへ移動する（例: "/"はホームページ）
-
-操作を含める場合は、必ずその内容を日本語で説明してください。`,
-
-        en: `## Available Operations
-When the user requests an action, you may include one or more actions anywhere in your response:
-<action>{"type":"search","text":"search text"}</action>  — Search on the home page
-<action>{"type":"openCollection","id":"collection ID"}</action>  — Open collection in a new tab
-<action>{"type":"showAdminPanel"}</action>  — Open the admin panel
-<action>{"type":"navigate","path":"/"}</action>  — Navigate to a page (e.g. "/" for home)
-
-When including an action, describe what you are doing in English.`,
-
-        de: `## Verfügbare Operationen
-Wenn der Benutzer eine Aktion anfordert, können Sie eine oder mehrere Aktionen in Ihre Antwort einfügen:
-<action>{"type":"search","text":"Suchtext"}</action>  — Auf der Startseite suchen
-<action>{"type":"openCollection","id":"Sammlungs-ID"}</action>  — Sammlung in neuem Tab öffnen
-<action>{"type":"showAdminPanel"}</action>  — Admin-Panel öffnen
-<action>{"type":"navigate","path":"/"}</action>  — Zu einer Seite navigieren (z. B. "/" für Startseite)
-
-Wenn Sie eine Aktion einfügen, beschreiben Sie bitte auf Deutsch, was Sie tun.`
-    };
-
-    const systemDesc = {
-        ja: `あなたは${projectName}（CREC Web）のサポートアシスタントです。CREC WebはWebベースのコレクション・在庫管理システムです。
-
-## システムの主な機能
-- コレクション（管理対象物品）の検索・一覧表示・詳細表示
-- 各コレクションに名称・管理コード・カテゴリ・タグ・場所・在庫数などを記録
-- 画像・動画・3Dデータ（STL）・データファイルの添付と管理
-- 在庫操作（入庫・出庫・棚卸し）の記録と履歴管理
-- QRコードによるコレクション検索
-- 管理パネルからコレクションの追加・削除・プロジェクト設定の編集
-
-## 現在のページ: ${pageTitle}
-### ページ内容（抜粋）:
-${pageContext || '（コンテンツなし）'}
-
-${actionDocs.ja}`,
-
-        en: `You are a support assistant for ${projectName} (CREC Web), a web-based collection and inventory management system.
-
-## Key Features
-- Search, list, and view collections (managed items)
-- Record name, management code, category, tags, location, and inventory for each collection
-- Manage attached images, videos, 3D data (STL), and data files
-- Record inventory operations (entry, exit, stocktaking) with history
-- Search collections by QR code
-- Add/delete collections and edit project settings via the admin panel
-
-## Current Page: ${pageTitle}
-### Page Content (excerpt):
-${pageContext || '(no content)'}
-
-${actionDocs.en}`,
-
-        de: `Sie sind ein Support-Assistent für ${projectName} (CREC Web), ein webbasiertes Sammlungs- und Inventarverwaltungssystem.
-
-## Hauptfunktionen
-- Sammlungen (verwaltete Artikel) suchen, auflisten und anzeigen
-- Name, Verwaltungscode, Kategorie, Tags, Standort und Bestand für jede Sammlung erfassen
-- Angehängte Bilder, Videos, 3D-Daten (STL) und Datendateien verwalten
-- Bestandsoperationen (Eingang, Ausgang, Inventur) mit Verlauf aufzeichnen
-- Sammlungen per QR-Code suchen
-- Sammlungen über das Admin-Panel hinzufügen/löschen und Projekteinstellungen bearbeiten
-
-## Aktuelle Seite: ${pageTitle}
-### Seiteninhalt (Auszug):
-${pageContext || '(kein Inhalt)'}
-
-${actionDocs.de}`
-    };
-
-    return systemDesc[lang] || systemDesc.en;
 }
 
 /**
@@ -260,52 +142,49 @@ function renderChatMarkdown(text) {
 }
 
 /**
- * Ollama の OpenAI 互換 API にメッセージを送信し、レスポンスを取得する
+ * サーバー側の /api/Chat エンドポイントを通じてメッセージを送信する
+ * サーバーはリクエストをローカルの Ollama インスタンスに転送する
  * @param {string} userText - ユーザーのメッセージ
  * @returns {Promise<{error: boolean, text?: string, message?: string}>}
  */
-async function sendChatToOllama(userText) {
-    const baseUrl = getChatOllamaUrl();
-    const model   = getChatOllamaModel();
-    const systemPrompt = buildChatSystemPrompt();
+async function sendChatToServer(userText) {
+    const pageContext = getChatPageContext();
+    const pageTitle = document.title || 'CREC Web';
+    const lang = currentLanguage || 'ja';
+    const projectName = (typeof projectSettings !== 'undefined' && projectSettings.projectName)
+        ? projectSettings.projectName
+        : 'CREC Web';
 
     // 会話履歴を構築（最新 CHAT_HISTORY_MAX 件のみ）
-    const recentMessages = chatMessages.slice(-CHAT_HISTORY_MAX);
-    const messages = [
-        { role: 'system', content: systemPrompt },
-        ...recentMessages,
-        { role: 'user', content: userText }
-    ];
+    const history = chatMessages.slice(-CHAT_HISTORY_MAX);
 
     const requestBody = {
-        model,
-        messages,
-        stream: false
+        message: userText,
+        history,
+        pageContext,
+        pageTitle,
+        lang,
+        projectName
     };
 
     try {
-        const response = await fetch(`${baseUrl}/v1/chat/completions`, {
+        const response = await fetch('/api/Chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestBody)
         });
 
-        if (!response.ok) {
-            let errorMsg = `HTTP ${response.status}`;
-            try {
-                const errData = await response.json();
-                errorMsg = errData?.error?.message || errorMsg;
-            } catch { /* ignore parse error */ }
-            return { error: true, message: errorMsg };
+        const data = await response.json();
+
+        if (!response.ok || data.error) {
+            return { error: true, message: data.error || `HTTP ${response.status}` };
         }
 
-        const data = await response.json();
-        const text = data.choices?.[0]?.message?.content;
-        if (!text) {
+        if (!data.text) {
             return { error: true, message: t('chat-error-empty-response') };
         }
 
-        return { error: false, text };
+        return { error: false, text: data.text };
     } catch (e) {
         return { error: true, message: e.message || t('chat-error') };
     }
@@ -366,7 +245,7 @@ async function submitChatMessage() {
     // ユーザーメッセージを表示
     appendChatMessage('user', escapeHtml(userText));
 
-    // 履歴に追加（OpenAI 互換形式）
+    // 履歴に追加
     chatMessages.push({ role: 'user', content: userText });
 
     // 送信中フラグ
@@ -383,7 +262,7 @@ async function submitChatMessage() {
     );
 
     try {
-        const result = await sendChatToOllama(userText);
+        const result = await sendChatToServer(userText);
 
         // 思考中インジケーターを削除
         const thinkingEl = document.getElementById(thinkingId);
@@ -450,51 +329,6 @@ function toggleChatPanel() {
     }
 }
 
-// =====================
-// Ollama 設定
-// =====================
-
-/**
- * チャット設定モーダルを開く
- */
-function openChatSettings() {
-    const overlay  = document.getElementById('chatSettingsOverlay');
-    const modal    = document.getElementById('chatSettingsModal');
-    const urlInput = document.getElementById('chatOllamaUrl');
-    const mdlInput = document.getElementById('chatOllamaModel');
-
-    if (urlInput) urlInput.value = getChatOllamaUrl();
-    if (mdlInput) mdlInput.value = getChatOllamaModel();
-    if (overlay) overlay.classList.add('show');
-    if (modal)   modal.classList.add('show');
-}
-
-/**
- * チャット設定モーダルを閉じる
- */
-function closeChatSettings() {
-    const overlay = document.getElementById('chatSettingsOverlay');
-    const modal   = document.getElementById('chatSettingsModal');
-    if (overlay) overlay.classList.remove('show');
-    if (modal)   modal.classList.remove('show');
-}
-
-/**
- * Ollama の URL とモデル名を localStorage に保存する
- */
-function saveChatSettings() {
-    const urlInput = document.getElementById('chatOllamaUrl');
-    const mdlInput = document.getElementById('chatOllamaModel');
-
-    const url = urlInput ? urlInput.value.trim() : '';
-    const model = mdlInput ? mdlInput.value.trim() : '';
-
-    localStorage.setItem(CHAT_OLLAMA_URL_STORAGE, url || CHAT_OLLAMA_URL_DEFAULT);
-    localStorage.setItem(CHAT_OLLAMA_MODEL_STORAGE, model || CHAT_OLLAMA_MODEL_DEFAULT);
-
-    closeChatSettings();
-}
-
 /**
  * チャット履歴をクリアする
  */
@@ -517,15 +351,10 @@ function clearChatHistory() {
  */
 function initializeChat() {
     setupEventListeners([
-        { id: 'chatToggleBtn',       event: 'click', handler: toggleChatPanel },
-        { id: 'chatCloseBtn',        event: 'click', handler: closeChatPanel },
-        { id: 'chatSettingsBtn',     event: 'click', handler: openChatSettings },
-        { id: 'chatClearBtn',        event: 'click', handler: clearChatHistory },
-        { id: 'chatSendBtn',         event: 'click', handler: submitChatMessage },
-        { id: 'chatSettingsSave',    event: 'click', handler: saveChatSettings },
-        { id: 'chatSettingsCancel',  event: 'click', handler: closeChatSettings },
-        { id: 'chatSettingsClose',   event: 'click', handler: closeChatSettings },
-        { id: 'chatSettingsOverlay', event: 'click', handler: closeChatSettings },
+        { id: 'chatToggleBtn', event: 'click', handler: toggleChatPanel },
+        { id: 'chatCloseBtn',  event: 'click', handler: closeChatPanel },
+        { id: 'chatClearBtn',  event: 'click', handler: clearChatHistory },
+        { id: 'chatSendBtn',   event: 'click', handler: submitChatMessage },
     ]);
 
     // Enterキーで送信、Shift+Enterで改行
@@ -546,4 +375,3 @@ function initializeChat() {
 document.addEventListener('DOMContentLoaded', function () {
     initializeChat();
 });
-
