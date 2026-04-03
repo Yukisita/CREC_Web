@@ -877,32 +877,40 @@
 
             const url = `/api/File/${encodeURIComponent(collectionId)}/3ddata/${encodeURIComponent(fileName)}`;
             const loader = new STLLoaderClass();
-            loader.load(url, (geometry) => {
-                if (!stlScene || !stlCamera || !stlControls) return;
-                geometry.computeBoundingBox();
-                geometry.computeVertexNormals();
+            loader.load(
+                url,
+                (geometry) => {
+                    if (!stlScene || !stlCamera || !stlControls) return;
+                    geometry.computeBoundingBox();
+                    geometry.computeVertexNormals();
 
-                // モデルを中央に配置
-                const bbox = geometry.boundingBox;
-                const center = new THREE.Vector3();
-                bbox.getCenter(center);
-                geometry.translate(-center.x, -center.y, -center.z);
+                    // モデルを中央に配置
+                    const bbox = geometry.boundingBox;
+                    const center = new THREE.Vector3();
+                    bbox.getCenter(center);
+                    geometry.translate(-center.x, -center.y, -center.z);
 
-                // カメラをモデルサイズに合わせて調整
-                const size = new THREE.Vector3();
-                bbox.getSize(size);
-                const maxDim = Math.max(size.x, size.y, size.z);
-                const fov = stlCamera.fov * (Math.PI / 180);
-                const cameraDist = Math.abs(maxDim / Math.sin(fov / 2)) * 0.8;
-                stlCamera.position.set(0, 0, cameraDist);
-                stlControls.target.set(0, 0, 0);
-                stlControls.update();
-                stlControls.saveState();
+                    // カメラをモデルサイズに合わせて調整
+                    const size = new THREE.Vector3();
+                    bbox.getSize(size);
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const fov = stlCamera.fov * (Math.PI / 180);
+                    const cameraDist = Math.abs(maxDim / Math.sin(fov / 2)) * 0.8;
+                    stlCamera.position.set(0, 0, cameraDist);
+                    stlControls.target.set(0, 0, 0);
+                    stlControls.update();
+                    stlControls.saveState();
 
-                const material = new THREE.MeshPhongMaterial({ color: 0x4488aa, specular: 0x222222, shininess: 200 });
-                stlCurrentMesh = new THREE.Mesh(geometry, material);
-                stlScene.add(stlCurrentMesh);
-            });
+                    const material = new THREE.MeshPhongMaterial({ color: 0x4488aa, specular: 0x222222, shininess: 200 });
+                    stlCurrentMesh = new THREE.Mesh(geometry, material);
+                    stlScene.add(stlCurrentMesh);
+                },
+                undefined,
+                (error) => {
+                    console.error('Failed to load STL model:', error);
+                    alert('3Dモデルの読み込みに失敗しました。');
+                }
+            );
         }
 
         // コレクションの詳細を表示する関数
