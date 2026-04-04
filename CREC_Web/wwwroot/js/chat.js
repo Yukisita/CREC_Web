@@ -159,12 +159,12 @@ function executeChatAction(cmd) {
             break;
 
         case 'navigate':
-            // 自サーバーの絶対パスのみ許可（外部URLや protocol-relative URLを除外）
+            // Only allow same-origin absolute paths (block external URLs and protocol-relative URLs)
             if (typeof cmd.path === 'string' &&
                 cmd.path.startsWith('/') &&
                 !cmd.path.startsWith('//')) {
-                // 既に同じパスにいる場合はリロードしない
-                const targetPathname = cmd.path.split('?')[0].split('#')[0];
+                // Skip navigation if already on the target path to avoid unnecessary reload
+                const targetPathname = new URL(cmd.path, window.location.origin).pathname;
                 if (window.location.pathname !== targetPathname) {
                     window.location.href = cmd.path;
                 }
