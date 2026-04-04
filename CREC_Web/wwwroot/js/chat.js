@@ -8,9 +8,11 @@ them to a local Ollama instance. No data is sent to any external service.
 Ollama URL and model are configured in appsettings.json on the server.
 */
 
-const CHAT_HISTORY_MAX      = 20;   // コンテキストに保持する最大メッセージ数
-const CHAT_PAGE_CONTEXT_MAX = 2000; // RAGに含めるページコンテンツの最大文字数
-const CHAT_SESSION_KEY      = 'crec_chat_history_v1'; // sessionStorageキー
+const CHAT_HISTORY_MAX           = 20;   // コンテキストに保持する最大メッセージ数
+const CHAT_PAGE_CONTEXT_MAX      = 2000; // RAGに含めるページコンテンツの最大文字数
+const CHAT_SESSION_KEY           = 'crec_chat_history_v1'; // sessionStorageキー
+const CHAT_ACTION_INITIAL_DELAY  = 400;  // 最初のアクション実行前に待機するms（UIレンダリング完了を待つ）
+const CHAT_ACTION_INTERVAL       = 600;  // 複数アクション間のms間隔（モーダルが開くのを待つため）
 
 // クリック可能なボタンのIDホワイトリスト（安全性のため任意のIDは不可）
 const CHAT_SAFE_BUTTON_IDS = new Set([
@@ -129,10 +131,10 @@ function processChatActions(text) {
 
     // 複数アクションをシーケンシャルに実行（600ms間隔）
     if (actions.length > 0) {
-        let cumulativeDelay = 400;
+        let cumulativeDelay = CHAT_ACTION_INITIAL_DELAY;
         actions.forEach(cmd => {
             const delay = cumulativeDelay;
-            cumulativeDelay += 600;
+            cumulativeDelay += CHAT_ACTION_INTERVAL;
             setTimeout(() => {
                 try {
                     executeChatAction(cmd);
