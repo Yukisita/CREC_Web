@@ -86,9 +86,11 @@ Note: clicking addNewCollectionBtn opens the collection detail in a new tab with
 ### Example 3: User says "Search for 'camera'"
 Executing the following:
 
+<action>{"type":"search","text":"camera"}</action>
+
+Note: The `search` action only works on the home page. If not on the home page, navigate first:
 <action>{"type":"navigate","path":"/"}</action>
-<action>{"type":"fillInput","id":"searchText","value":"camera"}</action>
-<action>{"type":"clickButton","id":"searchButton"}</action>
+<action>{"type":"search","text":"camera"}</action>
 
 ## Response Format
 

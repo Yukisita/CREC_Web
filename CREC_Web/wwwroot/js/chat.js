@@ -163,7 +163,11 @@ function executeChatAction(cmd) {
             if (typeof cmd.path === 'string' &&
                 cmd.path.startsWith('/') &&
                 !cmd.path.startsWith('//')) {
-                window.location.href = cmd.path;
+                // 既に同じパスにいる場合はリロードしない
+                const targetPathname = cmd.path.split('?')[0].split('#')[0];
+                if (window.location.pathname !== targetPathname) {
+                    window.location.href = cmd.path;
+                }
             }
             break;
 

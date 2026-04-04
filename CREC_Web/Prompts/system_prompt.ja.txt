@@ -84,12 +84,14 @@
 
 ※ addNewCollectionBtn をクリックすると、新しいタブにコレクション詳細が開き、インデックス編集モーダルが自動で表示されます。
 
-### 例3: 「キーワード'カメラ'で検索して」と言われた場合
+### 例3: 「カメラで検索して」と言われた場合
 以下を実行します。
 
+<action>{"type":"search","text":"カメラ"}</action>
+
+※ `search` アクションはホームページで実行されます。ホームページ以外にいる場合はまず `/` に移動してください：
 <action>{"type":"navigate","path":"/"}</action>
-<action>{"type":"fillInput","id":"searchText","value":"カメラ"}</action>
-<action>{"type":"clickButton","id":"searchButton"}</action>
+<action>{"type":"search","text":"カメラ"}</action>
 
 ## 回答フォーマット
 

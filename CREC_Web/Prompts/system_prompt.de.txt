@@ -86,9 +86,11 @@ Hinweis: addNewCollectionBtn öffnet die Sammlungsdetailseite in einem neuen Tab
 ### Beispiel 3: Benutzer sagt „Nach 'Kamera' suchen"
 Führe Folgendes aus:
 
+<action>{"type":"search","text":"Kamera"}</action>
+
+Hinweis: Die `search`-Aktion funktioniert nur auf der Startseite. Falls nicht auf der Startseite, zuerst navigieren:
 <action>{"type":"navigate","path":"/"}</action>
-<action>{"type":"fillInput","id":"searchText","value":"Kamera"}</action>
-<action>{"type":"clickButton","id":"searchButton"}</action>
+<action>{"type":"search","text":"Kamera"}</action>
 
 ## Antwortformat
 
