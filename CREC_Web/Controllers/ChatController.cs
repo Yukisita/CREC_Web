@@ -47,6 +47,10 @@ public class ChatController : ControllerBase
     private static readonly Regex _actionRegex =
         new(@"<action>([\s\S]*?)<\/action>", RegexOptions.Compiled);
 
+    // ログ出力値のサニタイズに使用する正規表現（制御文字を除去）
+    private static readonly Regex _sanitizeLogRegex =
+        new(@"[\r\n\t\x00-\x1F\x7F]", RegexOptions.Compiled);
+
     public ChatController(
         IHttpClientFactory httpClientFactory,
         IConfiguration configuration,
@@ -292,9 +296,6 @@ public class ChatController : ControllerBase
         var truncated = value.Length > 200 ? value[..200] : value;
         return _sanitizeLogRegex.Replace(truncated, "_");
     }
-
-    private static readonly Regex _sanitizeLogRegex =
-        new(@"[\r\n\t\x00-\x1F\x7F]", RegexOptions.Compiled);
 }
 
 // ===== Request / Response models =====
