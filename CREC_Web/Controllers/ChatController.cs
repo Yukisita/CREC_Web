@@ -6,12 +6,21 @@ This software is released under the MIT License.
 Proxies chat requests to an OpenAI-compatible LLM backend running on the server.
 The backend URL and model are configured in appsettings.json under "LlmBackend:Url"
 and "LlmBackend:Model". Defaults: http://localhost:11434 / llama3.2.
+
+System prompt templates are loaded from Prompts/system_prompt.{lang}.txt at runtime,
+allowing prompt editing without recompilation.
+
+Allowed button/input IDs for AI actions are read from "Chat:SafeButtonIds" and
+"Chat:SafeInputIds" in appsettings.json. The LLM response is sanitized on the server
+before being returned to the client, so the whitelist never reaches the browser.
 */
 
+using System.Collections.Concurrent;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CREC_Web.Controllers;
@@ -23,6 +32,10 @@ public class ChatController : ControllerBase
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
     private readonly ILogger<ChatController> _logger;
+    private readonly IWebHostEnvironment _env;
+
+    // キャッシュされたプロンプトテンプレート（言語コード → テンプレート文字列）
+    private static readonly ConcurrentDictionary<string, string> _promptCache = new();
 
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
@@ -30,14 +43,20 @@ public class ChatController : ControllerBase
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
+    // <action>…</action> タグを検出する正規表現
+    private static readonly Regex _actionRegex =
+        new(@"<action>([\s\S]*?)<\/action>", RegexOptions.Compiled);
+
     public ChatController(
         IHttpClientFactory httpClientFactory,
         IConfiguration configuration,
-        ILogger<ChatController> logger)
+        ILogger<ChatController> logger,
+        IWebHostEnvironment env)
     {
         _httpClientFactory = httpClientFactory;
         _configuration = configuration;
         _logger = logger;
+        _env = env;
     }
 
     /// <summary>
@@ -129,7 +148,11 @@ public class ChatController : ControllerBase
                 return Ok(new { error = "empty_response" });
             }
 
-            return Ok(new { text });
+            // LLMレスポンス内のアクションをサーバ側でホワイトリスト検証し、
+            // 許可されていないIDを含むアクションを除去してからクライアントへ返す
+            var sanitizedText = SanitizeLlmResponse(text);
+
+            return Ok(new { text = sanitizedText });
         }
         catch (HttpRequestException ex)
         {
@@ -143,203 +166,135 @@ public class ChatController : ControllerBase
         }
     }
 
-    private static string BuildSystemPrompt(string lang, string pageTitle, string pageContext, string projectName)
+    /// <summary>
+    /// LLMレスポンス内の <action> タグをサーバ側のホワイトリストで検証し、
+    /// 許可されていないIDを含む clickButton / fillInput アクションを除去する。
+    /// </summary>
+    private string SanitizeLlmResponse(string text)
     {
-        const string actionDocsJa = @"## 実行可能な操作
-ユーザーが操作を要求した場合は、返答の中に以下のJSON形式でアクションを **必要な数だけ** 含めることができます。
-複数のアクションは **上から順に600ms間隔** で実行されます。モーダルが開くのを待ってから入力・保存する場合は、その順序でアクションを並べてください。
+        var safeButtonIds = _configuration
+            .GetSection("Chat:SafeButtonIds")
+            .Get<string[]>() ?? [];
 
-<action>{""type"":""search"",""text"":""検索テキスト""}</action>
-→ ホームページで指定テキストを検索する（ホームページ上でのみ有効）
+        var safeInputIds = _configuration
+            .GetSection("Chat:SafeInputIds")
+            .Get<string[]>() ?? [];
 
-<action>{""type"":""openCollection"",""id"":""コレクションID""}</action>
-→ 指定IDのコレクションを新しいタブで開く
+        var buttonSet = new HashSet<string>(safeButtonIds, StringComparer.Ordinal);
+        var inputSet  = new HashSet<string>(safeInputIds,  StringComparer.Ordinal);
 
-<action>{""type"":""showAdminPanel""}</action>
-→ 管理パネルを表示する
+        return _actionRegex.Replace(text, match =>
+        {
+            try
+            {
+                var cmd = JsonDocument.Parse(match.Groups[1].Value);
+                if (!cmd.RootElement.TryGetProperty("type", out var typeProp))
+                    return match.Value;
 
-<action>{""type"":""navigate"",""path"":""/""}</action>
-→ 指定パスのページへ移動する（例: ""/"" はホーム、""/ProjectEdit"" はプロジェクト設定）
+                var type = typeProp.GetString();
 
-<action>{""type"":""clickButton"",""id"":""ボタンのID""}</action>
-→ 指定IDのボタンをクリックする。使用可能なID:
-  addNewCollectionBtn（新規コレクション作成）、editProjectBtn（プロジェクト設定を開く）、
-  adminPanelToggle（管理パネルを開閉）、searchButton（検索実行）、clearFiltersButton（フィルタクリア）、
-  inventoryOperationBtn（在庫操作モーダルを開く、詳細パネル表示中のみ有効）、
-  inventoryManagementSettingsBtn（在庫管理設定モーダルを開く、詳細パネル表示中のみ有効）、
-  inventoryOperationSave / inventoryOperationCancel（在庫操作の保存/キャンセル）、
-  inventoryManagementSettingsSave / inventoryManagementSettingsCancel（在庫管理設定の保存/キャンセル）、
-  editIndexBtn（インデックス編集モーダルを開く、コレクション詳細ページのみ有効）
+                if (type == "clickButton")
+                {
+                    var id = cmd.RootElement.TryGetProperty("id", out var idProp)
+                        ? idProp.GetString() ?? string.Empty
+                        : string.Empty;
 
-<action>{""type"":""fillInput"",""id"":""フィールドのID"",""value"":""入力値""}</action>
-→ 指定IDのフィールドに値を入力する。使用可能なID:
-  searchText（検索キーワード）、
-  operationType（在庫操作タイプ: 0=入庫, 1=出庫, 2=棚卸し）、
-  operationQuantity（在庫操作数量: 数値）、
-  operationComment（在庫操作コメント: テキスト）、
-  safetyStock（安全在庫数）、reorderPoint（発注点）、maximumLevel（最大在庫数）
+                    if (!buttonSet.Contains(id))
+                    {
+                        _logger.LogWarning("Blocked unsafe clickButton action with id: {Id}", SanitizeForLog(id));
+                        return string.Empty;
+                    }
+                }
+                else if (type == "fillInput")
+                {
+                    var id = cmd.RootElement.TryGetProperty("id", out var idProp)
+                        ? idProp.GetString() ?? string.Empty
+                        : string.Empty;
 
-## 代表的な複数ステップ操作の例
+                    if (!inputSet.Contains(id))
+                    {
+                        _logger.LogWarning("Blocked unsafe fillInput action with id: {Id}", SanitizeForLog(id));
+                        return string.Empty;
+                    }
+                }
 
-### 例1: 新規コレクション作成
-<action>{""type"":""showAdminPanel""}</action>
-<action>{""type"":""clickButton"",""id"":""addNewCollectionBtn""}</action>
-※ addNewCollectionBtn をクリックすると、新しいタブにコレクション詳細が開き、インデックス編集モーダルが自動で表示されます。
+                return match.Value;
+            }
+            catch (JsonException)
+            {
+                // 解析できないアクションはそのまま通す（クライアント側でも無視される）
+                return match.Value;
+            }
+        });
+    }
 
-### 例2: 在庫操作（コレクション詳細パネルが開いている状態で）
-<action>{""type"":""clickButton"",""id"":""inventoryOperationBtn""}</action>
-<action>{""type"":""fillInput"",""id"":""operationType"",""value"":""0""}</action>
-<action>{""type"":""fillInput"",""id"":""operationQuantity"",""value"":""5""}</action>
-<action>{""type"":""fillInput"",""id"":""operationComment"",""value"":""コメントを入力""}</action>
-<action>{""type"":""clickButton"",""id"":""inventoryOperationSave""}</action>
-※ inventoryOperationBtn はホームページでコレクションの詳細パネルが開いているときのみ表示されます。
+    /// <summary>
+    /// 指定言語のシステムプロンプトを Prompts/ ディレクトリのテンプレートファイルから読み込む。
+    /// ファイルが存在しない場合は空文字列を返す。読み込んだ結果はキャッシュする。
+    /// </summary>
+    private string LoadPromptTemplate(string lang)
+    {
+        return _promptCache.GetOrAdd(lang, l =>
+        {
+            var fileName = $"system_prompt.{l}.txt";
+            var filePath = Path.Combine(_env.ContentRootPath, "Prompts", fileName);
 
-### 例3: キーワード検索（ホームページで）
-<action>{""type"":""navigate"",""path"":""/""}</action>
-<action>{""type"":""fillInput"",""id"":""searchText"",""value"":""検索したいキーワード""}</action>
-<action>{""type"":""clickButton"",""id"":""searchButton""}</action>
+            if (!System.IO.File.Exists(filePath))
+            {
+                _logger.LogWarning("Prompt template not found: {Path}", SanitizeForLog(filePath));
+                return string.Empty;
+            }
 
-操作を含める場合は、必ずその内容を日本語で説明してください。";
+            _logger.LogInformation("Loading prompt template: {Path}", SanitizeForLog(filePath));
+            return System.IO.File.ReadAllText(filePath, Encoding.UTF8);
+        });
+    }
 
-        const string actionDocsEn = @"## Available Operations
-When the user requests an action, you may include one or more actions in your response.
-Multiple actions are executed **in order with a 600 ms gap** — order them so that modals have time to open before filling inputs.
+    /// <summary>
+    /// 指定言語のシステムプロンプトを構築する。
+    /// テンプレートファイルの {{projectName}}・{{pageTitle}}・{{context}} を置換して返す。
+    /// </summary>
+    private string BuildSystemPrompt(string lang, string pageTitle, string pageContext, string projectName)
+    {
+        // 対応言語以外は日本語にフォールバック
+        var resolvedLang = lang is "en" or "de" ? lang : "ja";
 
-<action>{""type"":""search"",""text"":""search text""}</action>
-→ Search on the home page (only works when on the home page)
+        var template = LoadPromptTemplate(resolvedLang);
 
-<action>{""type"":""openCollection"",""id"":""collection ID""}</action>
-→ Open collection in a new tab
+        if (string.IsNullOrWhiteSpace(template))
+        {
+            _logger.LogWarning("System prompt template is empty for lang={Lang}", SanitizeForLog(resolvedLang));
+            return string.Empty;
+        }
 
-<action>{""type"":""showAdminPanel""}</action>
-→ Open the admin panel
-
-<action>{""type"":""navigate"",""path"":""/""}</action>
-→ Navigate to a page (e.g. ""/"" for home, ""/ProjectEdit"" for project settings)
-
-<action>{""type"":""clickButton"",""id"":""button ID""}</action>
-→ Click a button by its ID. Allowed IDs:
-  addNewCollectionBtn (create new collection), editProjectBtn (open project settings),
-  adminPanelToggle (toggle admin panel), searchButton (run search), clearFiltersButton (clear filters),
-  inventoryOperationBtn (open inventory operation modal – only when detail panel is visible),
-  inventoryManagementSettingsBtn (open inventory management settings modal – only when detail panel is visible),
-  inventoryOperationSave / inventoryOperationCancel (save/cancel inventory operation),
-  inventoryManagementSettingsSave / inventoryManagementSettingsCancel (save/cancel inventory settings),
-  editIndexBtn (open index edit modal – only on collection detail page)
-
-<action>{""type"":""fillInput"",""id"":""field ID"",""value"":""value""}</action>
-→ Fill a form field by its ID. Allowed IDs:
-  searchText (search keyword),
-  operationType (operation type: 0=entry, 1=exit, 2=stocktaking),
-  operationQuantity (quantity: number),
-  operationComment (comment: text),
-  safetyStock (safety stock), reorderPoint (reorder point), maximumLevel (maximum level)
-
-## Common multi-step workflow examples
-
-### Example 1: Create a new collection
-<action>{""type"":""showAdminPanel""}</action>
-<action>{""type"":""clickButton"",""id"":""addNewCollectionBtn""}</action>
-Note: clicking addNewCollectionBtn opens the collection detail in a new tab with the index edit modal pre-opened.
-
-### Example 2: Record an inventory operation (requires collection detail panel to be open)
-<action>{""type"":""clickButton"",""id"":""inventoryOperationBtn""}</action>
-<action>{""type"":""fillInput"",""id"":""operationType"",""value"":""0""}</action>
-<action>{""type"":""fillInput"",""id"":""operationQuantity"",""value"":""5""}</action>
-<action>{""type"":""fillInput"",""id"":""operationComment"",""value"":""your comment""}</action>
-<action>{""type"":""clickButton"",""id"":""inventoryOperationSave""}</action>
-
-When including actions, describe what you are doing in English.";
-
-        const string actionDocsDe = @"## Verfügbare Operationen
-Wenn der Benutzer eine Aktion anfordert, können Sie eine oder mehrere Aktionen in Ihre Antwort einfügen.
-Mehrere Aktionen werden **der Reihe nach mit 600 ms Abstand** ausgeführt – ordnen Sie sie so, dass Modals geöffnet sind, bevor Felder befüllt werden.
-
-<action>{""type"":""search"",""text"":""Suchtext""}</action>
-→ Auf der Startseite suchen (nur auf der Startseite wirksam)
-
-<action>{""type"":""openCollection"",""id"":""Sammlungs-ID""}</action>
-→ Sammlung in neuem Tab öffnen
-
-<action>{""type"":""showAdminPanel""}</action>
-→ Admin-Panel öffnen
-
-<action>{""type"":""navigate"",""path"":""/""}</action>
-→ Zu einer Seite navigieren (z. B. ""/"" für Startseite, ""/ProjectEdit"" für Projekteinstellungen)
-
-<action>{""type"":""clickButton"",""id"":""Button-ID""}</action>
-→ Schaltfläche nach ID klicken. Erlaubte IDs:
-  addNewCollectionBtn, editProjectBtn, adminPanelToggle, searchButton, clearFiltersButton,
-  inventoryOperationBtn, inventoryManagementSettingsBtn,
-  inventoryOperationSave, inventoryOperationCancel,
-  inventoryManagementSettingsSave, inventoryManagementSettingsCancel, editIndexBtn
-
-<action>{""type"":""fillInput"",""id"":""Feld-ID"",""value"":""Wert""}</action>
-→ Formularfeld nach ID befüllen. Erlaubte IDs:
-  searchText, operationType (0=Eingang, 1=Ausgang, 2=Inventur),
-  operationQuantity, operationComment, safetyStock, reorderPoint, maximumLevel
-
-Wenn Sie Aktionen einfügen, beschreiben Sie bitte auf Deutsch, was Sie tun.";
-
-        var noContent = lang switch
+        var noContent = resolvedLang switch
         {
             "de" => "(kein Inhalt)",
             "en" => "(no content)",
-            _ => "（コンテンツなし）"
+            _    => "（コンテンツなし）"
         };
+
         var context = string.IsNullOrWhiteSpace(pageContext) ? noContent : pageContext;
 
-        return lang switch
-        {
-            "en" => $@"You are a support assistant for {projectName} (CREC Web), a web-based collection and inventory management system.
-
-## Key Features
-- Search, list, and view collections (managed items)
-- Record name, management code, category, tags, location, and inventory for each collection
-- Manage attached images, videos, 3D data (STL), and data files
-- Record inventory operations (entry, exit, stocktaking) with history
-- Search collections by QR code
-- Add/delete collections and edit project settings via the admin panel
-
-## Current Page: {pageTitle}
-### Page Content (excerpt):
-{context}
-
-{actionDocsEn}",
-
-            "de" => $@"Sie sind ein Support-Assistent für {projectName} (CREC Web), ein webbasiertes Sammlungs- und Inventarverwaltungssystem.
-
-## Hauptfunktionen
-- Sammlungen (verwaltete Artikel) suchen, auflisten und anzeigen
-- Name, Verwaltungscode, Kategorie, Tags, Standort und Bestand für jede Sammlung erfassen
-- Angehängte Bilder, Videos, 3D-Daten (STL) und Datendateien verwalten
-- Bestandsoperationen (Eingang, Ausgang, Inventur) mit Verlauf aufzeichnen
-- Sammlungen per QR-Code suchen
-- Sammlungen über das Admin-Panel hinzufügen/löschen und Projekteinstellungen bearbeiten
-
-## Aktuelle Seite: {pageTitle}
-### Seiteninhalt (Auszug):
-{context}
-
-{actionDocsDe}",
-
-            _ => $@"あなたは{projectName}（CREC Web）のサポートアシスタントです。CREC WebはWebベースのコレクション・在庫管理システムです。
-
-## システムの主な機能
-- コレクション（管理対象物品）の検索・一覧表示・詳細表示
-- 各コレクションに名称・管理コード・カテゴリ・タグ・場所・在庫数などを記録
-- 画像・動画・3Dデータ（STL）・データファイルの添付と管理
-- 在庫操作（入庫・出庫・棚卸し）の記録と履歴管理
-- QRコードによるコレクション検索
-- 管理パネルからコレクションの追加・削除・プロジェクト設定の編集
-
-## 現在のページ: {pageTitle}
-### ページ内容（抜粋）:
-{context}
-
-{actionDocsJa}"
-        };
+        return template
+            .Replace("{{projectName}}", projectName)
+            .Replace("{{pageTitle}}", pageTitle)
+            .Replace("{{context}}", context);
     }
+
+    /// <summary>
+    /// ログ出力前に値をサニタイズする（ログフォージング防止）。
+    /// 制御文字（改行・タブ等）をアンダースコアに置換し、200文字に切り詰める。
+    /// </summary>
+    private static string SanitizeForLog(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+        var truncated = value.Length > 200 ? value[..200] : value;
+        return _sanitizeLogRegex.Replace(truncated, "_");
+    }
+
+    private static readonly Regex _sanitizeLogRegex =
+        new(@"[\r\n\t\x00-\x1F\x7F]", RegexOptions.Compiled);
 }
 
 // ===== Request / Response models =====
@@ -393,3 +348,4 @@ internal class LlmMessage
     [JsonPropertyName("content")]
     public string Content { get; set; } = string.Empty;
 }
+
