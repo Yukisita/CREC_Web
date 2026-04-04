@@ -3,9 +3,9 @@ CREC Web - Chat Controller
 Copyright (c) [2025 - 2026] [S.Yukisita]
 This software is released under the MIT License.
 
-Proxies chat requests to a local Ollama instance running on the server.
-Ollama URL and model are configured in appsettings.json under "Ollama:Url"
-and "Ollama:Model". Defaults: http://localhost:11434 / llama3.2.
+Proxies chat requests to an OpenAI-compatible LLM backend running on the server.
+The backend URL and model are configured in appsettings.json under "LlmBackend:Url"
+and "LlmBackend:Model". Defaults: http://localhost:11434 / llama3.2.
 */
 
 using System.Net.Http.Headers;
@@ -41,7 +41,7 @@ public class ChatController : ControllerBase
     }
 
     /// <summary>
-    /// Ollamaへのチャットリクエストをサーバ側でプロキシする
+    /// OpenAI互換LLMバックエンドへのチャットリクエストをサーバ側でプロキシする
     /// </summary>
     [HttpPost]
     public async Task<IActionResult> Chat([FromBody] ChatRequest request)
@@ -51,8 +51,8 @@ public class ChatController : ControllerBase
             return BadRequest(new { error = "Message is required." });
         }
 
-        var ollamaUrl = (_configuration["Ollama:Url"] ?? "http://localhost:11434").TrimEnd('/');
-        var model = (_configuration["Ollama:Model"] ?? "llama3.2").Trim();
+        var llmUrl = (_configuration["LlmBackend:Url"] ?? "http://localhost:11434").TrimEnd('/');
+        var model = (_configuration["LlmBackend:Model"] ?? "llama3.2").Trim();
 
         var systemPrompt = BuildSystemPrompt(
             request.Lang ?? "ja",
@@ -61,7 +61,7 @@ public class ChatController : ControllerBase
             request.ProjectName ?? "CREC Web");
 
         // 会話履歴を構築
-        var messages = new List<OllamaMessage>
+        var messages = new List<LlmMessage>
         {
             new() { Role = "system", Content = systemPrompt }
         };
@@ -72,14 +72,14 @@ public class ChatController : ControllerBase
             {
                 if (!string.IsNullOrWhiteSpace(msg.Role) && !string.IsNullOrWhiteSpace(msg.Content))
                 {
-                    messages.Add(new OllamaMessage { Role = msg.Role, Content = msg.Content });
+                    messages.Add(new LlmMessage { Role = msg.Role, Content = msg.Content });
                 }
             }
         }
 
-        messages.Add(new OllamaMessage { Role = "user", Content = request.Message });
+        messages.Add(new LlmMessage { Role = "user", Content = request.Message });
 
-        var ollamaRequest = new OllamaChatRequest
+        var llmRequest = new LlmChatRequest
         {
             Model = model,
             Messages = messages,
@@ -89,17 +89,17 @@ public class ChatController : ControllerBase
         try
         {
             var client = _httpClientFactory.CreateClient();
-            var json = JsonSerializer.Serialize(ollamaRequest, _jsonOptions);
+            var json = JsonSerializer.Serialize(llmRequest, _jsonOptions);
             using var content = new StringContent(json, Encoding.UTF8);
             content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
-            _logger.LogInformation("Forwarding chat request to Ollama: {Url}, model={Model}", ollamaUrl, model);
-            var response = await client.PostAsync($"{ollamaUrl}/v1/chat/completions", content);
+            _logger.LogInformation("Forwarding chat request to LLM backend: {Url}, model={Model}", llmUrl, model);
+            var response = await client.PostAsync($"{llmUrl}/v1/chat/completions", content);
 
             if (!response.IsSuccessStatusCode)
             {
                 var errorBody = await response.Content.ReadAsStringAsync();
-                _logger.LogWarning("Ollama returned HTTP {Status}: {Body}", (int)response.StatusCode, errorBody);
+                _logger.LogWarning("LLM backend returned HTTP {Status}: {Body}", (int)response.StatusCode, errorBody);
                 string errorMessage;
                 try
                 {
@@ -133,7 +133,7 @@ public class ChatController : ControllerBase
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Failed to connect to Ollama at {Url}", ollamaUrl);
+            _logger.LogError(ex, "Failed to connect to LLM backend at {Url}", llmUrl);
             return StatusCode(503, new { error = ex.Message });
         }
         catch (Exception ex)
@@ -371,21 +371,21 @@ public class ChatHistoryMessage
     public string Content { get; set; } = string.Empty;
 }
 
-// ===== Ollama request models =====
+// ===== LLM backend request models =====
 
-internal class OllamaChatRequest
+internal class LlmChatRequest
 {
     [JsonPropertyName("model")]
     public string Model { get; set; } = string.Empty;
 
     [JsonPropertyName("messages")]
-    public List<OllamaMessage> Messages { get; set; } = [];
+    public List<LlmMessage> Messages { get; set; } = [];
 
     [JsonPropertyName("stream")]
     public bool Stream { get; set; }
 }
 
-internal class OllamaMessage
+internal class LlmMessage
 {
     [JsonPropertyName("role")]
     public string Role { get; set; } = string.Empty;

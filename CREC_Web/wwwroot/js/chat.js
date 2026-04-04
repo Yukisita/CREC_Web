@@ -4,8 +4,8 @@ Copyright (c) [2025 - 2026] [S.Yukisita]
 This software is released under the MIT License.
 
 Chat requests are handled by the CREC Web server (/api/Chat), which proxies
-them to a local Ollama instance. No data is sent to any external service.
-Ollama URL and model are configured in appsettings.json on the server.
+them to an OpenAI-compatible LLM backend. No data is sent to any external service.
+The backend URL and model are configured in appsettings.json on the server.
 */
 
 const CHAT_HISTORY_MAX           = 20;   // コンテキストに保持する最大メッセージ数
@@ -238,7 +238,7 @@ function renderChatMarkdown(text) {
 
 /**
  * サーバー側の /api/Chat エンドポイントを通じてメッセージを送信する
- * サーバーはリクエストをローカルの Ollama インスタンスに転送する
+ * サーバーはリクエストをローカルの OpenAI 互換 LLM バックエンドに転送する
  * @param {string} userText - ユーザーのメッセージ
  * @returns {Promise<{error: boolean, text?: string, message?: string}>}
  */
