@@ -10,11 +10,72 @@ Ollama URL and model are configured in appsettings.json on the server.
 
 const CHAT_HISTORY_MAX      = 20;   // コンテキストに保持する最大メッセージ数
 const CHAT_PAGE_CONTEXT_MAX = 2000; // RAGに含めるページコンテンツの最大文字数
+const CHAT_SESSION_KEY      = 'crec_chat_history_v1'; // sessionStorageキー
+
+// クリック可能なボタンのIDホワイトリスト（安全性のため任意のIDは不可）
+const CHAT_SAFE_BUTTON_IDS = new Set([
+    'addNewCollectionBtn', 'editProjectBtn',
+    'inventoryOperationBtn', 'inventoryManagementSettingsBtn',
+    'inventoryOperationSave', 'inventoryOperationCancel',
+    'inventoryManagementSettingsSave', 'inventoryManagementSettingsCancel',
+    'editIndexBtn', 'adminPanelToggle', 'searchButton', 'clearFiltersButton',
+    'saveInventoryOperation'
+]);
+
+// 入力可能なフォームフィールドのIDホワイトリスト（安全性のため任意のIDは不可）
+const CHAT_SAFE_INPUT_IDS = new Set([
+    'operationType', 'operationQuantity', 'operationComment',
+    'searchText', 'safetyStock', 'reorderPoint', 'maximumLevel',
+    'searchField', 'searchMethod', 'inventoryStatusFilter'
+]);
 
 // チャット状態
 let chatMessages = []; // { role: 'user'|'assistant', content: string }
 let chatIsOpen = false;
 let chatIsSending = false;
+
+/**
+ * 会話履歴を sessionStorage に保存する（ページ遷移後も継続できるようにする）
+ */
+function saveChatSession() {
+    try {
+        sessionStorage.setItem(CHAT_SESSION_KEY, JSON.stringify(chatMessages));
+    } catch (e) {
+        // sessionStorage 利用不可の場合は無視
+    }
+}
+
+/**
+ * sessionStorage から会話履歴を読み込む
+ * @returns {Array|null}
+ */
+function loadChatSession() {
+    try {
+        const saved = sessionStorage.getItem(CHAT_SESSION_KEY);
+        return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
+ * sessionStorage の会話履歴を削除する
+ */
+function clearChatSession() {
+    try {
+        sessionStorage.removeItem(CHAT_SESSION_KEY);
+    } catch (e) {}
+}
+
+/**
+ * テキストから <action>…</action> タグを除去して表示用テキストを返す
+ * （sessionStorage から復元したメッセージの再描画に使用）
+ * @param {string} text
+ * @returns {string}
+ */
+function stripChatActions(text) {
+    return text.replace(/<action>[\s\S]*?<\/action>/g, '').trim();
+}
 
 /**
  * 現在のページのコンテキストを取得する（RAG用）
@@ -42,6 +103,7 @@ function getChatPageContext() {
 
 /**
  * AIレスポンス内のアクションタグを解析し実行する
+ * 複数アクションは600ms間隔で順番に実行する（モーダル表示などの待機に対応）
  * アクションタグを除いたクリーンなテキストを返す
  * @param {string} text - AIのレスポンステキスト
  * @returns {string} アクションタグを除去したテキスト
@@ -65,17 +127,20 @@ function processChatActions(text) {
     // アクションタグを除去したテキストを返す
     const cleanText = text.replace(/<action>[\s\S]*?<\/action>/g, '').trim();
 
-    // アクションをUIが更新されてから実行
+    // 複数アクションをシーケンシャルに実行（600ms間隔）
     if (actions.length > 0) {
-        setTimeout(() => {
-            actions.forEach(cmd => {
+        let cumulativeDelay = 400;
+        actions.forEach(cmd => {
+            const delay = cumulativeDelay;
+            cumulativeDelay += 600;
+            setTimeout(() => {
                 try {
                     executeChatAction(cmd);
                 } catch (e) {
                     console.warn('Failed to execute chat action:', cmd, e);
                 }
-            });
-        }, 400);
+            }, delay);
+        });
     }
 
     return cleanText;
@@ -114,6 +179,34 @@ function executeChatAction(cmd) {
                 cmd.path.startsWith('/') &&
                 !cmd.path.startsWith('//')) {
                 window.location.href = cmd.path;
+            }
+            break;
+
+        case 'clickButton':
+            // ホワイトリストに含まれるIDのボタンのみクリック可能
+            if (typeof cmd.id === 'string' && CHAT_SAFE_BUTTON_IDS.has(cmd.id)) {
+                const el = document.getElementById(cmd.id);
+                if (el) el.click();
+                else console.warn('clickButton: element not found:', cmd.id);
+            } else {
+                console.warn('clickButton: unsafe or missing id:', cmd.id);
+            }
+            break;
+
+        case 'fillInput':
+            // ホワイトリストに含まれるIDのフィールドのみ入力可能
+            if (typeof cmd.id === 'string' && CHAT_SAFE_INPUT_IDS.has(cmd.id) &&
+                (typeof cmd.value === 'string' || typeof cmd.value === 'number')) {
+                const el = document.getElementById(cmd.id);
+                if (el) {
+                    el.value = String(cmd.value);
+                    el.dispatchEvent(new Event('input',  { bubbles: true }));
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                } else {
+                    console.warn('fillInput: element not found:', cmd.id);
+                }
+            } else {
+                console.warn('fillInput: unsafe or missing id/value:', cmd.id);
             }
             break;
 
@@ -245,8 +338,9 @@ async function submitChatMessage() {
     // ユーザーメッセージを表示
     appendChatMessage('user', escapeHtml(userText));
 
-    // 履歴に追加
+    // 履歴に追加してセッションに保存
     chatMessages.push({ role: 'user', content: userText });
+    saveChatSession();
 
     // 送信中フラグ
     chatIsSending = true;
@@ -279,8 +373,9 @@ async function submitChatMessage() {
             const renderedHtml = renderChatMarkdown(cleanText);
             appendChatMessage('assistant', renderedHtml);
 
-            // 履歴に保存（元テキスト、アクションタグも含む）
+            // 履歴に保存（元テキスト、アクションタグも含む）してセッションに永続化
             chatMessages.push({ role: 'assistant', content: result.text });
+            saveChatSession();
         }
     } finally {
         chatIsSending = false;
@@ -334,6 +429,7 @@ function toggleChatPanel() {
  */
 function clearChatHistory() {
     chatMessages = [];
+    clearChatSession();
     const messages = document.getElementById('chatMessages');
     if (messages) {
         messages.innerHTML = '';
@@ -368,8 +464,22 @@ function initializeChat() {
         });
     }
 
-    // ウェルカムメッセージを表示
-    appendChatMessage('assistant', escapeHtml(t('chat-welcome')));
+    // sessionStorage から会話履歴を復元する（ページ遷移後の継続対応）
+    const savedHistory = loadChatSession();
+    if (savedHistory && savedHistory.length > 0) {
+        chatMessages = savedHistory;
+        savedHistory.forEach(msg => {
+            if (msg.role === 'user') {
+                appendChatMessage('user', escapeHtml(msg.content));
+            } else if (msg.role === 'assistant') {
+                const clean = stripChatActions(msg.content);
+                appendChatMessage('assistant', renderChatMarkdown(clean));
+            }
+        });
+    } else {
+        // ウェルカムメッセージを表示
+        appendChatMessage('assistant', escapeHtml(t('chat-welcome')));
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function () {
