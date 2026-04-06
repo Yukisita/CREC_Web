@@ -2,17 +2,6 @@
 CREC Web - Chat Controller
 Copyright (c) [2025 - 2026] [S.Yukisita]
 This software is released under the MIT License.
-
-Proxies chat requests to an OpenAI-compatible LLM backend running on the server.
-The backend URL and model are configured in appsettings.json under "LlmBackend:Url"
-and "LlmBackend:Model". Defaults: http://localhost:11434 / llama3.2.
-
-System prompt templates are loaded from Prompts/system_prompt.{lang}.txt at runtime,
-allowing prompt editing without recompilation.
-
-Allowed button/input IDs for AI actions are read from "Chat:SafeButtonIds" and
-"Chat:SafeInputIds" in appsettings.json. The LLM response is sanitized on the server
-before being returned to the client, so the whitelist never reaches the browser.
 */
 
 using System.Collections.Concurrent;
