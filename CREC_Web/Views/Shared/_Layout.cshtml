@@ -534,6 +534,65 @@
             -webkit-animation-play-state: paused !important;
             animation-play-state: paused !important;
         }
+
+        /*
+         * タッチデバイス（スマートフォン等）向け：画面暗転時のちらつき根本対策
+         *
+         * 原因: position: fixed かつ height: 100vh のパネル（.detail-panel / .admin-panel）は
+         *       display: none を持たず常にレンダーツリーに存在するため、GPU 合成レイヤーとして
+         *       保持される。画面暗転時に OS の輝度制御がこの GPU レイヤーと競合し、ちらつきが
+         *       発生する。visibilitychange は暗転フェーズでは発火しないため JS での対処は無効。
+         *
+         * 対策: タッチデバイスでは
+         *   1. 閉じているパネルを display: none でレンダーツリーから完全に除外し GPU レイヤーを消す
+         *   2. transform / transition ベースの GPU 合成を生成する可能性があるすべての CSS を無効化
+         *
+         * @@media (hover: none) and (pointer: coarse) はタッチ専用デバイス（スマートフォン・タブレット）に
+         * のみ適用され、マウスを持つデスクトップ環境には影響しない。
+         */
+        @@media (hover: none) and (pointer: coarse) {
+            /* 閉じているパネルを GPU レンダーツリーから完全に除外 */
+            .detail-panel {
+                display: none;
+                right: 0;
+                -webkit-transition: none;
+                transition: none;
+            }
+            .detail-panel.open {
+                display: block;
+            }
+            .admin-panel {
+                display: none;
+                left: 0;
+                -webkit-transition: none;
+                transition: none;
+            }
+            .admin-panel.open {
+                display: block;
+            }
+            /* タッチデバイスではホバー transform を無効化（ホバー自体が使えないため不要） */
+            .collection-card {
+                -webkit-transition: none;
+                transition: none;
+            }
+            .collection-card:hover {
+                -webkit-transform: none;
+                transform: none;
+            }
+            /* GPU 合成レイヤーを生成する可能性がある残りのトランジションをすべて無効化 */
+            .qr-scanner-modal {
+                -webkit-transition: none;
+                transition: none;
+            }
+            .advanced-filters-section {
+                -webkit-transition: none;
+                transition: none;
+            }
+            .collections-table tbody tr {
+                -webkit-transition: none;
+                transition: none;
+            }
+        }
     </style>
     @await RenderSectionAsync("Styles", required: false)
 </head>
