@@ -756,6 +756,8 @@
         let threeDAnimFrameId = null;
         let threeDCurrentMesh = null;
         let threeDResizeObserver = null;
+        let threeDAnimateFn = null;
+        let threeDVisibilityHandler = null;
 
         // Three.js をダイナミックインポートで遅延読み込みする（v0.183.2、ESモジュール形式）
         function loadThreeJS() {
@@ -818,7 +820,38 @@
                 if (threeDControls) threeDControls.update();
                 if (threeDRenderer && threeDScene && threeDCamera) threeDRenderer.render(threeDScene, threeDCamera);
             }
+            threeDAnimateFn = animate;
             animate();
+
+            // 画面が暗転するタイミング（スマートフォン）での描画乱れを防ぐため、
+            // ページ非表示時にアニメーションを停止し、表示復帰時に再開する
+            threeDVisibilityHandler = () => {
+                if (document.hidden) {
+                    if (threeDAnimFrameId !== null) {
+                        cancelAnimationFrame(threeDAnimFrameId);
+                        threeDAnimFrameId = null;
+                    }
+                } else {
+                    if (threeDAnimFrameId === null && threeDRenderer && threeDAnimateFn) {
+                        threeDAnimateFn();
+                    }
+                }
+            };
+            document.addEventListener('visibilitychange', threeDVisibilityHandler);
+
+            // WebGL コンテキスト喪失・復元の処理（スマートフォンで画面が暗転するタイミングに発生することがある）
+            threeDRenderer.domElement.addEventListener('webglcontextlost', (e) => {
+                e.preventDefault();
+                if (threeDAnimFrameId !== null) {
+                    cancelAnimationFrame(threeDAnimFrameId);
+                    threeDAnimFrameId = null;
+                }
+            }, false);
+            threeDRenderer.domElement.addEventListener('webglcontextrestored', () => {
+                if (threeDAnimFrameId === null && threeDRenderer && threeDAnimateFn) {
+                    threeDAnimateFn();
+                }
+            }, false);
 
             // リサイズハンドラ（モジュールレベルで管理）
             threeDResizeObserver = new ResizeObserver(() => {
@@ -844,6 +877,11 @@
                 cancelAnimationFrame(threeDAnimFrameId);
                 threeDAnimFrameId = null;
             }
+            if (threeDVisibilityHandler) {
+                document.removeEventListener('visibilitychange', threeDVisibilityHandler);
+                threeDVisibilityHandler = null;
+            }
+            threeDAnimateFn = null;
             if (threeDResizeObserver) {
                 threeDResizeObserver.disconnect();
                 threeDResizeObserver = null;
@@ -1558,6 +1596,22 @@
                     }, 100);
                 });
             }
+
+            // 動画要素の visibilitychange ハンドラ（スマートフォンで画面が暗転するタイミングでの映像乱れを防ぐ）
+            let videoWasPausedByVisibility = false;
+            document.addEventListener('visibilitychange', () => {
+                const video = document.getElementById('carouselVideo');
+                if (!video) return;
+                if (document.hidden) {
+                    if (!video.paused) {
+                        video.pause();
+                        videoWasPausedByVisibility = true;
+                    }
+                } else if (videoWasPausedByVisibility) {
+                    videoWasPausedByVisibility = false;
+                    video.play().catch(() => {}); // autoplay ポリシーによる失敗を無視
+                }
+            });
         });
 
         // ページ読み込み時の処理
