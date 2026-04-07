@@ -166,6 +166,9 @@
         // パネル用イベントハンドラを格納する WeakMap
         const panelEventHandlers = new WeakMap();
 
+        // QR スキャナーの visibilitychange リスナーが登録済みかどうか（二重登録防止）
+        let qrVisibilityListenerRegistered = false;
+
         // =====================
         // Home Page Initialization
         // =====================
@@ -237,33 +240,36 @@
             updateTableHeaders();
 
             // QRスキャナーの visibilitychange ハンドラ（スマートフォンで画面が暗転するタイミングでの映像乱れを防ぐ）
-            // このハンドラはページライフタイム中有効
-            document.addEventListener('visibilitychange', () => {
-                if (document.hidden) {
-                    // ページ非表示時：QRスキャンのインターバルを停止（カメラストリームは維持）
-                    if (qrTask !== null) {
-                        clearInterval(qrTask);
-                        qrTask = null;
-                    }
-                    // QRスキャナーのビデオ一時停止
-                    const qrVideo = document.getElementById('qrVideo');
-                    if (qrVideo && !qrVideo.paused) {
-                        qrVideo.pause();
-                    }
-                } else {
-                    // ページ再表示時：カメラストリームが生きていればスキャンを再開
-                    if (qrScannerStream && qrTask === null) {
-                        const qrVideo = document.getElementById('qrVideo');
-                        if (qrVideo) {
-                            qrVideo.play().catch((e) => {
-                                // autoplay ポリシー等による失敗はユーザー操作に委ねる
-                                console.warn('QR video resume failed after visibility restore:', e);
-                            });
+            // 二重登録を防ぐため、既に登録済みの場合はスキップ
+            if (!qrVisibilityListenerRegistered) {
+                qrVisibilityListenerRegistered = true;
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden) {
+                        // ページ非表示時：QRスキャンのインターバルを停止（カメラストリームは維持）
+                        if (qrTask !== null) {
+                            clearInterval(qrTask);
+                            qrTask = null;
                         }
-                        startQrScanning();
+                        // QRスキャナーのビデオ一時停止
+                        const qrVideo = document.getElementById('qrVideo');
+                        if (qrVideo && !qrVideo.paused) {
+                            qrVideo.pause();
+                        }
+                    } else {
+                        // ページ再表示時：カメラストリームが生きていればスキャンを再開
+                        if (qrScannerStream && qrTask === null) {
+                            const qrVideo = document.getElementById('qrVideo');
+                            if (qrVideo) {
+                                qrVideo.play().catch((e) => {
+                                    // autoplay ポリシー等による失敗はユーザー操作に委ねる
+                                    console.warn('QR video resume failed after visibility restore:', e);
+                                });
+                            }
+                            startQrScanning();
+                        }
                     }
-                }
-            });
+                });
+            }
 
             // 初回検索
             await searchCollections();
