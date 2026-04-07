@@ -525,6 +525,7 @@
         }
 
         /* 画面暗転時のちらつき防止: ページ非表示時に CSS トランジション・アニメーションを停止 */
+        /* body.page-hidden は visibilitychange 時のみ設定されるため、通常描画時はマッチしない */
         body.page-hidden *,
         body.page-hidden *::before,
         body.page-hidden *::after {

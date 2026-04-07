@@ -91,7 +91,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             } else {
                 document.body.classList.remove('page-hidden');
-                pausedByVisibility.splice(0).forEach(function (v) {
+                var videosToResume = pausedByVisibility.slice();
+                pausedByVisibility = [];
+                videosToResume.forEach(function (v) {
                     v.play().catch(function (e) {
                         console.warn('Video resume after page restore failed:', e);
                     });
