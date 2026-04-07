@@ -239,32 +239,23 @@
             // テーブルヘッダーのテキストを更新
             updateTableHeaders();
 
-            // QRスキャナーの visibilitychange ハンドラ（スマートフォンで画面が暗転するタイミングでの映像乱れを防ぐ）
-            // 二重登録を防ぐため、既に登録済みの場合はスキップ
+            // QRスキャナーの visibilitychange ハンドラ（スマートフォンで画面が暗転するタイミングでのちらつきを防ぐ）
+            // 動画の停止・再開は app.js のグローバルハンドラに委ねる。
+            // ここでは QR スキャンの setInterval のみ制御する。
+            // 二重登録を防ぐため、既に登録済みの場合はスキップ。
             if (!qrVisibilityListenerRegistered) {
                 qrVisibilityListenerRegistered = true;
                 document.addEventListener('visibilitychange', () => {
                     if (document.hidden) {
-                        // ページ非表示時：QRスキャンのインターバルを停止（カメラストリームは維持）
+                        // ページ非表示時：QRスキャンのインターバルを停止（動画停止はグローバルハンドラが処理）
                         if (qrTask !== null) {
                             clearInterval(qrTask);
                             qrTask = null;
                         }
-                        // QRスキャナーのビデオ一時停止
-                        const qrVideo = document.getElementById('qrVideo');
-                        if (qrVideo && !qrVideo.paused) {
-                            qrVideo.pause();
-                        }
                     } else {
-                        // ページ再表示時：カメラストリームが生きていればスキャンを再開
+                        // ページ再表示時：カメラストリームが生きていればスキャンのインターバルを再開
+                        // （動画の再開はグローバルハンドラが先に処理するため、ここではインターバルのみ再開）
                         if (qrScannerStream && qrTask === null) {
-                            const qrVideo = document.getElementById('qrVideo');
-                            if (qrVideo) {
-                                qrVideo.play().catch((e) => {
-                                    // autoplay ポリシー等による失敗はユーザー操作に委ねる
-                                    console.warn('QR video resume failed after visibility restore:', e);
-                                });
-                            }
                             startQrScanning();
                         }
                     }
