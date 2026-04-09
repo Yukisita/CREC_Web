@@ -525,22 +525,6 @@
         }
 
         /*
-         * バックグラウンド移行・スクリーンロック時のちらつき防止（多層防御）
-         * 一部の Android デバイスは画面暗転フェーズ中に visibilitychange を発火させるため、
-         * body.page-hidden クラスが付与されているときにすべての CSS トランジション・アニメーションを
-         * 停止することで、そのような端末でのちらつきを防止する。
-         * body.page-hidden は app.js の visibilitychange ハンドラにより設定される。
-         */
-        body.page-hidden *,
-        body.page-hidden *::before,
-        body.page-hidden *::after {
-            -webkit-transition: none !important;
-            transition: none !important;
-            -webkit-animation-play-state: paused !important;
-            animation-play-state: paused !important;
-        }
-
-        /*
          * タッチデバイス（スマートフォン等）向け：画面暗転時のちらつき根本対策
          *
          * 原因: position: fixed かつ height: 100vh のパネル（.detail-panel / .admin-panel）は

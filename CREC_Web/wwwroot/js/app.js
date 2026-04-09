@@ -74,16 +74,15 @@ function getCurrentCollectionId() {
 // DOMContentLoaded イベントで初期化
 document.addEventListener('DOMContentLoaded', function () {
     // visibilitychange ハンドラ：ページがバックグラウンド移行またはスクリーンロック時に
-    // すべての CSS トランジション・アニメーションを停止し、再生中の動画を一時停止する。
-    // 一部の Android デバイスは画面暗転フェーズ中に visibilitychange を発火させるため、
-    // このハンドラはそのような端末での暗転時ちらつき防止にも寄与する（多層防御）。
+    // 再生中の動画を一時停止し、復帰時に再開する。
+    // 画面暗転時ちらつきの主因は CSS GPU 合成レイヤー（@media (hover: none) メディアクエリで対処済み）のため、
+    // ここでは CSS/DOM への変更は一切行わない（CSS プロパティ変更自体が画面暗転中のちらつきを誘発するため）。
     // ページ固有のループ（requestAnimationFrame、setInterval）は
     // 各ページの visibilitychange ハンドラで別途制御する。
     (function () {
         var pausedByVisibility = [];
         document.addEventListener('visibilitychange', function () {
             if (document.hidden) {
-                document.body.classList.add('page-hidden');
                 document.querySelectorAll('video').forEach(function (v) {
                     if (!v.paused) {
                         v.pause();
@@ -91,7 +90,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 });
             } else {
-                document.body.classList.remove('page-hidden');
                 var videosToResume = pausedByVisibility.slice();
                 pausedByVisibility = [];
                 videosToResume.forEach(function (v) {
