@@ -166,6 +166,9 @@
         // パネル用イベントハンドラを格納する WeakMap
         const panelEventHandlers = new WeakMap();
 
+        // QR スキャナーの visibilitychange リスナーが登録済みかどうか（二重登録防止）
+        let qrVisibilityListenerRegistered = false;
+
         // =====================
         // Home Page Initialization
         // =====================
@@ -235,6 +238,30 @@
 
             // テーブルヘッダーのテキストを更新
             updateTableHeaders();
+
+            // QR スキャナーの visibilitychange ハンドラ
+            // ページがバックグラウンド移行・スクリーンロック時に QR スキャンのインターバルを停止し、
+            // 復帰時に再開する。一部の Android デバイスは画面暗転フェーズ中に visibilitychange を
+            // 発火させるため、暗転時のちらつき防止にも寄与する（多層防御）。
+            // 動画の停止・再開は app.js のグローバルハンドラが先に処理する。
+            // 二重登録を防ぐため、既に登録済みの場合はスキップ。
+            if (!qrVisibilityListenerRegistered) {
+                qrVisibilityListenerRegistered = true;
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden) {
+                        // ページ非表示時：QRスキャンのインターバルを停止（動画停止はグローバルハンドラが処理）
+                        if (qrTask !== null) {
+                            clearInterval(qrTask);
+                            qrTask = null;
+                        }
+                    } else {
+                        // ページ再表示時：カメラストリームが生きていればスキャンのインターバルを再開
+                        if (qrScannerStream && qrTask === null) {
+                            startQrScanning();
+                        }
+                    }
+                });
+            }
 
             // 初回検索
             await searchCollections();
