@@ -166,9 +166,6 @@
         // パネル用イベントハンドラを格納する WeakMap
         const panelEventHandlers = new WeakMap();
 
-        // QR スキャナーの visibilitychange リスナーが登録済みかどうか（二重登録防止）
-        let qrVisibilityListenerRegistered = false;
-
         // =====================
         // Home Page Initialization
         // =====================
@@ -238,31 +235,6 @@
 
             // テーブルヘッダーのテキストを更新
             updateTableHeaders();
-
-            // QRスキャナーの visibilitychange ハンドラ（スマートフォンで画面が暗転するタイミングでのちらつきを防ぐ）
-            // 動画の停止・再開は app.js のグローバルハンドラに委ねる。
-            // app.js は本スクリプトより先にロードされるため、グローバルハンドラは
-            // 常に本ハンドラより先に実行される（動画の再開が先に完了することが保証される）。
-            // ここでは QR スキャンの setInterval のみ制御する。
-            // 二重登録を防ぐため、既に登録済みの場合はスキップ。
-            if (!qrVisibilityListenerRegistered) {
-                qrVisibilityListenerRegistered = true;
-                document.addEventListener('visibilitychange', () => {
-                    if (document.hidden) {
-                        // ページ非表示時：QRスキャンのインターバルを停止（動画停止はグローバルハンドラが処理）
-                        if (qrTask !== null) {
-                            clearInterval(qrTask);
-                            qrTask = null;
-                        }
-                    } else {
-                        // ページ再表示時：カメラストリームが生きていればスキャンのインターバルを再開
-                        // （動画の再開はグローバルハンドラが先に処理するため、ここではインターバルのみ再開）
-                        if (qrScannerStream && qrTask === null) {
-                            startQrScanning();
-                        }
-                    }
-                });
-            }
 
             // 初回検索
             await searchCollections();

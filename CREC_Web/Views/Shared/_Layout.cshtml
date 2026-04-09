@@ -524,17 +524,6 @@
             }
         }
 
-        /* 画面暗転時のちらつき防止: ページ非表示時に CSS トランジション・アニメーションを停止 */
-        /* body.page-hidden は visibilitychange 時のみ設定されるため、通常描画時はマッチしない */
-        body.page-hidden *,
-        body.page-hidden *::before,
-        body.page-hidden *::after {
-            -webkit-transition: none !important;
-            transition: none !important;
-            -webkit-animation-play-state: paused !important;
-            animation-play-state: paused !important;
-        }
-
         /*
          * タッチデバイス（スマートフォン等）向け：画面暗転時のちらつき根本対策
          *
@@ -664,7 +653,7 @@
         </div>
         <div class="qr-scanner-body">
             <div class="qr-video-container">
-                <video id="qrVideo" playsinline></video>
+                <video id="qrVideo" autoplay playsinline></video>
                 <div class="qr-scan-region"></div>
             </div>
             <div id="qrScannerStatus" class="qr-scanner-status" data-lang="qr-scanner-initializing">カメラを起動中...</div>

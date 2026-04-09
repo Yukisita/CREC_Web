@@ -73,35 +73,6 @@ function getCurrentCollectionId() {
 
 // DOMContentLoaded イベントで初期化
 document.addEventListener('DOMContentLoaded', function () {
-    // スマートフォンの画面暗転時のちらつきを防ぐ汎用 visibilitychange ハンドラ
-    // ページ非表示時に CSS トランジション・アニメーションを停止し、
-    // 再生中のすべての動画要素を一時停止する。
-    // ページ固有のループ（requestAnimationFrame、setInterval）は
-    // 各ページの visibilitychange ハンドラで別途制御する。
-    (function () {
-        var pausedByVisibility = [];
-        document.addEventListener('visibilitychange', function () {
-            if (document.hidden) {
-                document.body.classList.add('page-hidden');
-                document.querySelectorAll('video').forEach(function (v) {
-                    if (!v.paused) {
-                        v.pause();
-                        pausedByVisibility.push(v);
-                    }
-                });
-            } else {
-                document.body.classList.remove('page-hidden');
-                var videosToResume = pausedByVisibility.slice();
-                pausedByVisibility = [];
-                videosToResume.forEach(function (v) {
-                    v.play().catch(function (e) {
-                        console.warn('Video resume after page restore failed:', e);
-                    });
-                });
-            }
-        });
-    })();
-
     initializeApp();
 });
 
