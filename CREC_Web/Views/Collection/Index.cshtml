@@ -823,8 +823,8 @@
             threeDAnimateFn = animate;
             animate();
 
-            // 画面が暗転するタイミング（スマートフォン）での描画乱れを防ぐため、
-            // ページ非表示時にアニメーションを停止し、表示復帰時に再開する
+            // ページがバックグラウンドに移行またはスクリーンロックされた際に
+            // rAF ループを停止し、復帰時に再開する（CPU・バッテリー消費の抑制）
             threeDVisibilityHandler = () => {
                 if (document.hidden) {
                     if (threeDAnimFrameId !== null) {
@@ -839,7 +839,7 @@
             };
             document.addEventListener('visibilitychange', threeDVisibilityHandler);
 
-            // WebGL コンテキスト喪失・復元の処理（スマートフォンで画面が暗転するタイミングに発生することがある）
+            // WebGL コンテキスト喪失・復元の処理（OS がバックグラウンドの GPU リソースを回収した際などに発生する）
             threeDRenderer.domElement.addEventListener('webglcontextlost', (e) => {
                 e.preventDefault();
                 if (threeDAnimFrameId !== null) {
@@ -1597,7 +1597,7 @@
                 });
             }
 
-            // 動画要素の visibilitychange ハンドラ（スマートフォンで画面が暗転するタイミングでの映像乱れを防ぐ）
+            // 動画要素の visibilitychange ハンドラ（ページがバックグラウンド移行またはスクリーンロック時に動画を一時停止し、復帰時に再開）
             // このハンドラは DOMContentLoaded 内で一度だけ登録され、ページライフタイム中有効
             let videoWasPausedByVisibility = false;
             document.addEventListener('visibilitychange', () => {
