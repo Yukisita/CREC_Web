@@ -27,8 +27,8 @@ from mcp.server.fastmcp import FastMCP
 # Configuration (from environment variables with sensible defaults)
 # ---------------------------------------------------------------------------
 
-LLM_URL: str = os.getenv("LLM_URL", "http://localhost:11434").rstrip("/")
-LLM_MODEL: str = os.getenv("LLM_MODEL", "llama3.2")
+LLM_URL: str = os.getenv("LLM_URL", "http://localhost:1234").rstrip("/")
+LLM_MODEL: str = os.getenv("LLM_MODEL", "gemma-3-12b")
 MCP_HOST: str = os.getenv("MCP_HOST", "127.0.0.1")
 MCP_PORT: int = int(os.getenv("MCP_PORT", "8765"))
 
@@ -329,6 +329,15 @@ def fill_input(field_id: str, value: str) -> str:
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
+    import uvicorn
+
     print(f"Starting CREC Web MCP Server on {MCP_HOST}:{MCP_PORT}")
     print(f"LLM backend: {LLM_URL}  model: {LLM_MODEL}")
-    mcp.run(transport="streamable-http", host=MCP_HOST, port=MCP_PORT)
+
+    # streamable_http トランスポートでASGIアプリを取得してuvicornで起動
+    uvicorn.run(
+        mcp.streamable_http_app(),
+        host=MCP_HOST,
+        port=MCP_PORT,
+        log_level="info"
+    )
