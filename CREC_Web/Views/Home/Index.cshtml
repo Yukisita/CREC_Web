@@ -243,7 +243,7 @@
             // QR スキャンの setInterval はキャンバス描画（GPU 操作）を 100fps で行うため、
             // ページ非表示時に停止し、復帰時に再開する（CPU・バッテリー消費の抑制）。
             // 動画の停止・再開はここでは行わない。
-            // 画面暗転時ちらつきの根本対策は _Layout.cshtml の @media (hover: none) CSS であり、
+            // 画面暗転時ちらつきの根本対策は _Layout.cshtml の media (hover: none) CSS であり、
             // visibilitychange による GPU 状態変化（video.pause() 等）は逆効果となるため不要。
             // 二重登録を防ぐため、既に登録済みの場合はスキップ。
             if (!qrVisibilityListenerRegistered) {
