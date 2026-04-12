@@ -523,6 +523,24 @@
                 left: -100%;
             }
         }
+
+        /* Screen-wake overlay: prevents image flicker on Chrome Android when screen turns on */
+        #screenWakeOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            z-index: 9999;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease-out;
+        }
+        #screenWakeOverlay.active {
+            opacity: 1;
+            transition: none;
+        }
     </style>
     @await RenderSectionAsync("Styles", required: false)
 </head>
@@ -710,6 +728,9 @@
             <!-- Detail content will be loaded here -->
         </div>
     </div>
+
+    <!-- Screen-wake overlay: prevents image flicker on Chrome Android when screen turns on -->
+    <div id="screenWakeOverlay" aria-hidden="true"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" integrity="sha384-9Q0jWoineiIq95JeIyBsNV90KKLfDsbkj29k/YFxf76a2JwkHDYkMuSbNGN6XJfV" crossorigin="anonymous"></script>
