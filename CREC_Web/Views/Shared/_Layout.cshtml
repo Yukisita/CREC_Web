@@ -475,6 +475,27 @@
             border-radius: 0.25rem;
         }
 
+        /* QR スキャン領域のダークオーバーレイ（タッチデバイスで box-shadow の代替として使用）
+         * デフォルトは非表示。@media (hover: none) ブロックで表示する。 */
+        .qr-scan-overlay-top,
+        .qr-scan-overlay-bottom,
+        .qr-scan-overlay-left,
+        .qr-scan-overlay-right {
+            display: none;
+            position: absolute;
+            background: rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+        }
+        .qr-scan-overlay-top    { top: 0;   left: 0;   right: 0;   height: 20%; }
+        .qr-scan-overlay-bottom { bottom: 0; left: 0;   right: 0;   height: 20%; }
+        .qr-scan-overlay-left   { top: 20%; left: 0;   width: 20%; bottom: 20%; }
+        .qr-scan-overlay-right  { top: 20%; right: 0;  width: 20%; bottom: 20%; }
+
+        /* テーブルモードの水平スクロールコンテナ（overflow-x をインラインスタイルから CSS に移管） */
+        #collectionsTableContainer {
+            overflow-x: auto;
+        }
+
         /* Admin Panel styles */
         .admin-panel {
             position: fixed;
@@ -588,11 +609,47 @@
                 -webkit-transition: none;
                 transition: none;
             }
-            /* overflow:hidden + border-radius の組み合わせは Chrome が GPU 合成レイヤーを昇格させるトリガー。
-             * border-radius のみを除去して昇格を防止する。overflow:hidden はそのまま維持し、
-             * 合成境界を保持することで他要素のちらつきを引き起こさない。 */
+            /* GPU 合成レイヤー除去: .collections-table（テーブルモードちらつきの主因）
+             * overflow:hidden + border-radius + box-shadow の3つが複合して GPU レイヤー昇格を引き起こす。
+             * 3つすべてを除去し overflow: visible にすることで GPU レイヤーを消去する。
+             * box-shadow も除去するため、overflow: visible による合成境界消滅の副作用はない。 */
             .collections-table {
+                overflow: visible;
+                box-shadow: none;
                 border-radius: 0;
+            }
+            /* GPU 合成レイヤー除去: QR ビデオコンテナ（overflow:hidden + border-radius） */
+            .qr-video-container {
+                border-radius: 0;
+                overflow: visible;
+            }
+            /* GPU 合成レイヤー除去: QR スキャン領域
+             * transform: translate(-50%, -50%) は CSS transform として GPU レイヤー昇格を引き起こす。
+             * box-shadow: 9999px は巨大ペイント領域により GPU レイヤーに昇格される。
+             * transform 除去後は top/left/bottom/right で同等の中央配置を実現し、
+             * ダークオーバーレイは .qr-scan-overlay-* div で代替する。 */
+            .qr-scan-region {
+                top: 20%;
+                left: 20%;
+                bottom: 20%;
+                right: 20%;
+                width: auto;
+                height: auto;
+                -webkit-transform: none;
+                transform: none;
+                box-shadow: none;
+            }
+            /* QR スキャン周囲ダークオーバーレイ（box-shadow の代替。GPU レイヤーを生成しない） */
+            .qr-scan-overlay-top,
+            .qr-scan-overlay-bottom,
+            .qr-scan-overlay-left,
+            .qr-scan-overlay-right {
+                display: block;
+            }
+            /* GPU 合成レイヤー除去: 3D ビューアコンテナ（overflow:hidden + border-radius） */
+            .three-d-viewer-container {
+                border-radius: 0;
+                overflow: visible;
             }
         }
     </style>
@@ -668,6 +725,10 @@
             <div class="qr-video-container">
                 <video id="qrVideo" playsinline></video>
                 <div class="qr-scan-region"></div>
+                <div class="qr-scan-overlay-top" aria-hidden="true"></div>
+                <div class="qr-scan-overlay-bottom" aria-hidden="true"></div>
+                <div class="qr-scan-overlay-left" aria-hidden="true"></div>
+                <div class="qr-scan-overlay-right" aria-hidden="true"></div>
             </div>
             <div id="qrScannerStatus" class="qr-scanner-status" data-lang="qr-scanner-initializing">カメラを起動中...</div>
             <div id="qrScannerError" class="qr-scanner-error" style="display: none;"></div>
