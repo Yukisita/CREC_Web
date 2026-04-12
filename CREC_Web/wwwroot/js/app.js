@@ -76,6 +76,26 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeApp();
 });
 
+// 画面暗転復帰時の画像フリッカー防止
+// Chrome Android では画面オフ時にGPUテクスチャが破棄され、復帰時に画像の再描画で点滅が発生する。
+// visibilitychange で非表示時に白いオーバーレイを被せ、復帰後にフェードアウトすることで点滅を隠す。
+document.addEventListener('visibilitychange', function () {
+    const overlay = document.getElementById('screenWakeOverlay');
+    if (!overlay) return;
+
+    if (document.hidden) {
+        // 画面が非表示になった（スリープ等）: 即座にオーバーレイを表示
+        overlay.classList.add('active');
+    } else {
+        // 画面が再表示された: ブラウザに再描画の猶予を与えてからフェードアウト
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                overlay.classList.remove('active');
+            });
+        });
+    }
+});
+
 // UI 言語の更新
 function updateUILanguage() {
     const lang = currentLanguage;
