@@ -588,12 +588,11 @@
                 -webkit-transition: none;
                 transition: none;
             }
-            /* テーブルモードのスクロールコンテナ (overflow-x: auto) は Chrome が GPU 合成レイヤーを
-             * 生成するトリガーとなる。タッチデバイスではインラインスタイルの overflow-x: auto を
-             * overflow-x: hidden で上書きし、合成レイヤーを除去してちらつきを防止する。
-             * テーブルの水平スクロールはインラインスタイルで指定されているため !important が必要。 */
-            #collectionsTableContainer {
-                overflow-x: hidden !important;
+            /* overflow:hidden + border-radius の組み合わせは Chrome が GPU 合成レイヤーを昇格させるトリガー。
+             * border-radius のみを除去して昇格を防止する。overflow:hidden はそのまま維持し、
+             * 合成境界を保持することで他要素のちらつきを引き起こさない。 */
+            .collections-table {
+                border-radius: 0;
             }
         }
     </style>
