@@ -53,6 +53,9 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSingleton(projectSettingsService);
 
+// HttpClient for MCP server communication (used by ChatController)
+builder.Services.AddHttpClient("MCP");
+
 // Add CREC data service
 builder.Services.AddSingleton<CrecDataService>();
 
