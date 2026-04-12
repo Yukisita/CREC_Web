@@ -1,6 +1,6 @@
 """
 CREC Web MCP Server
-Copyright (c) [2025 - 2026] [S.Yukisita]
+Copyright (c) [2026] [S.Yukisita]
 This software is released under the MIT License.
 
 Python MCP server that provides AI chat support for CREC Web.
