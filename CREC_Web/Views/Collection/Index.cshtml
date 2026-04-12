@@ -1620,6 +1620,26 @@
                 history.replaceState(null, '', url.toString());
                 openEditIndexModal(currentCollection);
             }
+
+            // 動画要素の visibilitychange ハンドラ（ページがバックグラウンド移行またはスクリーンロック時に動画を一時停止し、復帰時に再開）
+            // このハンドラは DOMContentLoaded 内で一度だけ登録され、ページライフタイム中有効
+            let videoWasPausedByVisibility = false;
+            document.addEventListener('visibilitychange', () => {
+                const video = document.getElementById('carouselVideo');
+                if (!video) return;
+                if (document.hidden) {
+                    if (!video.paused) {
+                        video.pause();
+                        videoWasPausedByVisibility = true;
+                    }
+                } else if (videoWasPausedByVisibility) {
+                    videoWasPausedByVisibility = false;
+                    video.play().catch((e) => {
+                        // autoplay ポリシー等により再生が拒否された場合はユーザー操作に委ねる
+                        console.warn('Video resume failed after visibility restore:', e);
+                    });
+                }
+            });
         });
     </script>
 }
