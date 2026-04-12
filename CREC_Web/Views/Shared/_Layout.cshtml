@@ -524,13 +524,24 @@
             }
         }
 
+        /* 画面暗転時のちらつき防止: ページ非表示時に CSS トランジション・アニメーションを停止 */
+        /* body.page-hidden は visibilitychange 時のみ設定されるため、通常描画時はマッチしない */
+        body.page-hidden *,
+        body.page-hidden *::before,
+        body.page-hidden *::after {
+            -webkit-transition: none !important;
+            transition: none !important;
+            -webkit-animation-play-state: paused !important;
+            animation-play-state: paused !important;
+        }
+
         /*
          * タッチデバイス（スマートフォン等）向け：画面暗転時のちらつき根本対策
          *
          * 原因: position: fixed かつ height: 100vh のパネル（.detail-panel / .admin-panel）は
          *       display: none を持たず常にレンダーツリーに存在するため、GPU 合成レイヤーとして
          *       保持される。画面暗転時に OS の輝度制御がこの GPU レイヤーと競合し、ちらつきが
-         *       発生する。
+         *       発生する。visibilitychange は暗転フェーズでは発火しないため JS での対処は無効。
          *
          * 対策: タッチデバイスでは
          *   1. 閉じているパネルを display: none でレンダーツリーから完全に除外し GPU レイヤーを消す

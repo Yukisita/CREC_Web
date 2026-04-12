@@ -239,11 +239,11 @@
             // テーブルヘッダーのテキストを更新
             updateTableHeaders();
 
-            // QR スキャナーの visibilitychange ハンドラ
-            // ページがバックグラウンド移行・スクリーンロック時に QR スキャンのインターバルを停止し、
-            // 復帰時に再開する。一部の Android デバイスは画面暗転フェーズ中に visibilitychange を
-            // 発火させるため、暗転時のちらつき防止にも寄与する（多層防御）。
-            // 動画の停止・再開は app.js のグローバルハンドラが先に処理する。
+            // QRスキャナーの visibilitychange ハンドラ（スマートフォンで画面が暗転するタイミングでのちらつきを防ぐ）
+            // 動画の停止・再開は app.js のグローバルハンドラに委ねる。
+            // app.js は本スクリプトより先にロードされるため、グローバルハンドラは
+            // 常に本ハンドラより先に実行される（動画の再開が先に完了することが保証される）。
+            // ここでは QR スキャンの setInterval のみ制御する。
             // 二重登録を防ぐため、既に登録済みの場合はスキップ。
             if (!qrVisibilityListenerRegistered) {
                 qrVisibilityListenerRegistered = true;
@@ -256,6 +256,7 @@
                         }
                     } else {
                         // ページ再表示時：カメラストリームが生きていればスキャンのインターバルを再開
+                        // （動画の再開はグローバルハンドラが先に処理するため、ここではインターバルのみ再開）
                         if (qrScannerStream && qrTask === null) {
                             startQrScanning();
                         }
