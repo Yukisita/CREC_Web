@@ -588,6 +588,20 @@
                 -webkit-transition: none;
                 transition: none;
             }
+            /* Bootstrap タブペインの fade トランジション（opacity 変化）は GPU 合成レイヤーを生成する。
+             * タッチデバイスではこのアニメーションは不要なため無効化してコンポジターレイヤーを除去する。
+             * コレクション画面の .tab-pane.fade が主な対象。 */
+            .fade {
+                -webkit-transition: none;
+                transition: none;
+            }
+            /* Bootstrap collapse トランジション（height アニメーション）も GPU レイヤー候補。
+             * タッチデバイスではアニメーション不要なため即時展開に変更する。 */
+            .collapsing {
+                -webkit-transition: none;
+                transition: none;
+                height: auto !important;
+            }
         }
     </style>
     @await RenderSectionAsync("Styles", required: false)

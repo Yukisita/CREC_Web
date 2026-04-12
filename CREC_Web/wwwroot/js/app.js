@@ -73,39 +73,6 @@ function getCurrentCollectionId() {
 
 // DOMContentLoaded イベントで初期化
 document.addEventListener('DOMContentLoaded', function () {
-    // visibilitychange ハンドラ：ページがバックグラウンド移行またはスクリーンロック時に
-    // 再生中の動画を一時停止し、復帰時に再開する。
-    // ※ DOM クラスの付与・CSS プロパティ変更はここでは行わない。
-    //    Chrome for Android は画面暗転フェーズ中に visibilitychange を発火させるため、
-    //    body.page-hidden * { transition: none } のようなワイルドカード CSS 変更を
-    //    visibilitychange で発動させると Chrome コンポジターの全要素スタイル再計算が
-    //    暗転アニメーションと競合し、ちらつきが悪化する（Firefox は暗転後に発火するため影響なし）。
-    //    画面暗転時ちらつきの主因は CSS GPU 合成レイヤーであり、
-    //    @media (hover: none) メディアクエリで静的に対処済み。
-    // ページ固有のループ（requestAnimationFrame、setInterval）は
-    // 各ページの visibilitychange ハンドラで別途制御する。
-    (function () {
-        var pausedByVisibility = [];
-        document.addEventListener('visibilitychange', function () {
-            if (document.hidden) {
-                document.querySelectorAll('video').forEach(function (v) {
-                    if (!v.paused) {
-                        v.pause();
-                        pausedByVisibility.push(v);
-                    }
-                });
-            } else {
-                var videosToResume = pausedByVisibility.slice();
-                pausedByVisibility = [];
-                videosToResume.forEach(function (v) {
-                    v.play().catch(function (e) {
-                        console.warn('Video resume after page restore failed:', e);
-                    });
-                });
-            }
-        });
-    })();
-
     initializeApp();
 });
 
