@@ -757,7 +757,6 @@
         let threeDCurrentMesh = null;
         let threeDResizeObserver = null;
         let threeDAnimateFn = null;
-        let threeDVisibilityHandler = null;
 
         // Three.js をダイナミックインポートで遅延読み込みする（v0.183.2、ESモジュール形式）
         function loadThreeJS() {
@@ -823,22 +822,6 @@
             threeDAnimateFn = animate;
             animate();
 
-            // ページがバックグラウンドに移行またはスクリーンロックされた際に
-            // rAF ループを停止し、復帰時に再開する（CPU・バッテリー消費の抑制）
-            threeDVisibilityHandler = () => {
-                if (document.hidden) {
-                    if (threeDAnimFrameId !== null) {
-                        cancelAnimationFrame(threeDAnimFrameId);
-                        threeDAnimFrameId = null;
-                    }
-                } else {
-                    if (threeDAnimFrameId === null && threeDRenderer && threeDAnimateFn) {
-                        threeDAnimateFn();
-                    }
-                }
-            };
-            document.addEventListener('visibilitychange', threeDVisibilityHandler);
-
             // WebGL コンテキスト喪失・復元の処理（OS がバックグラウンドの GPU リソースを回収した際などに発生する）
             threeDRenderer.domElement.addEventListener('webglcontextlost', (e) => {
                 e.preventDefault();
@@ -876,10 +859,6 @@
             if (threeDAnimFrameId !== null) {
                 cancelAnimationFrame(threeDAnimFrameId);
                 threeDAnimFrameId = null;
-            }
-            if (threeDVisibilityHandler) {
-                document.removeEventListener('visibilitychange', threeDVisibilityHandler);
-                threeDVisibilityHandler = null;
             }
             threeDAnimateFn = null;
             if (threeDResizeObserver) {
@@ -1597,25 +1576,6 @@
                 });
             }
 
-            // 動画要素の visibilitychange ハンドラ（ページがバックグラウンド移行またはスクリーンロック時に動画を一時停止し、復帰時に再開）
-            // このハンドラは DOMContentLoaded 内で一度だけ登録され、ページライフタイム中有効
-            let videoWasPausedByVisibility = false;
-            document.addEventListener('visibilitychange', () => {
-                const video = document.getElementById('carouselVideo');
-                if (!video) return;
-                if (document.hidden) {
-                    if (!video.paused) {
-                        video.pause();
-                        videoWasPausedByVisibility = true;
-                    }
-                } else if (videoWasPausedByVisibility) {
-                    videoWasPausedByVisibility = false;
-                    video.play().catch((e) => {
-                        // autoplay ポリシー等により再生が拒否された場合はユーザー操作に委ねる
-                        console.warn('Video resume failed after visibility restore:', e);
-                    });
-                }
-            });
         });
 
         // ページ読み込み時の処理
