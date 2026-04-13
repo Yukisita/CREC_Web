@@ -76,6 +76,32 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeApp();
 });
 
+// Chrome Android 画面暗転時のフリッカー防止
+// 画面オフ時に img の src を退避して GPU テクスチャ破棄による点滅を回避し、
+// 復帰後にキャッシュから復元する。
+document.addEventListener('visibilitychange', function () {
+    if (document.hidden) {
+        // 画面非表示: 画像ソースを退避して GPU テクスチャを除去
+        document.querySelectorAll('img[src]').forEach(function (img) {
+            var src = img.getAttribute('src');
+            if (src && src.indexOf('data:') !== 0) {
+                img.dataset.screenWakeSrc = src;
+                img.removeAttribute('src');
+            }
+        });
+    } else {
+        // 画面復帰: 再描画完了後に画像ソースをキャッシュから復元
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                document.querySelectorAll('img[data-screen-wake-src]').forEach(function (img) {
+                    img.src = img.dataset.screenWakeSrc;
+                    delete img.dataset.screenWakeSrc;
+                });
+            });
+        });
+    }
+});
+
 // UI 言語の更新
 function updateUILanguage() {
     const lang = currentLanguage;

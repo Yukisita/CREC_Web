@@ -14,17 +14,6 @@
             --min-column-width: 80px;
         }
 
-        /*
-         * Chrome Android: 画面オフ→復帰時に画像の GPU テクスチャが破棄され、
-         * 再描画で画面全体が点滅する問題への対策。
-         * img を独自コンポジタレイヤーに昇格させ、画像の再デコードが
-         * ページ全体のレイヤーに影響しないようにする。
-         */
-        img {
-            -webkit-transform: translateZ(0);
-            transform: translateZ(0);
-        }
-
         body {
             display: flex;
             flex-direction: column;
