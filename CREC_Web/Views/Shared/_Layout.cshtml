@@ -14,6 +14,16 @@
             --min-column-width: 80px;
         }
 
+        /*
+         * Chrome Android: 画面オフ→復帰時に画像の GPU テクスチャが破棄され、
+         * 再描画で画面全体が点滅する問題への対策。
+         * contain: paint で画像の再描画がページ全体のレイヤーに
+         * 波及しないようにする。
+         */
+        img {
+            contain: paint;
+        }
+
         body {
             display: flex;
             flex-direction: column;
