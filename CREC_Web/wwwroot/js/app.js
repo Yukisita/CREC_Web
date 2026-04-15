@@ -156,7 +156,7 @@ document.addEventListener('DOMContentLoaded', function () {
             var removed = mutations[i].removedNodes;
             for (var k = 0; k < removed.length; k++) {
                 var rn = removed[k];
-                if (rn._fcBlobUrl) URL.revokeObjectURL(rn._fcBlobUrl);
+                if (rn.nodeName === 'IMG' && rn._fcBlobUrl) URL.revokeObjectURL(rn._fcBlobUrl);
                 if (rn.querySelectorAll) {
                     rn.querySelectorAll('img').forEach(function (img) {
                         if (img._fcBlobUrl) URL.revokeObjectURL(img._fcBlobUrl);
