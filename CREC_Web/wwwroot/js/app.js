@@ -77,21 +77,34 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // Chrome Android 画面暗転時のフリッカー防止
-// 画面非表示時にページ全体を透明にして、GPU テクスチャ破棄による再描画が
-// 目に見えないようにする。opacity はコンポジタスレッドで処理されるため
-// メインスレッドの再描画なしに即座に適用される。
-// 復帰時は再描画完了後に表示を復元する。
-document.addEventListener('visibilitychange', function () {
-    if (document.hidden) {
-        document.documentElement.style.opacity = '0';
-    } else {
-        requestAnimationFrame(function () {
-            requestAnimationFrame(function () {
-                document.documentElement.style.opacity = '';
-            });
-        });
+// JPEG 画像は Chrome Android でハードウェアデコードされ、デコード結果が GPU テクスチャ
+// として保持される。画面オフ時に Android が GPU メモリを回収すると、復帰時に非同期
+// 再デコードが必要となり、デコード完了前のフレームで画面全体が点滅する。
+// decoding="sync" を設定することで、再デコードを同期的に行わせ、
+// デコード完了前のフレーム描画（点滅）を防止する。
+(function () {
+    function enforceImgSyncDecode(img) {
+        if (img.getAttribute('decoding') !== 'sync') {
+            img.setAttribute('decoding', 'sync');
+        }
     }
-});
+    // 既存の img 要素に適用
+    document.querySelectorAll('img').forEach(enforceImgSyncDecode);
+    // 動的に追加される img 要素を監視
+    new MutationObserver(function (mutations) {
+        for (var i = 0; i < mutations.length; i++) {
+            var nodes = mutations[i].addedNodes;
+            for (var j = 0; j < nodes.length; j++) {
+                var node = nodes[j];
+                if (node.nodeName === 'IMG') {
+                    enforceImgSyncDecode(node);
+                } else if (node.querySelectorAll) {
+                    node.querySelectorAll('img').forEach(enforceImgSyncDecode);
+                }
+            }
+        }
+    }).observe(document.documentElement, { childList: true, subtree: true });
+})();
 
 // UI 言語の更新
 function updateUILanguage() {

@@ -15,13 +15,14 @@
         }
 
         /*
-         * Chrome Android: 画面オフ→復帰時に画像の GPU テクスチャが破棄され、
-         * 再描画で画面全体が点滅する問題への対策。
-         * contain: paint で画像の再描画がページ全体のレイヤーに
-         * 波及しないようにする。
+         * Chrome Android: 画面オフ→復帰時に JPEG 画像の GPU テクスチャが
+         * 非同期再デコードされ、デコード完了までのフレーム空白で画面全体が
+         * 点滅する問題への対策。
+         * will-change: transform でコンポジタレイヤーを維持し、
+         * GPU テクスチャの保持をブラウザにヒントする。
          */
         img {
-            contain: paint;
+            will-change: transform;
         }
 
         body {
