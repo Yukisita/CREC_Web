@@ -77,29 +77,90 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // Chrome Android 画面暗転時のフリッカー防止
-// JPEG 画像は Chrome Android でハードウェアデコードされ、デコード結果が GPU テクスチャ
-// として保持される。画面オフ時に Android が GPU メモリを回収すると、復帰時に非同期
-// 再デコードが必要となり、デコード完了前のフレームで画面全体が点滅する。
-// decoding="sync" を設定することで、再デコードを同期的に行わせ、
-// デコード完了前のフレーム描画（点滅）を防止する。
+// Chrome Android は JPEG 画像を Android MediaCodec でハードウェアデコードし、
+// デコード結果を GPU テクスチャとしてのみ保持する。画面オフ時に Android が
+// GPU メモリを回収するとテクスチャが破棄され、復帰時の非同期再デコード中に
+// デコード完了前のフレームが描画されるため画面全体が点滅する。
+// PNG/WebP はソフトウェアデコードで RAM にビットマップが保持されるため影響なし。
+// 対策: 画像読み込み後に canvas 経由で WebP blob URL に変換し、
+// ソフトウェアデコードパスに切り替える。
 (function () {
-    function enforceImgSyncDecode(img) {
-        if (img.getAttribute('decoding') !== 'sync') {
-            img.setAttribute('decoding', 'sync');
+    function shouldConvert(src) {
+        if (!src) return false;
+        // blob: / data: URL は変換済みまたはフォールバック画像のためスキップ
+        if (src.startsWith('blob:') || src.startsWith('data:')) return false;
+        // .gif はアニメーション対応形式のためスキップ（canvas 変換で失われる）
+        var path = src.split('?')[0].split('#')[0].toLowerCase();
+        if (path.endsWith('.gif')) return false;
+        // .webp は既にソフトウェアデコードされるためスキップ
+        if (path.endsWith('.webp')) return false;
+        // .png は既にソフトウェアデコードされるためスキップ
+        if (path.endsWith('.png')) return false;
+        // 上記以外（.jpg/.jpeg、拡張子なしのサムネイル URL 等）は変換対象
+        return true;
+    }
+
+    function convertImage(img) {
+        if (img._fcConverting || !shouldConvert(img.src)) return;
+        if (!img.naturalWidth || !img.naturalHeight) return;
+        img._fcConverting = true;
+        try {
+            var canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            canvas.toBlob(function (blob) {
+                img._fcConverting = false;
+                if (!blob) return;
+                // 以前の blob URL を解放
+                if (img._fcBlobUrl) URL.revokeObjectURL(img._fcBlobUrl);
+                img._fcBlobUrl = URL.createObjectURL(blob);
+                img.src = img._fcBlobUrl;
+            }, 'image/webp', 0.92);
+        } catch (e) {
+            // canvas セキュリティエラー（CORS）等の場合はスキップ
+            img._fcConverting = false;
         }
     }
-    // 既存の img 要素に適用
-    document.querySelectorAll('img').forEach(enforceImgSyncDecode);
+
+    function setupImg(img) {
+        if (img._fcSetup) return;
+        img._fcSetup = true;
+        // 既に読み込み済みの場合は即変換
+        if (img.complete && img.naturalWidth) {
+            convertImage(img);
+        }
+        // src 変更時（カルーセルのナビゲーション等）にも再変換
+        img.addEventListener('load', function () {
+            convertImage(img);
+        });
+    }
+
+    // 既存の img 要素を処理
+    document.querySelectorAll('img').forEach(setupImg);
+
     // 動的に追加される img 要素を監視
     new MutationObserver(function (mutations) {
         for (var i = 0; i < mutations.length; i++) {
-            var nodes = mutations[i].addedNodes;
-            for (var j = 0; j < nodes.length; j++) {
-                var node = nodes[j];
+            var added = mutations[i].addedNodes;
+            for (var j = 0; j < added.length; j++) {
+                var node = added[j];
                 if (node.nodeName === 'IMG') {
-                    enforceImgSyncDecode(node);
+                    setupImg(node);
                 } else if (node.querySelectorAll) {
-                    node.querySelectorAll('img').forEach(enforceImgSyncDecode);
+                    node.querySelectorAll('img').forEach(setupImg);
+                }
+            }
+            // 削除された img の blob URL を解放
+            var removed = mutations[i].removedNodes;
+            for (var k = 0; k < removed.length; k++) {
+                var rn = removed[k];
+                if (rn._fcBlobUrl) URL.revokeObjectURL(rn._fcBlobUrl);
+                if (rn.querySelectorAll) {
+                    rn.querySelectorAll('img').forEach(function (img) {
+                        if (img._fcBlobUrl) URL.revokeObjectURL(img._fcBlobUrl);
+                    });
                 }
             }
         }
