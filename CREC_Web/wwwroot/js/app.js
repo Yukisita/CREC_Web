@@ -124,7 +124,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function revokeBlob(img) {
-        if (img._pngBlobUrl) { URL.revokeObjectURL(img._pngBlobUrl); img._pngBlobUrl = null; }
+        if (img._pngBlobUrl) {
+            URL.revokeObjectURL(img._pngBlobUrl);
+            img._pngBlobUrl = null;
+        }
     }
 
     document.querySelectorAll('img').forEach(observe);
