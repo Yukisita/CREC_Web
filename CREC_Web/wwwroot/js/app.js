@@ -77,91 +77,70 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // Chrome Android 画面暗転時のフリッカー防止
-// Chrome Android は JPEG 画像を Android MediaCodec でハードウェアデコードし、
-// デコード結果を GPU テクスチャとしてのみ保持する。画面オフ時に Android が
-// GPU メモリを回収するとテクスチャが破棄され、復帰時の非同期再デコード中に
-// デコード完了前のフレームが描画されるため画面全体が点滅する。
-// PNG/WebP はソフトウェアデコードで RAM にビットマップが保持されるため影響なし。
-// 対策: 画像読み込み後に canvas 経由で WebP blob URL に変換し、
-// ソフトウェアデコードパスに切り替える。
+// Chrome Android は JPEG をハードウェアデコード（MediaCodec）し GPU テクスチャのみ保持する。
+// 画面オフで GPU メモリが回収されるとテクスチャ破棄→非同期再デコード中に画面全体が点滅する。
+// PNG 等はソフトウェアデコードで RAM 保持のため影響なし。
+// 対策: JPEG 読み込み後に canvas 経由で PNG blob URL へ無劣化変換し、
+// ソフトウェアデコードパスへ切り替える。
 (function () {
-    function shouldConvert(src) {
-        if (!src) return false;
-        // blob: / data: URL は変換済みまたはフォールバック画像のためスキップ
-        if (src.startsWith('blob:') || src.startsWith('data:')) return false;
-        // .gif はアニメーション対応形式のためスキップ（canvas 変換で失われる）
+    // ソフトウェアデコードされる形式（変換不要）
+    var SKIP_EXTS = ['.png', '.webp', '.gif', '.bmp', '.svg'];
+
+    function needsConvert(src) {
+        if (!src || src.startsWith('blob:') || src.startsWith('data:')) return false;
         var path = src.split('?')[0].split('#')[0].toLowerCase();
-        if (path.endsWith('.gif')) return false;
-        // .webp は既にソフトウェアデコードされるためスキップ
-        if (path.endsWith('.webp')) return false;
-        // .png は既にソフトウェアデコードされるためスキップ
-        if (path.endsWith('.png')) return false;
-        // 上記以外（.jpg/.jpeg、拡張子なしのサムネイル URL 等）は変換対象
+        for (var i = 0; i < SKIP_EXTS.length; i++) {
+            if (path.endsWith(SKIP_EXTS[i])) return false;
+        }
         return true;
     }
 
-    function convertImage(img) {
-        if (img._fcConverting || !shouldConvert(img.src)) return;
+    function convertToPng(img) {
+        if (img._pngConverting || !needsConvert(img.src)) return;
         if (!img.naturalWidth || !img.naturalHeight) return;
-        img._fcConverting = true;
+        img._pngConverting = true;
         try {
-            var canvas = document.createElement('canvas');
-            canvas.width = img.naturalWidth;
-            canvas.height = img.naturalHeight;
-            var ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
-            canvas.toBlob(function (blob) {
-                img._fcConverting = false;
+            var c = document.createElement('canvas');
+            c.width = img.naturalWidth;
+            c.height = img.naturalHeight;
+            c.getContext('2d').drawImage(img, 0, 0);
+            c.toBlob(function (blob) {
+                img._pngConverting = false;
                 if (!blob) return;
-                // 以前の blob URL を解放
-                if (img._fcBlobUrl) URL.revokeObjectURL(img._fcBlobUrl);
-                img._fcBlobUrl = URL.createObjectURL(blob);
-                img.src = img._fcBlobUrl;
-            }, 'image/webp', 0.92);
-        } catch (e) {
-            // canvas セキュリティエラー（CORS）等の場合はスキップ
-            img._fcConverting = false;
+                if (img._pngBlobUrl) URL.revokeObjectURL(img._pngBlobUrl);
+                img._pngBlobUrl = URL.createObjectURL(blob);
+                img.src = img._pngBlobUrl;
+            }, 'image/png');
+        } catch (_) {
+            img._pngConverting = false;
         }
     }
 
-    function setupImg(img) {
-        if (img._fcSetup) return;
-        img._fcSetup = true;
-        // 既に読み込み済みの場合は即変換
-        if (img.complete && img.naturalWidth) {
-            convertImage(img);
-        }
-        // src 変更時（カルーセルのナビゲーション等）にも再変換
-        img.addEventListener('load', function () {
-            convertImage(img);
-        });
+    function observe(img) {
+        if (img._pngObserved) return;
+        img._pngObserved = true;
+        if (img.complete && img.naturalWidth) convertToPng(img);
+        img.addEventListener('load', function () { convertToPng(img); });
     }
 
-    // 既存の img 要素を処理
-    document.querySelectorAll('img').forEach(setupImg);
+    function revokeBlob(img) {
+        if (img._pngBlobUrl) { URL.revokeObjectURL(img._pngBlobUrl); img._pngBlobUrl = null; }
+    }
 
-    // 動的に追加される img 要素を監視
+    document.querySelectorAll('img').forEach(observe);
+
     new MutationObserver(function (mutations) {
         for (var i = 0; i < mutations.length; i++) {
-            var added = mutations[i].addedNodes;
-            for (var j = 0; j < added.length; j++) {
-                var node = added[j];
-                if (node.nodeName === 'IMG') {
-                    setupImg(node);
-                } else if (node.querySelectorAll) {
-                    node.querySelectorAll('img').forEach(setupImg);
-                }
+            var m = mutations[i];
+            for (var j = 0; j < m.addedNodes.length; j++) {
+                var n = m.addedNodes[j];
+                if (n.nodeName === 'IMG') observe(n);
+                else if (n.querySelectorAll) n.querySelectorAll('img').forEach(observe);
             }
-            // 削除された img の blob URL を解放
-            var removed = mutations[i].removedNodes;
-            for (var k = 0; k < removed.length; k++) {
-                var rn = removed[k];
-                if (rn.nodeName === 'IMG' && rn._fcBlobUrl) URL.revokeObjectURL(rn._fcBlobUrl);
-                if (rn.querySelectorAll) {
-                    rn.querySelectorAll('img').forEach(function (img) {
-                        if (img._fcBlobUrl) URL.revokeObjectURL(img._fcBlobUrl);
-                    });
-                }
+            for (var k = 0; k < m.removedNodes.length; k++) {
+                var r = m.removedNodes[k];
+                if (r.nodeName === 'IMG') revokeBlob(r);
+                else if (r.querySelectorAll) r.querySelectorAll('img').forEach(revokeBlob);
             }
         }
     }).observe(document.documentElement, { childList: true, subtree: true });
