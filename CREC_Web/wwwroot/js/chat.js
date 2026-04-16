@@ -65,12 +65,23 @@ function stripChatActions(text) {
 
 /**
  * Get the current page's visible text for RAG context.
- * Strips large data tables and the chat panel itself to stay within the limit.
+ * Includes a compact structured list of visible collections (from data attributes),
+ * then appends remaining visible text while staying within the character limit.
  * @returns {string}
  */
 function getChatPageContext() {
+    // Build a compact structured list from elements that carry data-collection-id
+    let structuredContext = '';
+    const collectionEls = document.querySelectorAll('[data-collection-id]:not([data-collection-id=""])');
+    if (collectionEls.length > 0) {
+        const items = Array.from(collectionEls).map(el =>
+            JSON.stringify({ name: el.dataset.collectionName || '', id: el.dataset.collectionId })
+        );
+        structuredContext = `[visible collections (${items.length})]\n` + items.join('\n') + '\n\n';
+    }
+
     const main = document.querySelector('main');
-    if (!main) return '';
+    if (!main) return structuredContext.substring(0, CHAT_PAGE_CONTEXT_MAX);
 
     const clone = main.cloneNode(true);
 
@@ -84,7 +95,7 @@ function getChatPageContext() {
     if (chatPanel) chatPanel.remove();
 
     const text = stripHtmlToText(clone.innerHTML);
-    return text.substring(0, CHAT_PAGE_CONTEXT_MAX);
+    return (structuredContext + text).substring(0, CHAT_PAGE_CONTEXT_MAX);
 }
 
 /**
@@ -151,6 +162,18 @@ function executeChatAction(cmd) {
         case 'openCollection':
             if (cmd.id && typeof cmd.id === 'string') {
                 openCollectionWindow(cmd.id);
+            }
+            break;
+
+        case 'showCollectionPanel':
+            // Show the collection detail panel on the current page when available
+            // (home page), otherwise fall back to opening in a new window.
+            if (cmd.id && typeof cmd.id === 'string') {
+                if (typeof window.showCollectionDetails === 'function') {
+                    window.showCollectionDetails(cmd.id);
+                } else {
+                    openCollectionWindow(cmd.id);
+                }
             }
             break;
 

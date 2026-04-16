@@ -17,6 +17,7 @@
 ```
 <action>{"type":"search","text":"テキスト"}</action>
 <action>{"type":"openCollection","id":"ID"}</action>
+<action>{"type":"showCollectionPanel","id":"ID"}</action>
 <action>{"type":"showAdminPanel"}</action>
 <action>{"type":"navigate","path":"/パス"}</action>
 <action>{"type":"clickButton","id":"ボタンID"}</action>

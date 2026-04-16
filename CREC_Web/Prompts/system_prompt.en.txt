@@ -17,6 +17,7 @@ Multiple actions are executed in order with a 600 ms gap — ensure modals are o
 ```
 <action>{"type":"search","text":"text"}</action>
 <action>{"type":"openCollection","id":"ID"}</action>
+<action>{"type":"showCollectionPanel","id":"ID"}</action>
 <action>{"type":"showAdminPanel"}</action>
 <action>{"type":"navigate","path":"/path"}</action>
 <action>{"type":"clickButton","id":"buttonId"}</action>
