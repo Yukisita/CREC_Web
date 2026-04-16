@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return true;
     }
 
-    function convertToWebP(img) {
+    function convertToSWDecoded(img) {
         if (img._swConverting || !needsConvert(img.src)) return;
         if (!img.naturalWidth || !img.naturalHeight) return;
         img._swConverting = true;
@@ -116,8 +116,8 @@ document.addEventListener('DOMContentLoaded', function () {
     function observe(img) {
         if (img._swObserved) return;
         img._swObserved = true;
-        if (img.complete && img.naturalWidth) convertToWebP(img);
-        img.addEventListener('load', function () { convertToWebP(img); });
+        if (img.complete && img.naturalWidth) convertToSWDecoded(img);
+        img.addEventListener('load', function () { convertToSWDecoded(img); });
     }
 
     function revokeBlob(img) {
