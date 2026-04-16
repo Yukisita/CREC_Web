@@ -106,6 +106,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (img._swConverting || !needsConvert(img.src)) return;
         if (!img.naturalWidth || !img.naturalHeight) return;
         img._swConverting = true;
+        var originalSrc = img.src; // 変換開始時点のsrcを記憶
         try {
             var c = document.createElement('canvas');
             c.width = img.naturalWidth;
@@ -114,8 +115,18 @@ document.addEventListener('DOMContentLoaded', function () {
             c.toBlob(function (blob) {
                 img._swConverting = false;
                 if (!blob) return;
+                var blobUrl = URL.createObjectURL(blob);
+                if (!img.isConnected) {
+                    URL.revokeObjectURL(blobUrl);
+                    return;
+                }
+                // 画像が既に別のURLに切り替わっている場合は上書きしない
+                if (img.src !== originalSrc && !img.src.startsWith('blob:')) {
+                    URL.revokeObjectURL(blobUrl);
+                    return;
+                }
                 if (img._swBlobUrl) URL.revokeObjectURL(img._swBlobUrl);
-                img._swBlobUrl = URL.createObjectURL(blob);
+                img._swBlobUrl = blobUrl;
                 img.src = img._swBlobUrl;
             }, 'image/webp', 1.0);
         } catch (_) {
