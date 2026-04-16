@@ -79,8 +79,14 @@ document.addEventListener('DOMContentLoaded', function () {
 // 画面暗転時のフリッカー防止及びJPEG画像の色転び対策
 // JPEGはcanvas経由でロスレス WebP blob URL に変換しソフトウェアデコードパスへ切り替える。
 (function () {
+    // 対象外の拡張子（JPEG以外）は変換不要とみなす
     var SKIP_EXTS = ['.png', '.webp', '.gif', '.bmp', '.svg'];
 
+    /**
+     * 画像がソフトウェアデコードに変換する必要があるかどうかを判定する
+     * @param {any} src
+     * @returns {boolean}
+     */
     function needsConvert(src) {
         if (!src || src.startsWith('blob:') || src.startsWith('data:')) return false;
         var path = src.split('?')[0].split('#')[0].toLowerCase();
@@ -90,6 +96,11 @@ document.addEventListener('DOMContentLoaded', function () {
         return true;
     }
 
+    /**
+    * 画像をソフトウェアデコードに変換する 
+    * @param {HTMLImageElement} img
+    * @returns {void}
+     */
     function convertToSWDecoded(img) {
         if (img._swConverting || !needsConvert(img.src)) return;
         if (!img.naturalWidth || !img.naturalHeight) return;
@@ -111,6 +122,11 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    /**
+     * img要素を監視し、必要に応じてソフトウェアデコードに変換する
+     * @param {any} img
+     * @returns {void}
+     */
     function observe(img) {
         if (img._swObserved) return;
         img._swObserved = true;
@@ -118,6 +134,11 @@ document.addEventListener('DOMContentLoaded', function () {
         img.addEventListener('load', function () { convertToSWDecoded(img); });
     }
 
+    /**
+     * img要素がDOMから削除されたときにBlob URLを解放する
+     * @param {any} img
+     * @return {void}
+     */
     function revokeBlob(img) {
         if (img._swBlobUrl) {
             URL.revokeObjectURL(img._swBlobUrl);
