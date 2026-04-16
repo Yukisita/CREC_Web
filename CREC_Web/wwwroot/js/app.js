@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // 画面暗転時のフリッカー防止及びJPEG画像の色転び対策
-// JPEGはcanvas経由でロスレス WebP blob URL に変換しソフトウェアデコードパスへ切り替える。
+// JPEGはcanvas経由でWebP blob URLに変換し、ソフトウェアデコードパスへ切り替える。
 (function () {
     // 対象外の拡張子（JPEG以外）は変換不要とみなす
     var SKIP_EXTS = ['.png', '.webp', '.gif', '.bmp', '.svg'];
