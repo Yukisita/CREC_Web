@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', function () {
 // JPEGはcanvas経由でWebP blob URLに変換し、ソフトウェアデコードパスへ切り替える。
 (function () {
     // 変換対象はJPEG及び防御的に拡張子なしのみ
-    const JPEG_EXTS = ['.jpg', '.jpeg', ''];
+    var JPEG_EXTS = ['.jpg', '.jpeg', ''];
 
     /**
      * 画像がソフトウェアデコードに変換する必要があるかどうかを判定する
@@ -90,8 +90,8 @@ document.addEventListener('DOMContentLoaded', function () {
      */
     function needsConvert(src) {
         if (!src || src.startsWith('blob:') || src.startsWith('data:')) return false;
-        const path = src.split('?')[0].split('#')[0].toLowerCase();
-        for (let i = 0; i < JPEG_EXTS.length; i++) {
+        var path = src.split('?')[0].split('#')[0].toLowerCase();
+        for (var i = 0; i < JPEG_EXTS.length; i++) {
             if (path.endsWith(JPEG_EXTS[i])) return true;
         }
         return false;
@@ -107,21 +107,16 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!img.naturalWidth || !img.naturalHeight) return;
         img._swConverting = true;
         try {
-            const c = document.createElement('canvas');
+            var c = document.createElement('canvas');
             c.width = img.naturalWidth;
             c.height = img.naturalHeight;
             c.getContext('2d').drawImage(img, 0, 0);
             c.toBlob(function (blob) {
                 img._swConverting = false;
                 if (!blob) return;
-                const blobUrl = URL.createObjectURL(blob);
-                if (!img.isConnected) {
-                    URL.revokeObjectURL(blobUrl);
-                    return;
-                }
                 if (img._swBlobUrl) URL.revokeObjectURL(img._swBlobUrl);
-                img._swBlobUrl = blobUrl;
-                img.src = blobUrl;
+                img._swBlobUrl = URL.createObjectURL(blob);
+                img.src = img._swBlobUrl;
             }, 'image/webp', 1.0);
         } catch (_) {
             img._swConverting = false;
@@ -152,53 +147,23 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    /**
-     * Chrome Android のみでスリープ復帰フリッカー回避策を有効化する
-     * @returns {boolean}
-     */
-    function shouldEnableWorkaround() {
-        const ua = navigator.userAgent || '';
-        const isAndroid = /Android/i.test(ua);
-        const isChrome = /Chrome\//i.test(ua);
-        const isEdge = /EdgA?\//i.test(ua); // EdgA: Edge on Android, Edg: Edge on other platforms
-        const isOpera = /OPR\//i.test(ua);
-        return isAndroid && isChrome && !isEdge && !isOpera;
-    }
+    document.querySelectorAll('img').forEach(observe);
 
-    /**
-     * 必要な環境でのみ画像監視を開始する
-     * @returns {void}
-     */
-    function startWorkaround() {
-        const root = document.body;
-        if (!root) return;
-
-        root.querySelectorAll('img').forEach(observe);
-
-        new MutationObserver(function (mutations) {
-            for (let i = 0; i < mutations.length; i++) {
-                const m = mutations[i];
-                for (let j = 0; j < m.addedNodes.length; j++) {
-                    const n = m.addedNodes[j];
-                    if (n.nodeName === 'IMG') observe(n);
-                    else if (n.querySelectorAll) n.querySelectorAll('img').forEach(observe);
-                }
-                for (let k = 0; k < m.removedNodes.length; k++) {
-                    const r = m.removedNodes[k];
-                    if (r.nodeName === 'IMG') revokeBlob(r);
-                    else if (r.querySelectorAll) r.querySelectorAll('img').forEach(revokeBlob);
-                }
+    new MutationObserver(function (mutations) {
+        for (var i = 0; i < mutations.length; i++) {
+            var m = mutations[i];
+            for (var j = 0; j < m.addedNodes.length; j++) {
+                var n = m.addedNodes[j];
+                if (n.nodeName === 'IMG') observe(n);
+                else if (n.querySelectorAll) n.querySelectorAll('img').forEach(observe);
             }
-        }).observe(root, { childList: true, subtree: true });
-    }
-
-    if (shouldEnableWorkaround()) {
-        if (document.body) {
-            startWorkaround();
-        } else {
-            document.addEventListener('DOMContentLoaded', startWorkaround, { once: true });
+            for (var k = 0; k < m.removedNodes.length; k++) {
+                var r = m.removedNodes[k];
+                if (r.nodeName === 'IMG') revokeBlob(r);
+                else if (r.querySelectorAll) r.querySelectorAll('img').forEach(revokeBlob);
+            }
         }
-    }
+    }).observe(document.documentElement, { childList: true, subtree: true });
 })();
 
 // UI 言語の更新
