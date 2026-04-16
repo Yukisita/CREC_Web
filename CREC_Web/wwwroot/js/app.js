@@ -79,8 +79,8 @@ document.addEventListener('DOMContentLoaded', function () {
 // 画面暗転時のフリッカー防止及びJPEG画像の色転び対策
 // JPEGはcanvas経由でWebP blob URLに変換し、ソフトウェアデコードパスへ切り替える。
 (function () {
-    // 変換対象はJPEGのみ
-    var JPEG_EXTS = ['.jpg', '.jpeg'];
+    // 変換対象はJPEG及び防御的に拡張子なしのみ
+    var JPEG_EXTS = ['.jpg', '.jpeg', ''];
 
     /**
      * 画像がソフトウェアデコードに変換する必要があるかどうかを判定する
