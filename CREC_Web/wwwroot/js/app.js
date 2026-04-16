@@ -76,10 +76,8 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeApp();
 });
 
-// Chrome Android 画面暗転時のフリッカー防止
-// JPEG はハードウェアデコード（MediaCodec）で GPU テクスチャのみ保持されるため、
-// 画面オフで GPU メモリ回収→非同期再デコード中に画面全体が点滅する。
-// 対策: canvas 経由でロスレス WebP blob URL に変換しソフトウェアデコードパスへ切り替える。
+// 画面暗転時のフリッカー防止及びJPEG画像の色転び対策
+// JPEGはcanvas経由でロスレス WebP blob URL に変換しソフトウェアデコードパスへ切り替える。
 (function () {
     var SKIP_EXTS = ['.png', '.webp', '.gif', '.bmp', '.svg'];
 
