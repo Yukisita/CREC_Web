@@ -79,21 +79,22 @@ document.addEventListener('DOMContentLoaded', function () {
 // 画面暗転時のフリッカー防止及びJPEG画像の色転び対策
 // JPEGはcanvas経由でWebP blob URLに変換し、ソフトウェアデコードパスへ切り替える。
 (function () {
-    // 対象外の拡張子（JPEG以外）は変換不要とみなす
-    var SKIP_EXTS = ['.png', '.webp', '.gif', '.bmp', '.svg'];
+    // 変換対象はJPEGのみ
+    var JPEG_EXTS = ['.jpg', '.jpeg'];
 
     /**
      * 画像がソフトウェアデコードに変換する必要があるかどうかを判定する
+     * JPEG拡張子(.jpg/.jpeg)を持つURLのみ変換対象とする。
      * @param {any} src
      * @returns {boolean}
      */
     function needsConvert(src) {
         if (!src || src.startsWith('blob:') || src.startsWith('data:')) return false;
         var path = src.split('?')[0].split('#')[0].toLowerCase();
-        for (var i = 0; i < SKIP_EXTS.length; i++) {
-            if (path.endsWith(SKIP_EXTS[i])) return false;
+        for (var i = 0; i < JPEG_EXTS.length; i++) {
+            if (path.endsWith(JPEG_EXTS[i])) return true;
         }
-        return true;
+        return false;
     }
 
     /**
