@@ -76,6 +76,95 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeApp();
 });
 
+// 画面暗転時のフリッカー防止及びJPEG画像の色転び対策
+// JPEGはcanvas経由でロスレス WebP blob URL に変換しソフトウェアデコードパスへ切り替える。
+(function () {
+    // 対象外の拡張子（JPEG以外）は変換不要とみなす
+    var SKIP_EXTS = ['.png', '.webp', '.gif', '.bmp', '.svg'];
+
+    /**
+     * 画像がソフトウェアデコードに変換する必要があるかどうかを判定する
+     * @param {any} src
+     * @returns {boolean}
+     */
+    function needsConvert(src) {
+        if (!src || src.startsWith('blob:') || src.startsWith('data:')) return false;
+        var path = src.split('?')[0].split('#')[0].toLowerCase();
+        for (var i = 0; i < SKIP_EXTS.length; i++) {
+            if (path.endsWith(SKIP_EXTS[i])) return false;
+        }
+        return true;
+    }
+
+    /**
+    * 画像をソフトウェアデコードに変換する 
+    * @param {HTMLImageElement} img
+    * @returns {void}
+     */
+    function convertToSWDecoded(img) {
+        if (img._swConverting || !needsConvert(img.src)) return;
+        if (!img.naturalWidth || !img.naturalHeight) return;
+        img._swConverting = true;
+        try {
+            var c = document.createElement('canvas');
+            c.width = img.naturalWidth;
+            c.height = img.naturalHeight;
+            c.getContext('2d').drawImage(img, 0, 0);
+            c.toBlob(function (blob) {
+                img._swConverting = false;
+                if (!blob) return;
+                if (img._swBlobUrl) URL.revokeObjectURL(img._swBlobUrl);
+                img._swBlobUrl = URL.createObjectURL(blob);
+                img.src = img._swBlobUrl;
+            }, 'image/webp', 1.0);
+        } catch (_) {
+            img._swConverting = false;
+        }
+    }
+
+    /**
+     * img要素を監視し、必要に応じてソフトウェアデコードに変換する
+     * @param {any} img
+     * @returns {void}
+     */
+    function observe(img) {
+        if (img._swObserved) return;
+        img._swObserved = true;
+        if (img.complete && img.naturalWidth) convertToSWDecoded(img);
+        img.addEventListener('load', function () { convertToSWDecoded(img); });
+    }
+
+    /**
+     * img要素がDOMから削除されたときにBlob URLを解放する
+     * @param {any} img
+     * @return {void}
+     */
+    function revokeBlob(img) {
+        if (img._swBlobUrl) {
+            URL.revokeObjectURL(img._swBlobUrl);
+            img._swBlobUrl = null;
+        }
+    }
+
+    document.querySelectorAll('img').forEach(observe);
+
+    new MutationObserver(function (mutations) {
+        for (var i = 0; i < mutations.length; i++) {
+            var m = mutations[i];
+            for (var j = 0; j < m.addedNodes.length; j++) {
+                var n = m.addedNodes[j];
+                if (n.nodeName === 'IMG') observe(n);
+                else if (n.querySelectorAll) n.querySelectorAll('img').forEach(observe);
+            }
+            for (var k = 0; k < m.removedNodes.length; k++) {
+                var r = m.removedNodes[k];
+                if (r.nodeName === 'IMG') revokeBlob(r);
+                else if (r.querySelectorAll) r.querySelectorAll('img').forEach(revokeBlob);
+            }
+        }
+    }).observe(document.documentElement, { childList: true, subtree: true });
+})();
+
 // UI 言語の更新
 function updateUILanguage() {
     const lang = currentLanguage;
