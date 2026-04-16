@@ -77,13 +77,10 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // Chrome Android 画面暗転時のフリッカー防止
-// Chrome Android は JPEG をハードウェアデコード（MediaCodec）し GPU テクスチャのみ保持する。
-// 画面オフで GPU メモリが回収されるとテクスチャ破棄→非同期再デコード中に画面全体が点滅する。
-// PNG 等はソフトウェアデコードで RAM 保持のため影響なし。
-// 対策: JPEG 読み込み後に canvas 経由で PNG blob URL へ無劣化変換し、
-// ソフトウェアデコードパスへ切り替える。
+// JPEG はハードウェアデコード（MediaCodec）で GPU テクスチャのみ保持されるため、
+// 画面オフで GPU メモリ回収→非同期再デコード中に画面全体が点滅する。
+// 対策: canvas 経由でロスレス WebP blob URL に変換しソフトウェアデコードパスへ切り替える。
 (function () {
-    // ソフトウェアデコードされる形式（変換不要）
     var SKIP_EXTS = ['.png', '.webp', '.gif', '.bmp', '.svg'];
 
     function needsConvert(src) {
@@ -95,38 +92,38 @@ document.addEventListener('DOMContentLoaded', function () {
         return true;
     }
 
-    function convertToPng(img) {
-        if (img._pngConverting || !needsConvert(img.src)) return;
+    function convertToWebP(img) {
+        if (img._swConverting || !needsConvert(img.src)) return;
         if (!img.naturalWidth || !img.naturalHeight) return;
-        img._pngConverting = true;
+        img._swConverting = true;
         try {
             var c = document.createElement('canvas');
             c.width = img.naturalWidth;
             c.height = img.naturalHeight;
             c.getContext('2d').drawImage(img, 0, 0);
             c.toBlob(function (blob) {
-                img._pngConverting = false;
+                img._swConverting = false;
                 if (!blob) return;
-                if (img._pngBlobUrl) URL.revokeObjectURL(img._pngBlobUrl);
-                img._pngBlobUrl = URL.createObjectURL(blob);
-                img.src = img._pngBlobUrl;
-            }, 'image/png');
+                if (img._swBlobUrl) URL.revokeObjectURL(img._swBlobUrl);
+                img._swBlobUrl = URL.createObjectURL(blob);
+                img.src = img._swBlobUrl;
+            }, 'image/webp', 1.0);
         } catch (_) {
-            img._pngConverting = false;
+            img._swConverting = false;
         }
     }
 
     function observe(img) {
-        if (img._pngObserved) return;
-        img._pngObserved = true;
-        if (img.complete && img.naturalWidth) convertToPng(img);
-        img.addEventListener('load', function () { convertToPng(img); });
+        if (img._swObserved) return;
+        img._swObserved = true;
+        if (img.complete && img.naturalWidth) convertToWebP(img);
+        img.addEventListener('load', function () { convertToWebP(img); });
     }
 
     function revokeBlob(img) {
-        if (img._pngBlobUrl) {
-            URL.revokeObjectURL(img._pngBlobUrl);
-            img._pngBlobUrl = null;
+        if (img._swBlobUrl) {
+            URL.revokeObjectURL(img._swBlobUrl);
+            img._swBlobUrl = null;
         }
     }
 
