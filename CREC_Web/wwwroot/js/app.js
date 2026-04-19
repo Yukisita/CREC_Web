@@ -90,8 +90,8 @@ document.addEventListener('DOMContentLoaded', function () {
      */
     function needsConvert(src) {
         if (!src || src.startsWith('blob:') || src.startsWith('data:')) return false;
-        var path = src.split('?')[0].split('#')[0].toLowerCase();
-        for (var i = 0; i < JPEG_EXTS.length; i++) {
+        const path = src.split('?')[0].split('#')[0].toLowerCase();
+        for (let i = 0; i < JPEG_EXTS.length; i++) {
             if (path.endsWith(JPEG_EXTS[i])) return true;
         }
         return false;
