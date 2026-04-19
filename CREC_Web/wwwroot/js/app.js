@@ -114,6 +114,7 @@ document.addEventListener('DOMContentLoaded', function () {
             c.height = img.naturalHeight;
             c.getContext('2d').drawImage(img, 0, 0);
             img.src = c.toDataURL('image/webp', 1.0);
+                    convertToSWDecoded(img); // ← 現在の画像を改めて変換
         } catch (_) {
             // SecurityError（クロスオリジン汚染）等は無視
         } finally {
