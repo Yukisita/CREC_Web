@@ -98,7 +98,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     /**
-    * 画像をソフトウェアデコードに変換する 
+    * 画像をソフトウェアデコードに変換する
+    * toDataURL を同期実行することで、変換完了前に画面が暗転しても
+    * 点滅が発生しないようにする。
     * @param {HTMLImageElement} img
     * @returns {void}
      */
@@ -106,30 +108,15 @@ document.addEventListener('DOMContentLoaded', function () {
         if (img._swConverting || !needsConvert(img.src)) return;
         if (!img.naturalWidth || !img.naturalHeight) return;
         img._swConverting = true;
-        var originalSrc = img.src; // 変換開始時点のsrcを記憶
         try {
             var c = document.createElement('canvas');
             c.width = img.naturalWidth;
             c.height = img.naturalHeight;
             c.getContext('2d').drawImage(img, 0, 0);
-            c.toBlob(function (blob) {
-                img._swConverting = false;
-                if (!blob) return;
-                var blobUrl = URL.createObjectURL(blob);
-                if (!img.isConnected) {
-                    URL.revokeObjectURL(blobUrl);
-                    return;
-                }
-                // 画像が既に別のURLに切り替わっている場合は上書きしない
-                if (img.src !== originalSrc && !img.src.startsWith('blob:')) {
-                    URL.revokeObjectURL(blobUrl);
-                    return;
-                }
-                if (img._swBlobUrl) URL.revokeObjectURL(img._swBlobUrl);
-                img._swBlobUrl = blobUrl;
-                img.src = img._swBlobUrl;
-            }, 'image/webp', 1.0);
+            img.src = c.toDataURL('image/webp', 1.0);
         } catch (_) {
+            // SecurityError（クロスオリジン汚染）等は無視
+        } finally {
             img._swConverting = false;
         }
     }
