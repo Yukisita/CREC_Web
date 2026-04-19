@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', function () {
 // JPEGはcanvas経由でWebP blob URLに変換し、ソフトウェアデコードパスへ切り替える。
 (function () {
     // 変換対象はJPEG及び防御的に拡張子なしのみ
-    var JPEG_EXTS = ['.jpg', '.jpeg', ''];
+    const JPEG_EXTS = ['.jpg', '.jpeg', ''];
 
     /**
      * 画像がソフトウェアデコードに変換する必要があるかどうかを判定する
@@ -109,7 +109,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!img.naturalWidth || !img.naturalHeight) return;
         img._swConverting = true;
         try {
-            var c = document.createElement('canvas');
+            const c = document.createElement('canvas');
             c.width = img.naturalWidth;
             c.height = img.naturalHeight;
             c.getContext('2d').drawImage(img, 0, 0);
@@ -149,15 +149,15 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('img').forEach(observe);
 
     new MutationObserver(function (mutations) {
-        for (var i = 0; i < mutations.length; i++) {
-            var m = mutations[i];
-            for (var j = 0; j < m.addedNodes.length; j++) {
-                var n = m.addedNodes[j];
+        for (let i = 0; i < mutations.length; i++) {
+            let m = mutations[i];
+            for (let j = 0; j < m.addedNodes.length; j++) {
+                let n = m.addedNodes[j];
                 if (n.nodeName === 'IMG') observe(n);
                 else if (n.querySelectorAll) n.querySelectorAll('img').forEach(observe);
             }
-            for (var k = 0; k < m.removedNodes.length; k++) {
-                var r = m.removedNodes[k];
+            for (let k = 0; k < m.removedNodes.length; k++) {
+                let r = m.removedNodes[k];
                 if (r.nodeName === 'IMG') revokeBlob(r);
                 else if (r.querySelectorAll) r.querySelectorAll('img').forEach(revokeBlob);
             }
