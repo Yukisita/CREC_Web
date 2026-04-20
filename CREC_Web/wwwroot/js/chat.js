@@ -122,7 +122,24 @@ function processChatActions(text) {
         }
     }
 
-    const cleanText = text.replace(/<action>[\s\S]*?<\/action>/g, '').trim();
+    // Remove action tags
+    let cleanText = text.replace(/<action>[\s\S]*?<\/action>/g, '');
+
+    // Strip triple-backtick code fences that are now empty (only whitespace between the fences)
+    cleanText = cleanText.replace(/```[^\n]*\n\s*```/g, '');
+
+    // Strip empty backtick pairs left behind by inline-wrapped action tags (e.g. `<action>…</action>`)
+    // Only matches pairs where the content is purely whitespace — legitimate code spans are preserved.
+    cleanText = cleanText.replace(/`\s*`/g, '');
+
+    // Strip lines that consist of nothing but backticks and whitespace
+    // (left behind when the LLM wraps a single action tag in a backtick pair on its own line)
+    cleanText = cleanText.replace(/^[ \t]*`+[ \t]*$/gm, '');
+
+    // Collapse three or more consecutive newlines into at most two (one blank line)
+    cleanText = cleanText.replace(/\n{3,}/g, '\n\n');
+
+    cleanText = cleanText.trim();
 
     if (actions.length > 0) {
         let cumulativeDelay = CHAT_ACTION_INITIAL_DELAY;

@@ -14,7 +14,8 @@
 
 複数のアクションは上から順に 600ms 間隔で自動実行されます。モーダルが開く前に入力・保存しないよう順序に注意してください。
 
-```
+**重要:** `<action>` タグは **コードブロック（バッククォート）で囲まずに** そのままプレーンテキストとして出力してください。
+
 <action>{"type":"search","text":"テキスト"}</action>
 <action>{"type":"openCollection","id":"ID"}</action>
 <action>{"type":"showCollectionPanel","id":"ID"}</action>
@@ -22,7 +23,6 @@
 <action>{"type":"navigate","path":"/パス"}</action>
 <action>{"type":"clickButton","id":"ボタンID"}</action>
 <action>{"type":"fillInput","id":"フィールドID","value":"値"}</action>
-```
 
 使用可能な ID の一覧と操作例は CREC Web AI 操作リファレンス（`Prompts/CREC_Web_AI_Operations.md`）を参照してください。
 

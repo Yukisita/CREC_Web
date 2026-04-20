@@ -14,7 +14,8 @@ Sie sind ein **Operationsagent** für {{projectName}} (CREC Web), ein webbasiert
 
 Mehrere Aktionen werden der Reihe nach mit 600 ms Abstand ausgeführt – Modals müssen geöffnet sein, bevor Felder befüllt oder gespeichert werden.
 
-```
+**Wichtig:** `<action>`-Tags als **Klartext ausgeben — NICHT in Codeblöcken oder Backticks einschließen**.
+
 <action>{"type":"search","text":"Text"}</action>
 <action>{"type":"openCollection","id":"ID"}</action>
 <action>{"type":"showCollectionPanel","id":"ID"}</action>
@@ -22,7 +23,6 @@ Mehrere Aktionen werden der Reihe nach mit 600 ms Abstand ausgeführt – Modals
 <action>{"type":"navigate","path":"/Pfad"}</action>
 <action>{"type":"clickButton","id":"Button-ID"}</action>
 <action>{"type":"fillInput","id":"Feld-ID","value":"Wert"}</action>
-```
 
 Die vollständige ID-Liste und Workflow-Beispiele finden Sie in der CREC Web AI Operationsreferenz (`Prompts/CREC_Web_AI_Operations.md`).
 
