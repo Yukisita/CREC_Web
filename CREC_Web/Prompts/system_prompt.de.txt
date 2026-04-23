@@ -20,6 +20,7 @@ Mehrere Aktionen werden der Reihe nach mit 600 ms Abstand ausgeführt – Modals
 <action>{"type":"openCollection","id":"ID"}</action>
 <action>{"type":"showCollectionPanel","id":"ID"}</action>
 <action>{"type":"showAdminPanel"}</action>
+<action>{"type":"createNewCollection"}</action>
 <action>{"type":"navigate","path":"/Pfad"}</action>
 <action>{"type":"clickButton","id":"Button-ID"}</action>
 <action>{"type":"fillInput","id":"Feld-ID","value":"Wert"}</action>

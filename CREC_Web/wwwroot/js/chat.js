@@ -11,9 +11,13 @@ to any external service.
 
 const CHAT_HISTORY_MAX           = 20;   // Maximum messages to keep in context
 const CHAT_PAGE_CONTEXT_MAX      = 2000; // Maximum characters of page content for RAG
-const CHAT_SESSION_KEY           = 'crec_chat_history_v1'; // sessionStorage key
+const CHAT_SESSION_KEY           = 'crec_chat_history_v1';         // sessionStorage key
+const CHAT_PENDING_ACTIONS_KEY   = 'crec_chat_pending_actions_v1'; // sessionStorage key for post-nav actions
 const CHAT_ACTION_INITIAL_DELAY  = 400;  // ms to wait before executing the first action
 const CHAT_ACTION_INTERVAL       = 600;  // ms gap between consecutive actions
+
+// Action types that trigger a full page navigation (used to split action sequences)
+const CHAT_NAV_ACTION_TYPES = new Set(['navigate', 'createNewCollection']);
 
 // Chat state
 let chatMessages = []; // { role: 'user'|'assistant', content: string }
@@ -51,6 +55,61 @@ function clearChatSession() {
     try {
         sessionStorage.removeItem(CHAT_SESSION_KEY);
     } catch (e) {}
+}
+
+/**
+ * Save pending post-navigation actions to sessionStorage.
+ * These are executed when the next page finishes loading.
+ * @param {Array} actions
+ */
+function savePendingChatActions(actions) {
+    try {
+        sessionStorage.setItem(CHAT_PENDING_ACTIONS_KEY, JSON.stringify(actions));
+    } catch (e) {}
+}
+
+/**
+ * Load pending post-navigation actions from sessionStorage.
+ * @returns {Array|null}
+ */
+function loadPendingChatActions() {
+    try {
+        const saved = sessionStorage.getItem(CHAT_PENDING_ACTIONS_KEY);
+        return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
+ * Remove pending post-navigation actions from sessionStorage.
+ */
+function clearPendingChatActions() {
+    try {
+        sessionStorage.removeItem(CHAT_PENDING_ACTIONS_KEY);
+    } catch (e) {}
+}
+
+/**
+ * Execute pending post-navigation actions stored in sessionStorage.
+ * Called on page load and when a navigate action targets the current page.
+ */
+function executePendingChatActions() {
+    const pending = loadPendingChatActions();
+    if (!pending || pending.length === 0) return;
+    clearPendingChatActions();
+    let delay = CHAT_ACTION_INITIAL_DELAY;
+    pending.forEach(cmd => {
+        const d = delay;
+        delay += CHAT_ACTION_INTERVAL;
+        setTimeout(() => {
+            try {
+                executeChatAction(cmd);
+            } catch (e) {
+                console.warn('Failed to execute pending chat action:', cmd, e);
+            }
+        }, d);
+    });
 }
 
 /**
@@ -142,8 +201,18 @@ function processChatActions(text) {
     cleanText = cleanText.trim();
 
     if (actions.length > 0) {
+        // Navigation actions cause a full page reload, so any actions that follow
+        // them must be persisted to sessionStorage and executed on the new page.
+        const navIdx = actions.findIndex(a => CHAT_NAV_ACTION_TYPES.has(a.type));
+        const priorActions = navIdx >= 0 ? actions.slice(0, navIdx + 1) : actions;
+        const afterActions  = navIdx >= 0 ? actions.slice(navIdx + 1) : [];
+
+        if (afterActions.length > 0) {
+            savePendingChatActions(afterActions);
+        }
+
         let cumulativeDelay = CHAT_ACTION_INITIAL_DELAY;
-        actions.forEach(cmd => {
+        priorActions.forEach(cmd => {
             const delay = cumulativeDelay;
             cumulativeDelay += CHAT_ACTION_INTERVAL;
             setTimeout(() => {
@@ -198,6 +267,34 @@ function executeChatAction(cmd) {
             openAdminPanel();
             break;
 
+        case 'createNewCollection':
+            // Create a new collection via the API and navigate to its detail page
+            // with ?edit=1 so that the edit modal opens automatically.
+            (async () => {
+                try {
+                    const response = await fetch('/api/collections', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result && result.id) {
+                            window.location.href = `/Collection/${encodeURIComponent(result.id)}?edit=1`;
+                        } else {
+                            clearPendingChatActions();
+                            console.warn('createNewCollection: missing id in API response', result);
+                        }
+                    } else {
+                        clearPendingChatActions();
+                        console.warn('createNewCollection: API returned', response.status);
+                    }
+                } catch (e) {
+                    clearPendingChatActions();
+                    console.warn('createNewCollection action failed:', e);
+                }
+            })();
+            break;
+
         case 'navigate':
             // Only allow same-origin absolute paths (block external and protocol-relative URLs)
             if (typeof cmd.path === 'string' &&
@@ -206,6 +303,9 @@ function executeChatAction(cmd) {
                 const targetPathname = new URL(cmd.path, window.location.origin).pathname;
                 if (window.location.pathname !== targetPathname) {
                     window.location.href = cmd.path;
+                } else {
+                    // Already on the target page — run any queued post-navigation actions now
+                    executePendingChatActions();
                 }
             }
             break;
@@ -476,6 +576,9 @@ function initializeChat() {
     } else {
         appendChatMessage('assistant', escapeHtml(t('chat-welcome')));
     }
+
+    // Execute any post-navigation actions that were queued on the previous page
+    executePendingChatActions();
 }
 
 document.addEventListener('DOMContentLoaded', function () {
