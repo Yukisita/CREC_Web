@@ -413,8 +413,8 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"></button>
-                <button type="button" class="btn btn-primary" id="saveInventoryOperation"></button>
+                <button type="button" class="btn btn-secondary" id="inventoryOperationCancel" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn btn-primary" id="inventoryOperationSave"></button>
             </div>
         </div>
     </div>
@@ -443,8 +443,8 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"></button>
-                <button type="button" class="btn btn-primary" id="saveInventoryManagementSettings"></button>
+                <button type="button" class="btn btn-secondary" id="inventoryManagementSettingsCancel" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn btn-primary" id="inventoryManagementSettingsSave"></button>
             </div>
         </div>
     </div>
@@ -1403,7 +1403,7 @@
             
             // ボタンのテキスト設定
             document.querySelector('#inventoryOperationModal .btn-secondary').textContent = t('cancel');
-            document.getElementById('saveInventoryOperation').textContent = t('save');
+            document.getElementById('inventoryOperationSave').textContent = t('save');
             
             // フォームをリセット
             document.getElementById('operationQuantity').value = '';
@@ -1412,7 +1412,7 @@
             modal.show();
             
             // 保存ボタンのイベントリスナ
-            document.getElementById('saveInventoryOperation').onclick = async () => {
+            document.getElementById('inventoryOperationSave').onclick = async () => {
                 const type = parseInt(document.getElementById('operationType').value);
                 const quantity = parseInt(document.getElementById('operationQuantity').value);
                 const comment = document.getElementById('operationComment').value;
@@ -1479,7 +1479,7 @@
             
             // ボタンのテキスト設定
             document.querySelector('#inventoryManagementSettingsModal .btn-secondary').textContent = t('cancel');
-            document.getElementById('saveInventoryManagementSettings').textContent = t('save');
+            document.getElementById('inventoryManagementSettingsSave').textContent = t('save');
             
             // 現在の設定値を表示
             document.getElementById('safetyStock').value = collection.inventoryData?.setting?.safetyStock ?? '';
@@ -1489,7 +1489,7 @@
             modal.show();
             
             // 保存ボタンのイベントリスナ
-            document.getElementById('saveInventoryManagementSettings').onclick = async () => {
+            document.getElementById('inventoryManagementSettingsSave').onclick = async () => {
                 const safetyStock = document.getElementById('safetyStock').value;
                 const reorderPoint = document.getElementById('reorderPoint').value;
                 const maximumLevel = document.getElementById('maximumLevel').value;
