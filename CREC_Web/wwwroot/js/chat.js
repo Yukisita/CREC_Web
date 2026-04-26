@@ -337,8 +337,14 @@ function executeChatAction(cmd) {
 
         case 'switchLanguage':
             // Switch the display language via the existing selectLanguage() in app.js
-            if (typeof cmd.lang === 'string' && typeof selectLanguage === 'function') {
-                selectLanguage(cmd.lang);
+            if (typeof cmd.lang === 'string' && ['ja', 'en', 'de'].includes(cmd.lang)) {
+                if (typeof selectLanguage === 'function') {
+                    selectLanguage(cmd.lang);
+                } else {
+                    console.warn('switchLanguage: selectLanguage() not available');
+                }
+            } else {
+                console.warn('switchLanguage: unsupported or missing lang:', cmd.lang);
             }
             break;
 
