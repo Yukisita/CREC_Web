@@ -13,6 +13,7 @@ const CHAT_HISTORY_MAX           = 20;   // Maximum messages to keep in context
 const CHAT_PAGE_CONTEXT_MAX      = 2000; // Maximum characters of page content for RAG
 const CHAT_SESSION_KEY           = 'crec_chat_history_v1';         // sessionStorage key
 const CHAT_PENDING_ACTIONS_KEY   = 'crec_chat_pending_actions_v1'; // sessionStorage key for post-nav actions
+const CHAT_PANEL_STATE_KEY       = 'crec_chat_panel_open_v1';      // sessionStorage key for panel open/close state
 const CHAT_ACTION_INITIAL_DELAY  = 400;  // ms to wait before executing the first action
 const CHAT_ACTION_INTERVAL       = 600;  // ms gap between consecutive actions
 
@@ -529,6 +530,7 @@ function openChatPanel() {
     if (panel) {
         panel.classList.add('open');
         chatIsOpen = true;
+        try { sessionStorage.setItem(CHAT_PANEL_STATE_KEY, '1'); } catch (e) {}
         const input = document.getElementById('chatInput');
         if (input) input.focus();
         scrollChatToBottom();
@@ -540,6 +542,7 @@ function closeChatPanel() {
     if (panel) {
         panel.classList.remove('open');
         chatIsOpen = false;
+        try { sessionStorage.removeItem(CHAT_PANEL_STATE_KEY); } catch (e) {}
     }
 }
 
@@ -601,6 +604,13 @@ function initializeChat() {
 
     // Execute any post-navigation actions that were queued on the previous page
     executePendingChatActions();
+
+    // Restore panel open/close state from before page navigation
+    try {
+        if (sessionStorage.getItem(CHAT_PANEL_STATE_KEY) === '1') {
+            openChatPanel();
+        }
+    } catch (e) {}
 }
 
 document.addEventListener('DOMContentLoaded', function () {
