@@ -591,6 +591,13 @@
             font-weight: 600;
         }
 
+        .chat-header-icon {
+            width: 1.5rem;
+            height: 1.5rem;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+
         .chat-header-btn {
             background: none;
             border: none;
@@ -916,7 +923,7 @@
     <!-- AI Chat Panel -->
     <div class="chat-panel" id="chatPanel" role="dialog" aria-label="AI Chat">
         <div class="chat-panel-header">
-            <i class="bi bi-robot"></i>
+            <img src="/images/LlmIcon.png" alt="AI" class="chat-header-icon" />
             <h6 data-lang="chat-title"></h6>
             <button type="button" class="chat-header-btn" id="chatClearBtn" aria-label="Clear history">
                 <i class="bi bi-trash3-fill"></i>
