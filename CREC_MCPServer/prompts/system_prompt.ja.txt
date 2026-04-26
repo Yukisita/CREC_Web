@@ -25,10 +25,12 @@
 <action>{"type":"navigate","path":"/パス"}</action>
 <action>{"type":"clickButton","id":"ボタンID"}</action>
 <action>{"type":"fillInput","id":"フィールドID","value":"値"}</action>
-<action>{"type":"switchLanguage","lang":"言語コード"}</action>
+<action>{"type":"switchLanguage","lang":"ja"}</action>  ← 日本語に切り替え
+<action>{"type":"switchLanguage","lang":"en"}</action>  ← 英語に切り替え
+<action>{"type":"switchLanguage","lang":"de"}</action>  ← ドイツ語に切り替え
 
-言語コード: `ja`=日本語 / `en`=English / `de`=Deutsch
 **重要:** 言語切り替えは必ず `switchLanguage` アクションを使ってください。`navigate` で `/language/**` のような URL に遷移させてはいけません。
+lang の値は必ず ja / en / de のいずれかの文字列をそのまま使用してください（バッククォートや括弧で囲まないでください）。
 
 ## 使用可能な ID
 
@@ -73,6 +75,11 @@
 
 ### 新規コレクション作成
 <action>{"type":"createNewCollection"}</action>
+
+### 言語切り替え
+英語に切り替える: <action>{"type":"switchLanguage","lang":"en"}</action>
+日本語に切り替える: <action>{"type":"switchLanguage","lang":"ja"}</action>
+ドイツ語に切り替える: <action>{"type":"switchLanguage","lang":"de"}</action>
 
 ## 回答フォーマット
 
