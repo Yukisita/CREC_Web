@@ -433,6 +433,28 @@ function appendChatMessage(role, htmlContent, elementId) {
 }
 
 /**
+ * Append the welcome message bubble.
+ * The bubble carries data-lang="chat-welcome" so that updateUILanguage()
+ * automatically updates its text when the display language is switched.
+ */
+function appendChatWelcome() {
+    const messages = document.getElementById('chatMessages');
+    if (!messages) return;
+
+    const div = document.createElement('div');
+    div.className = 'chat-message chat-message-model';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble';
+    bubble.setAttribute('data-lang', 'chat-welcome');
+    bubble.textContent = t('chat-welcome');
+
+    div.appendChild(bubble);
+    messages.appendChild(div);
+    scrollChatToBottom();
+}
+
+/**
  * Scroll the messages list to the bottom.
  */
 function scrollChatToBottom() {
@@ -535,7 +557,7 @@ function clearChatHistory() {
     const messages = document.getElementById('chatMessages');
     if (messages) {
         messages.innerHTML = '';
-        appendChatMessage('assistant', escapeHtml(t('chat-welcome')));
+        appendChatWelcome();
     }
 }
 
@@ -574,7 +596,7 @@ function initializeChat() {
             }
         });
     } else {
-        appendChatMessage('assistant', escapeHtml(t('chat-welcome')));
+        appendChatWelcome();
     }
 
     // Execute any post-navigation actions that were queued on the previous page
