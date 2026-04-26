@@ -84,30 +84,29 @@ LLM_TIMEOUT: float = float(os.getenv("LLM_TIMEOUT", "120"))
 _prompt_cache: dict[str, str] = {}
 
 
-def _load_prompt_template(lang: str) -> str:
-    """Load and cache system prompt template for the given language."""
-    if lang in _prompt_cache:
-        return _prompt_cache[lang]
+def _load_prompt_template() -> str:
+    """Load and cache the single system prompt template."""
+    cache_key = "ja"
+    if cache_key in _prompt_cache:
+        return _prompt_cache[cache_key]
 
-    path = PROMPTS_DIR / f"system_prompt.{lang}.txt"
+    path = PROMPTS_DIR / "system_prompt.ja.txt"
     if not path.exists():
         return ""
 
     text = path.read_text(encoding="utf-8")
-    _prompt_cache[lang] = text
+    _prompt_cache[cache_key] = text
     return text
 
 
 def _build_system_prompt(lang: str, page_title: str, page_context: str, project_name: str) -> str:
     """Build system prompt by filling template placeholders."""
-    resolved_lang = lang if lang in ("en", "de") else "ja"
-    template = _load_prompt_template(resolved_lang)
+    template = _load_prompt_template()
 
     if not template:
         return ""
 
-    no_content = {"de": "(kein Inhalt)", "en": "(no content)"}.get(resolved_lang, "（コンテンツなし）")
-    context = page_context.strip() or no_content
+    context = page_context.strip() or "（コンテンツなし）"
 
     return (
         template
