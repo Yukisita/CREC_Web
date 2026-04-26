@@ -118,7 +118,7 @@ AIチャットウィジェットが実行できる操作の完全リファレン
 |----|------|--------|
 | `searchText` | 検索キーワード | テキスト |
 | `operationType` | 在庫操作タイプ | `0` = 入庫 / `1` = 出庫 / `2` = 棚卸し |
-| `operationQuantity` | 在庫操作数量 | 数値（例: `5`） |
+| `operationQuantity` | 在庫操作数量 | 入庫は正の数（例: `5`）、出庫は負の数（例: `-3`）、棚卸しは絶対量（例: `100`） |
 | `operationComment` | 在庫操作コメント | テキスト |
 | `safetyStock` | 安全在庫数 | 数値 |
 | `reorderPoint` | 発注点 | 数値 |
@@ -169,16 +169,18 @@ AIチャットウィジェットが実行できる操作の完全リファレン
 
 ---
 
-### 在庫出庫（例: 3個出庫）
+### 在庫出庫（例: 3個出庫）— 出庫は必ず負の数量
 
 **ユーザー発言例:** 「在庫を3個出庫して」
 
 ```
 <action>{"type":"clickButton","id":"inventoryOperationBtn"}</action>
 <action>{"type":"fillInput","id":"operationType","value":"1"}</action>
-<action>{"type":"fillInput","id":"operationQuantity","value":"3"}</action>
+<action>{"type":"fillInput","id":"operationQuantity","value":"-3"}</action>
 <action>{"type":"clickButton","id":"inventoryOperationSave"}</action>
 ```
+
+> **注意:** 出庫（type=1）の数量は必ず**負の数**で指定してください（例: `-3`）。正の数を指定するとバリデーションエラーになります。
 
 ---
 

@@ -25,7 +25,49 @@
 <action>{"type":"clickButton","id":"ボタンID"}</action>
 <action>{"type":"fillInput","id":"フィールドID","value":"値"}</action>
 
-使用可能な ID の一覧と操作例は CREC Web AI 操作リファレンス（`Prompts/CREC_Web_AI_Operations.md`）を参照してください。
+## 使用可能な ID
+
+### ボタン ID（clickButton）
+- `inventoryOperationBtn` — 在庫操作モーダルを開く（コレクション詳細が開いているとき）
+- `inventoryManagementSettingsBtn` — 在庫管理設定モーダルを開く
+- `inventoryOperationSave` — 在庫操作を保存
+- `inventoryOperationCancel` — 在庫操作をキャンセル
+- `inventoryManagementSettingsSave` — 在庫管理設定を保存
+- `inventoryManagementSettingsCancel` — 在庫管理設定をキャンセル
+- `editIndexBtn` — インデックス編集モーダルを開く（コレクション詳細ページ）
+- `searchButton` — 検索実行（ホームページ）
+- `clearFiltersButton` — フィルタクリア（ホームページ）
+- `addNewCollectionBtn` — 新規コレクション追加（管理パネルが開いているとき）
+
+### フィールド ID（fillInput）
+- `operationType` — 在庫操作タイプ: `0`=入庫 / `1`=出庫 / `2`=棚卸し
+- `operationQuantity` — 数量: 入庫は正の数（例:`5`）、出庫は必ず負の数（例:`-3`）、棚卸しは絶対量（例:`100`）
+- `operationComment` — コメント
+- `safetyStock` / `reorderPoint` / `maximumLevel` — 在庫管理設定値
+- `searchText` — 検索キーワード
+
+## ワークフロー例
+
+### 在庫入庫（例: 5個入庫）
+<action>{"type":"clickButton","id":"inventoryOperationBtn"}</action>
+<action>{"type":"fillInput","id":"operationType","value":"0"}</action>
+<action>{"type":"fillInput","id":"operationQuantity","value":"5"}</action>
+<action>{"type":"clickButton","id":"inventoryOperationSave"}</action>
+
+### 在庫出庫（例: 3個出庫）— 出庫は必ず負の数量
+<action>{"type":"clickButton","id":"inventoryOperationBtn"}</action>
+<action>{"type":"fillInput","id":"operationType","value":"1"}</action>
+<action>{"type":"fillInput","id":"operationQuantity","value":"-3"}</action>
+<action>{"type":"clickButton","id":"inventoryOperationSave"}</action>
+
+### 棚卸し（例: 現在庫を100に設定）
+<action>{"type":"clickButton","id":"inventoryOperationBtn"}</action>
+<action>{"type":"fillInput","id":"operationType","value":"2"}</action>
+<action>{"type":"fillInput","id":"operationQuantity","value":"100"}</action>
+<action>{"type":"clickButton","id":"inventoryOperationSave"}</action>
+
+### 新規コレクション作成
+<action>{"type":"createNewCollection"}</action>
 
 ## 回答フォーマット
 

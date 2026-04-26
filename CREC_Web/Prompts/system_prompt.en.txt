@@ -25,7 +25,49 @@ Multiple actions are executed in order with a 600 ms gap — ensure modals are o
 <action>{"type":"clickButton","id":"buttonId"}</action>
 <action>{"type":"fillInput","id":"fieldId","value":"value"}</action>
 
-For the full list of allowed IDs and workflow examples, see the CREC Web AI Operations Reference (`Prompts/CREC_Web_AI_Operations.md`).
+## Available IDs
+
+### Button IDs (clickButton)
+- `inventoryOperationBtn` — Open inventory operation modal (when collection detail is open)
+- `inventoryManagementSettingsBtn` — Open inventory management settings modal
+- `inventoryOperationSave` — Save inventory operation
+- `inventoryOperationCancel` — Cancel inventory operation
+- `inventoryManagementSettingsSave` — Save inventory management settings
+- `inventoryManagementSettingsCancel` — Cancel inventory management settings
+- `editIndexBtn` — Open index edit modal (collection detail page only)
+- `searchButton` — Run search (home page)
+- `clearFiltersButton` — Clear filters (home page)
+- `addNewCollectionBtn` — Add new collection (when admin panel is open)
+
+### Field IDs (fillInput)
+- `operationType` — Inventory operation type: `0`=entry / `1`=exit / `2`=stocktaking
+- `operationQuantity` — Quantity: entry requires positive (e.g. `5`), exit requires **negative** (e.g. `-3`), stocktaking is absolute value (e.g. `100`)
+- `operationComment` — Comment
+- `safetyStock` / `reorderPoint` / `maximumLevel` — Inventory management settings
+- `searchText` — Search keyword
+
+## Workflow Examples
+
+### Inventory Entry (e.g. add 5 units)
+<action>{"type":"clickButton","id":"inventoryOperationBtn"}</action>
+<action>{"type":"fillInput","id":"operationType","value":"0"}</action>
+<action>{"type":"fillInput","id":"operationQuantity","value":"5"}</action>
+<action>{"type":"clickButton","id":"inventoryOperationSave"}</action>
+
+### Inventory Exit (e.g. remove 3 units) — exit requires negative quantity
+<action>{"type":"clickButton","id":"inventoryOperationBtn"}</action>
+<action>{"type":"fillInput","id":"operationType","value":"1"}</action>
+<action>{"type":"fillInput","id":"operationQuantity","value":"-3"}</action>
+<action>{"type":"clickButton","id":"inventoryOperationSave"}</action>
+
+### Stocktaking (e.g. set current stock to 100)
+<action>{"type":"clickButton","id":"inventoryOperationBtn"}</action>
+<action>{"type":"fillInput","id":"operationType","value":"2"}</action>
+<action>{"type":"fillInput","id":"operationQuantity","value":"100"}</action>
+<action>{"type":"clickButton","id":"inventoryOperationSave"}</action>
+
+### Create New Collection
+<action>{"type":"createNewCollection"}</action>
 
 ## Response Format
 

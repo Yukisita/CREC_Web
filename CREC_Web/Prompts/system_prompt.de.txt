@@ -25,7 +25,49 @@ Mehrere Aktionen werden der Reihe nach mit 600 ms Abstand ausgeführt – Modals
 <action>{"type":"clickButton","id":"Button-ID"}</action>
 <action>{"type":"fillInput","id":"Feld-ID","value":"Wert"}</action>
 
-Die vollständige ID-Liste und Workflow-Beispiele finden Sie in der CREC Web AI Operationsreferenz (`Prompts/CREC_Web_AI_Operations.md`).
+## Verfügbare IDs
+
+### Schaltflächen-IDs (clickButton)
+- `inventoryOperationBtn` — Inventaroperations-Modal öffnen (wenn Kollektionsdetail offen)
+- `inventoryManagementSettingsBtn` — Inventarverwaltungseinstellungen-Modal öffnen
+- `inventoryOperationSave` — Inventaroperation speichern
+- `inventoryOperationCancel` — Inventaroperation abbrechen
+- `inventoryManagementSettingsSave` — Inventarverwaltungseinstellungen speichern
+- `inventoryManagementSettingsCancel` — Inventarverwaltungseinstellungen abbrechen
+- `editIndexBtn` — Index-Bearbeitungs-Modal öffnen (nur Kollektionsdetailseite)
+- `searchButton` — Suche ausführen (Startseite)
+- `clearFiltersButton` — Filter löschen (Startseite)
+- `addNewCollectionBtn` — Neue Kollektion hinzufügen (wenn Admin-Panel offen)
+
+### Feld-IDs (fillInput)
+- `operationType` — Inventaroperationstyp: `0`=Eingang / `1`=Ausgang / `2`=Inventur
+- `operationQuantity` — Menge: Eingang positiv (z.B. `5`), Ausgang **negativ** (z.B. `-3`), Inventur als Absolutwert (z.B. `100`)
+- `operationComment` — Kommentar
+- `safetyStock` / `reorderPoint` / `maximumLevel` — Inventarverwaltungseinstellungen
+- `searchText` — Suchbegriff
+
+## Workflow-Beispiele
+
+### Wareneingang (z.B. 5 Einheiten hinzufügen)
+<action>{"type":"clickButton","id":"inventoryOperationBtn"}</action>
+<action>{"type":"fillInput","id":"operationType","value":"0"}</action>
+<action>{"type":"fillInput","id":"operationQuantity","value":"5"}</action>
+<action>{"type":"clickButton","id":"inventoryOperationSave"}</action>
+
+### Warenausgang (z.B. 3 Einheiten entnehmen) — Ausgang erfordert negative Menge
+<action>{"type":"clickButton","id":"inventoryOperationBtn"}</action>
+<action>{"type":"fillInput","id":"operationType","value":"1"}</action>
+<action>{"type":"fillInput","id":"operationQuantity","value":"-3"}</action>
+<action>{"type":"clickButton","id":"inventoryOperationSave"}</action>
+
+### Inventur (z.B. Lagerbestand auf 100 setzen)
+<action>{"type":"clickButton","id":"inventoryOperationBtn"}</action>
+<action>{"type":"fillInput","id":"operationType","value":"2"}</action>
+<action>{"type":"fillInput","id":"operationQuantity","value":"100"}</action>
+<action>{"type":"clickButton","id":"inventoryOperationSave"}</action>
+
+### Neue Kollektion erstellen
+<action>{"type":"createNewCollection"}</action>
 
 ## Antwortformat
 
