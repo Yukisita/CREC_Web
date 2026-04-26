@@ -1,7 +1,7 @@
 # CREC Web AI 操作リファレンス
 
 AIチャットウィジェットが実行できる操作の完全リファレンスです。  
-サーバ側のシステムプロンプト（`Prompts/system_prompt.ja.txt` / `system_prompt.en.txt` / `system_prompt.de.txt`）には最小限の内容のみ記載されており、詳細はこのドキュメントで管理します。
+サーバ側のシステムプロンプトは `CREC_MCPServer/prompts/system_prompt.ja.txt` で管理されています。詳細な操作リファレンスはこのドキュメントを参照してください。
 
 ---
 
@@ -250,7 +250,7 @@ MCP サーバは環境変数に記載のない ID を自動的に除去するた
 
 ### システムプロンプトの編集
 
-`CREC_MCPServer/prompts/system_prompt.{lang}.txt` を直接編集することで、再コンパイルなしにプロンプトを変更できます。  
+`CREC_MCPServer/prompts/system_prompt.ja.txt` を直接編集することで、再コンパイルなしにプロンプトを変更できます。  
 ファイルはサーバ起動時にキャッシュされるため、変更後はサーバを再起動してください。
 
 ---
