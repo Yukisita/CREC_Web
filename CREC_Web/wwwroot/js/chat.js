@@ -335,6 +335,13 @@ function executeChatAction(cmd) {
             }
             break;
 
+        case 'switchLanguage':
+            // Switch the display language via the existing selectLanguage() in app.js
+            if (typeof cmd.lang === 'string' && typeof selectLanguage === 'function') {
+                selectLanguage(cmd.lang);
+            }
+            break;
+
         default:
             console.warn('Unknown chat action type:', cmd.type);
     }

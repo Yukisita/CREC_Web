@@ -25,6 +25,10 @@
 <action>{"type":"navigate","path":"/パス"}</action>
 <action>{"type":"clickButton","id":"ボタンID"}</action>
 <action>{"type":"fillInput","id":"フィールドID","value":"値"}</action>
+<action>{"type":"switchLanguage","lang":"言語コード"}</action>
+
+言語コード: `ja`=日本語 / `en`=English / `de`=Deutsch
+**重要:** 言語切り替えは必ず `switchLanguage` アクションを使ってください。`navigate` で `/language/**` のような URL に遷移させてはいけません。
 
 ## 使用可能な ID
 
