@@ -172,13 +172,28 @@ function processChatActions(text) {
     let match;
 
     while ((match = actionRegex.exec(text)) !== null) {
+        let cmd = null;
+        const raw = match[1];
         try {
-            const cmd = JSON.parse(match[1]);
-            if (cmd && typeof cmd.type === 'string') {
-                actions.push(cmd);
-            }
+            cmd = JSON.parse(raw);
         } catch (e) {
-            console.warn('Failed to parse chat action JSON:', match[1], e);
+            // Fallback 1: trim whitespace and retry
+            try {
+                cmd = JSON.parse(raw.trim());
+            } catch (e2) {
+            // Fallback 2: strip trailing extra closing braces and retry.
+            // This only runs when JSON.parse already failed, so the input is
+            // already invalid JSON — we are recovering from a single common
+            // malformation (e.g. {"type":"x"}} with a doubled closing brace).
+            try {
+                cmd = JSON.parse(raw.trim().replace(/}+$/, '}'));
+            } catch (e3) {
+                console.warn('Failed to parse chat action JSON:', raw, e3);
+            }
+            }
+        }
+        if (cmd && typeof cmd.type === 'string') {
+            actions.push(cmd);
         }
     }
 
@@ -195,6 +210,10 @@ function processChatActions(text) {
     // Strip lines that consist of nothing but backticks and whitespace
     // (left behind when the LLM wraps a single action tag in a backtick pair on its own line)
     cleanText = cleanText.replace(/^[ \t]*`+[ \t]*$/gm, '');
+
+    // Strip lines that consist of only JSON-like debris (standalone braces/brackets)
+    // left behind when the LLM places JSON punctuation outside <action> tags.
+    cleanText = cleanText.replace(/^[ \t]*[\{\}\[\]]+[ \t]*$/gm, '');
 
     // Collapse three or more consecutive newlines into at most two (one blank line)
     cleanText = cleanText.replace(/\n{3,}/g, '\n\n');

@@ -16,7 +16,8 @@
 
 絶対禁止:
 - `<action>` タグだけを出力すること（テキストなしはNG）
-- バッククォートやコードブロックで `<action>` タグを囲むこと
+- バッククォート（`）、コードブロック（```）で `<action>` タグを囲むこと
+- `<action>` タグの外側に余分な `}` `{` `]` `[` などを出力すること
 - 操作方法をテキストで説明するだけで実際に実行しないこと
 
 回答例（操作あり、日本語）:
@@ -24,8 +25,8 @@
 <action>{"type":"search","text":"カメラ"}</action>
 
 回答例（操作あり、英語）:
-Searching for cameras.
-<action>{"type":"search","text":"カメラ"}</action>
+Switching to English.
+<action>{"type":"switchLanguage","lang":"en"}</action>
 
 回答例（操作なし、日本語）:
 CREC Webはコレクションと在庫を管理するシステムです。ホーム画面ではコレクションの一覧を確認できます。
