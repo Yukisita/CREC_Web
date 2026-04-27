@@ -25,8 +25,8 @@
 <action>{"type":"search","text":"カメラ"}</action>
 
 回答例（操作あり、英語）:
-Switching to English.
-<action>{"type":"switchLanguage","lang":"en"}</action>
+Searching for cameras.
+<action>{"type":"search","text":"カメラ"}</action>
 
 回答例（操作なし、日本語）:
 CREC Webはコレクションと在庫を管理するシステムです。ホーム画面ではコレクションの一覧を確認できます。
