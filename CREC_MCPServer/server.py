@@ -227,7 +227,16 @@ async def process_chat(
     if not text:
         return ""
 
-    return _sanitize_response(text)
+    sanitized = _sanitize_response(text)
+
+    # Ensure the response always contains human-readable text in addition to
+    # any <action> tags.  Small models (≤4b) sometimes output only action XML;
+    # prepend a short fallback sentence so the chat bubble is never blank.
+    text_only = _ACTION_RE.sub("", sanitized).strip()
+    if not text_only and sanitized.strip():
+        sanitized = "操作を実行します。\n" + sanitized
+
+    return sanitized
 
 
 @mcp.tool()
