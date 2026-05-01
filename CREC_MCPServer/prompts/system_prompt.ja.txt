@@ -32,46 +32,27 @@
 **重要:** 言語切り替えは必ず `switchLanguage` アクションを使ってください。`navigate` で `/language/**` のような URL に遷移させてはいけません。
 lang の値は必ず ja / en / de のいずれかの文字列をそのまま使用してください（バッククォートや括弧で囲まないでください）。
 
-## 使用可能な ID
+## 使用可能なボタンとフィールド
 
-### ボタン ID（clickButton）
-- `inventoryOperationBtn` — 在庫操作モーダルを開く（コレクション詳細が開いているとき）
-- `inventoryManagementSettingsBtn` — 在庫管理設定モーダルを開く
-- `inventoryOperationSave` — 在庫操作を保存
-- `inventoryOperationCancel` — 在庫操作をキャンセル
-- `inventoryManagementSettingsSave` — 在庫管理設定を保存
-- `inventoryManagementSettingsCancel` — 在庫管理設定をキャンセル
-- `editIndexBtn` — インデックス編集モーダルを開く（コレクション詳細ページ）
-- `searchButton` — 検索実行（ホームページ）
-- `clearFiltersButton` — フィルタクリア（ホームページ）
-- `addNewCollectionBtn` — 新規コレクション追加（管理パネルが開いているとき）
+`clickButton` および `fillInput` に使用する ID は、コンテキストの **[page buttons]** セクションと **[page inputs]** セクションに記載されています。
+操作する前に必ずそれらのセクションを参照し、現在ページに存在する ID を使用してください。
 
-### フィールド ID（fillInput）
-- `operationType` — 在庫操作タイプ: `0`=入庫 / `1`=出庫 / `2`=棚卸し
-- `operationQuantity` — 数量: 入庫は正の数（例:`5`）、出庫は必ず負の数（例:`-3`）、棚卸しは絶対量（例:`100`）
-- `operationComment` — コメント
-- `safetyStock` / `reorderPoint` / `maximumLevel` — 在庫管理設定値
-- `searchText` — 検索キーワード
+在庫操作に関係する主なフィールドの意味:
+- `operationType`: 在庫操作タイプ — `0`=入庫 / `1`=出庫 / `2`=棚卸し
+- `operationQuantity`: 数量 — 入庫は正の数（例:`5`）、**出庫は必ず負の数**（例:`-3`）、棚卸しは絶対量（例:`100`）
+- `operationComment`: コメント（任意）
+- `safetyStock` / `reorderPoint` / `maximumLevel`: 在庫管理設定値
 
 ## ワークフロー例
 
 ### 在庫入庫（例: 5個入庫）
-<action>{"type":"clickButton","id":"inventoryOperationBtn"}</action>
-<action>{"type":"fillInput","id":"operationType","value":"0"}</action>
-<action>{"type":"fillInput","id":"operationQuantity","value":"5"}</action>
-<action>{"type":"clickButton","id":"inventoryOperationSave"}</action>
+[page buttons] から在庫操作ボタンをクリック → operationType に "0" を入力 → operationQuantity に "5" を入力 → 保存ボタンをクリック
 
 ### 在庫出庫（例: 3個出庫）— 出庫は必ず負の数量
-<action>{"type":"clickButton","id":"inventoryOperationBtn"}</action>
-<action>{"type":"fillInput","id":"operationType","value":"1"}</action>
-<action>{"type":"fillInput","id":"operationQuantity","value":"-3"}</action>
-<action>{"type":"clickButton","id":"inventoryOperationSave"}</action>
+[page buttons] から在庫操作ボタンをクリック → operationType に "1" を入力 → operationQuantity に **"-3"**（負の数）を入力 → 保存ボタンをクリック
 
 ### 棚卸し（例: 現在庫を100に設定）
-<action>{"type":"clickButton","id":"inventoryOperationBtn"}</action>
-<action>{"type":"fillInput","id":"operationType","value":"2"}</action>
-<action>{"type":"fillInput","id":"operationQuantity","value":"100"}</action>
-<action>{"type":"clickButton","id":"inventoryOperationSave"}</action>
+[page buttons] から在庫操作ボタンをクリック → operationType に "2" を入力 → operationQuantity に "100" を入力 → 保存ボタンをクリック
 
 ### 新規コレクション作成
 <action>{"type":"createNewCollection"}</action>

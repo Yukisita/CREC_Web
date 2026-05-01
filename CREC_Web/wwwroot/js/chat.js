@@ -10,7 +10,7 @@ to any external service.
 */
 
 const CHAT_HISTORY_MAX           = 20;   // Maximum messages to keep in context
-const CHAT_PAGE_CONTEXT_MAX      = 2000; // Maximum characters of page content for RAG
+const CHAT_PAGE_CONTEXT_MAX      = 4000; // Maximum characters of page content
 const CHAT_SESSION_KEY           = 'crec_chat_history_v1';         // sessionStorage key
 const CHAT_PENDING_ACTIONS_KEY   = 'crec_chat_pending_actions_v1'; // sessionStorage key for post-nav actions
 const CHAT_PANEL_STATE_KEY       = 'crec_chat_panel_open_v1';      // sessionStorage key for panel open/close state
@@ -124,33 +124,58 @@ function stripChatActions(text) {
 }
 
 /**
- * Get the current page's visible text for RAG context.
- * Includes a compact structured list of visible collections (from data attributes),
- * then appends remaining visible text while staying within the character limit.
+ * Get the current page's context for the AI.
+ * Includes:
+ *   - Structured list of visible collections (from data attributes)
+ *   - Interactive buttons and inputs currently on the page (dynamic UI element discovery)
+ *   - Remaining visible text
+ * The button/input sections allow the AI to use the correct IDs without any
+ * hardcoded ID lists in the system prompt — new UI elements are automatically
+ * discovered without needing prompt updates.
  * @returns {string}
  */
 function getChatPageContext() {
-    // Build a compact structured list from elements that carry data-collection-id
     let structuredContext = '';
+
+    // --- Visible collections ---
     const collectionEls = document.querySelectorAll('[data-collection-id]:not([data-collection-id=""])');
     if (collectionEls.length > 0) {
         const items = Array.from(collectionEls).map(el =>
             JSON.stringify({ name: el.dataset.collectionName || '', id: el.dataset.collectionId })
         );
-        structuredContext = `[visible collections (${items.length})]\n` + items.join('\n') + '\n\n';
+        structuredContext += `[visible collections (${items.length})]\n` + items.join('\n') + '\n\n';
     }
 
+    // --- Page buttons (clickButton action targets) ---
+    const buttonItems = [];
+    document.querySelectorAll('button[id], input[type="button"][id], input[type="submit"][id]').forEach(el => {
+        if (el.closest('#chatPanel')) return; // exclude chat panel
+        const label = (el.textContent || el.value || el.getAttribute('aria-label') || '').trim().replace(/\s+/g, ' ').substring(0, 40);
+        buttonItems.push(JSON.stringify({ id: el.id, label }));
+    });
+    if (buttonItems.length > 0) {
+        structuredContext += `[page buttons (${buttonItems.length})]\n` + buttonItems.join('\n') + '\n\n';
+    }
+
+    // --- Page inputs (fillInput action targets) ---
+    const inputItems = [];
+    document.querySelectorAll('input[id]:not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="checkbox"]):not([type="radio"]), select[id], textarea[id]').forEach(el => {
+        if (el.closest('#chatPanel')) return; // exclude chat panel
+        const info = { id: el.id, type: el.tagName.toLowerCase() === 'input' ? (el.type || 'text') : el.tagName.toLowerCase() };
+        const hint = (el.getAttribute('placeholder') || el.getAttribute('aria-label') || '').trim().substring(0, 40);
+        if (hint) info.hint = hint;
+        inputItems.push(JSON.stringify(info));
+    });
+    if (inputItems.length > 0) {
+        structuredContext += `[page inputs (${inputItems.length})]\n` + inputItems.join('\n') + '\n\n';
+    }
+
+    // --- Remaining visible page text ---
     const main = document.querySelector('main');
     if (!main) return structuredContext.substring(0, CHAT_PAGE_CONTEXT_MAX);
 
     const clone = main.cloneNode(true);
-
-    // Drop table rows (potentially huge amount of data)
-    clone.querySelectorAll('tbody').forEach(tbody => {
-        tbody.innerHTML = '';
-    });
-
-    // Drop the chat panel itself to avoid recursive context
+    clone.querySelectorAll('tbody').forEach(tbody => { tbody.innerHTML = ''; });
     const chatPanel = clone.querySelector('#chatPanel');
     if (chatPanel) chatPanel.remove();
 
