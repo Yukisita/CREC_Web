@@ -200,6 +200,23 @@ async def process_chat(
         if role in ("user", "assistant") and content:
             messages.append({"role": role, "content": content})
 
+    # Remove any trailing user messages from history (defensive guard).
+    # This can happen when a previous request failed after the user message was
+    # already saved to the client-side session – leaving an orphaned user turn
+    # with no assistant reply.  Sending two consecutive user messages to the LLM
+    # causes a 400 Bad Request.
+    removed = 0
+    while messages and messages[-1]["role"] == "user":
+        messages.pop()
+        removed += 1
+    if removed:
+        import logging
+        logging.warning(
+            "process_chat: removed %d orphaned user message(s) from history "
+            "(client-side session was likely corrupted by a previous error)",
+            removed,
+        )
+
     messages.append({"role": "user", "content": message})
 
     payload = {

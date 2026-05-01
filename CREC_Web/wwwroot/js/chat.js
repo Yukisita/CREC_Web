@@ -565,6 +565,13 @@ async function submitChatMessage() {
         if (thinkingEl) thinkingEl.remove();
 
         if (result.error) {
+            // Remove the user message that was saved before the failed request so that
+            // the next request does not send two consecutive user messages (which causes
+            // the LLM API to reject the request with HTTP 400 Bad Request).
+            if (chatMessages.length > 0 && chatMessages[chatMessages.length - 1].role === 'user') {
+                chatMessages.pop();
+                saveChatSession();
+            }
             appendChatMessage(
                 'assistant',
                 `<span class="text-danger"><i class="bi bi-exclamation-triangle-fill"></i> ${escapeHtml(result.message)}</span>`
