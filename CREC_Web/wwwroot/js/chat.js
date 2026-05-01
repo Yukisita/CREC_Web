@@ -17,6 +17,12 @@ const CHAT_PANEL_STATE_KEY       = 'crec_chat_panel_open_v1';      // sessionSto
 const CHAT_ACTION_INITIAL_DELAY  = 400;  // ms to wait before executing the first action
 const CHAT_ACTION_INTERVAL       = 600;  // ms gap between consecutive actions
 
+// Maximum length of button label and input hint strings sent to the AI
+const CHAT_ELEMENT_LABEL_MAX     = 40;
+
+// CSS selector for form inputs to include in the AI context (excludes hidden/button/checkbox/radio)
+const CHAT_INPUT_ELEMENT_SELECTOR = 'input[id]:not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="checkbox"]):not([type="radio"]), select[id], textarea[id]';
+
 // Action types that trigger a full page navigation (used to split action sequences)
 const CHAT_NAV_ACTION_TYPES = new Set(['navigate', 'createNewCollection']);
 
@@ -150,7 +156,7 @@ function getChatPageContext() {
     const buttonItems = [];
     document.querySelectorAll('button[id], input[type="button"][id], input[type="submit"][id]').forEach(el => {
         if (el.closest('#chatPanel')) return; // exclude chat panel
-        const label = (el.textContent || el.value || el.getAttribute('aria-label') || '').trim().replace(/\s+/g, ' ').substring(0, 40);
+        const label = (el.textContent || el.value || el.getAttribute('aria-label') || '').trim().replace(/\s+/g, ' ').substring(0, CHAT_ELEMENT_LABEL_MAX);
         buttonItems.push(JSON.stringify({ id: el.id, label }));
     });
     if (buttonItems.length > 0) {
@@ -159,10 +165,10 @@ function getChatPageContext() {
 
     // --- Page inputs (fillInput action targets) ---
     const inputItems = [];
-    document.querySelectorAll('input[id]:not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="checkbox"]):not([type="radio"]), select[id], textarea[id]').forEach(el => {
+    document.querySelectorAll(CHAT_INPUT_ELEMENT_SELECTOR).forEach(el => {
         if (el.closest('#chatPanel')) return; // exclude chat panel
         const info = { id: el.id, type: el.tagName.toLowerCase() === 'input' ? (el.type || 'text') : el.tagName.toLowerCase() };
-        const hint = (el.getAttribute('placeholder') || el.getAttribute('aria-label') || '').trim().substring(0, 40);
+        const hint = (el.getAttribute('placeholder') || el.getAttribute('aria-label') || '').trim().substring(0, CHAT_ELEMENT_LABEL_MAX);
         if (hint) info.hint = hint;
         inputItems.push(JSON.stringify(info));
     });
