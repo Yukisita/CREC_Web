@@ -674,6 +674,21 @@ function initializeChat() {
             openChatPanel();
         }
     } catch (e) {}
+
+    // Prevent Bootstrap modal focus trap from stealing focus when the user
+    // interacts with the chat panel while a modal is open.  Bootstrap adds a
+    // capture-phase 'focusin' listener on the document that redirects focus
+    // back to the modal whenever it detects focus leaving the modal element.
+    // By intercepting the event first (capture phase, stopImmediatePropagation)
+    // we ensure Bootstrap never sees the event when focus is inside the chat panel.
+    const chatPanelEl = document.getElementById('chatPanel');
+    if (chatPanelEl) {
+        document.addEventListener('focusin', function (e) {
+            if (chatPanelEl.contains(e.target)) {
+                e.stopImmediatePropagation();
+            }
+        }, true); // capture = true so this runs before Bootstrap's handler
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function () {
