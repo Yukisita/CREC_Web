@@ -130,6 +130,33 @@ function stripChatActions(text) {
 }
 
 /**
+ * Returns true if the element should be included in the AI page context.
+ * Excludes elements that are inside closed/hidden sliding panels or hidden modals,
+ * so the AI only sees elements that are currently reachable by the user.
+ *
+ * Covered cases:
+ *   1. Sliding panels (.admin-panel, .detail-panel) – toggled via .open class.
+ *   2. Custom overlay modals (.qr-scanner-modal) – toggled via .show class.
+ *   3. Bootstrap modals (.modal.fade) – toggled via .show class.
+ *
+ * @param {Element} el
+ * @returns {boolean}
+ */
+function isChatContextElement(el) {
+    // Sliding panels: visible only when the .open class is present
+    if (el.closest('.admin-panel:not(.open)')) return false;
+    if (el.closest('.detail-panel:not(.open)')) return false;
+
+    // Custom overlay modals (qr-scanner-modal type): visible only when .show is present
+    if (el.closest('.qr-scanner-modal:not(.show)')) return false;
+
+    // Bootstrap modals: visible only when .show is present
+    if (el.closest('.modal.fade:not(.show)')) return false;
+
+    return true;
+}
+
+/**
  * Get the current page's context for the AI.
  * Includes:
  *   - Structured list of visible collections (from data attributes)
@@ -156,6 +183,7 @@ function getChatPageContext() {
     const buttonItems = [];
     document.querySelectorAll('button[id], input[type="button"][id], input[type="submit"][id]').forEach(el => {
         if (el.closest('#chatPanel')) return; // exclude chat panel
+        if (!isChatContextElement(el)) return; // exclude elements in closed/hidden panels
         const label = (el.textContent || el.value || el.getAttribute('aria-label') || '').trim().replace(/\s+/g, ' ').substring(0, CHAT_ELEMENT_LABEL_MAX);
         buttonItems.push(JSON.stringify({ id: el.id, label }));
     });
@@ -167,6 +195,7 @@ function getChatPageContext() {
     const inputItems = [];
     document.querySelectorAll(CHAT_INPUT_ELEMENT_SELECTOR).forEach(el => {
         if (el.closest('#chatPanel')) return; // exclude chat panel
+        if (!isChatContextElement(el)) return; // exclude elements in closed/hidden panels
         const info = { id: el.id, type: el.tagName.toLowerCase() === 'input' ? (el.type || 'text') : el.tagName.toLowerCase() };
         const hint = (el.getAttribute('placeholder') || el.getAttribute('aria-label') || '').trim().substring(0, CHAT_ELEMENT_LABEL_MAX);
         if (hint) info.hint = hint;
