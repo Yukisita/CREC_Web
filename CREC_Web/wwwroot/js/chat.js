@@ -23,6 +23,14 @@ const CHAT_ELEMENT_LABEL_MAX     = 40;
 // CSS selector for form inputs to include in the AI context (excludes hidden/button/checkbox/radio)
 const CHAT_INPUT_ELEMENT_SELECTOR = 'input[id]:not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="checkbox"]):not([type="radio"]), select[id], textarea[id]';
 
+// Button IDs that have dedicated high-level action types and should NOT appear in the
+// [page buttons] context.  Exposing them would cause the AI to try clickButton instead
+// of the purpose-built action, which may open a new browser window or behave differently.
+const CHAT_EXCLUDED_BUTTON_IDS = new Set([
+    'addNewCollectionBtn', // use createNewCollection action instead
+    'editProjectBtn',      // use navigate /ProjectEdit action instead
+]);
+
 // Action types that trigger a full page navigation (used to split action sequences)
 const CHAT_NAV_ACTION_TYPES = new Set(['navigate', 'createNewCollection']);
 
@@ -184,6 +192,7 @@ function getChatPageContext() {
     document.querySelectorAll('button[id], input[type="button"][id], input[type="submit"][id]').forEach(el => {
         if (el.closest('#chatPanel')) return; // exclude chat panel
         if (!isChatContextElement(el)) return; // exclude elements in closed/hidden panels
+        if (CHAT_EXCLUDED_BUTTON_IDS.has(el.id)) return; // exclude buttons with dedicated action types
         const label = (el.textContent || el.value || el.getAttribute('aria-label') || '').trim().replace(/\s+/g, ' ').substring(0, CHAT_ELEMENT_LABEL_MAX);
         buttonItems.push(JSON.stringify({ id: el.id, label }));
     });

@@ -46,20 +46,49 @@ _SAFE_BUTTON_IDS_DEFAULT = ",".join([
     "inventoryManagementSettingsSave",
     "inventoryManagementSettingsCancel",
     "editIndexBtn",
+    # ProjectEdit page
+    "projectEditSaveBtn",
+    # Collection index edit modal
+    "saveIndexEdit",
+    # View/filter controls
+    "toggleAdvancedFiltersButton",
+    "gridViewBtn",
+    "tableViewBtn",
 ])
 
 # Whitelist of form field IDs the AI is permitted to fill
 _SAFE_INPUT_IDS_DEFAULT = ",".join([
+    # Inventory operation modal
     "operationType",
     "operationQuantity",
     "operationComment",
-    "searchText",
+    # Inventory management settings modal
     "safetyStock",
     "reorderPoint",
     "maximumLevel",
+    # Search / filter controls
+    "searchText",
     "searchField",
     "searchMethod",
     "inventoryStatusFilter",
+    # Collection index edit modal
+    "editName",
+    "editManagementCode",
+    "editRegistrationDate",
+    "editCategory",
+    "editFirstTag",
+    "editSecondTag",
+    "editThirdTag",
+    "editLocation",
+    # Project settings page
+    "editProjectName",
+    "editCollectionNameLabel",
+    "editUUIDLabel",
+    "editManagementCodeLabel",
+    "editCategoryLabel",
+    "editTag1Label",
+    "editTag2Label",
+    "editTag3Label",
 ])
 
 SAFE_BUTTON_IDS: frozenset[str] = frozenset(
