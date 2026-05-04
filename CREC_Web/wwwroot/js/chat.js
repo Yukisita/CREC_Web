@@ -181,9 +181,13 @@ function getChatPageContext() {
     // --- Visible collections ---
     const collectionEls = document.querySelectorAll('[data-collection-id]:not([data-collection-id=""])');
     if (collectionEls.length > 0) {
-        const items = Array.from(collectionEls).map(el =>
-            JSON.stringify({ name: el.dataset.collectionName || '', id: el.dataset.collectionId })
-        );
+        const items = Array.from(collectionEls)
+            .filter(el => el.dataset.collectionId)
+            .map(el => {
+                const name = el.dataset.collectionName || '';
+                const id = el.dataset.collectionId;
+                return JSON.stringify({ name, id, url: `/Collection/${encodeURIComponent(id)}` });
+            });
         structuredContext += `[visible collections (${items.length})]\n` + items.join('\n') + '\n\n';
     }
 
