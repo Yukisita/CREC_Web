@@ -807,6 +807,8 @@
                 alert(t('error-loading') + ': ' + error.message);
             }
         }
+        // Expose to chat.js (AI chat panel openCollectionByName / showCollectionPanel actions)
+        window.showCollectionDetails = showCollectionDetails;
 
         /**
          * コレクションの詳細パネルに情報を表示する

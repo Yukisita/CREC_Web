@@ -352,6 +352,55 @@ function executeChatAction(cmd) {
             }
             break;
 
+        case 'openCollectionByName': {
+            // Open a collection by its display name — looks up the ID from the DOM.
+            // This is the preferred action for opening collections because the AI only
+            // needs the name visible on screen, not an internal ID.
+            const targetName = typeof cmd.name === 'string' ? cmd.name.trim() : '';
+            if (!targetName) break;
+
+            let collectionId = null;
+            const allCollectionEls = document.querySelectorAll('[data-collection-id]:not([data-collection-id=""])');
+            const lowerTarget = targetName.toLowerCase();
+
+            // 1. Exact match
+            for (const el of allCollectionEls) {
+                if (el.dataset.collectionName === targetName) {
+                    collectionId = el.dataset.collectionId;
+                    break;
+                }
+            }
+            // 2. Case-insensitive exact match
+            if (!collectionId) {
+                for (const el of allCollectionEls) {
+                    if ((el.dataset.collectionName || '').toLowerCase() === lowerTarget) {
+                        collectionId = el.dataset.collectionId;
+                        break;
+                    }
+                }
+            }
+            // 3. Partial (contains) match
+            if (!collectionId) {
+                for (const el of allCollectionEls) {
+                    if ((el.dataset.collectionName || '').toLowerCase().includes(lowerTarget)) {
+                        collectionId = el.dataset.collectionId;
+                        break;
+                    }
+                }
+            }
+
+            if (collectionId) {
+                if (typeof window.showCollectionDetails === 'function') {
+                    window.showCollectionDetails(collectionId);
+                } else {
+                    openCollectionWindow(collectionId);
+                }
+            } else {
+                console.warn('openCollectionByName: no collection found for name:', targetName);
+            }
+            break;
+        }
+
         case 'showAdminPanel':
             openAdminPanel();
             break;
