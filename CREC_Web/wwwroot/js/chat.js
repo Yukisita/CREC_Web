@@ -345,11 +345,11 @@ function executeChatAction(cmd) {
             break;
 
         case 'showCollectionPanel':
-            // Show the collection detail panel on the current page when available
-            // (home page), otherwise fall back to opening in a new window.
+            // Show the collection overview panel on the current page when available
+            // (home page), otherwise navigate to the collection page.
             if (cmd.id && typeof cmd.id === 'string') {
-                if (typeof window.showCollectionDetails === 'function') {
-                    window.showCollectionDetails(cmd.id);
+                if (typeof window.showCollectionOverview === 'function') {
+                    window.showCollectionOverview(cmd.id);
                 } else {
                     openCollectionWindow(cmd.id);
                 }
@@ -394,8 +394,8 @@ function executeChatAction(cmd) {
             }
 
             if (collectionId) {
-                if (typeof window.showCollectionDetails === 'function') {
-                    window.showCollectionDetails(collectionId);
+                if (typeof window.showCollectionOverview === 'function') {
+                    window.showCollectionOverview(collectionId);
                 } else {
                     openCollectionWindow(collectionId);
                 }
