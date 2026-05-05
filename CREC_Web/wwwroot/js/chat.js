@@ -547,7 +547,7 @@ async function sendChatToServer(userText) {
         const data = await response.json();
 
         if (!response.ok || data.error) {
-            return { error: true, message: data.error || `HTTP ${response.status}` };
+            return { error: true, message: t('chat-error-server') };
         }
 
         if (!data.text) {
@@ -556,7 +556,14 @@ async function sendChatToServer(userText) {
 
         return { error: false, text: data.text };
     } catch (e) {
-        return { error: true, message: e.message || t('chat-error') };
+        if (e instanceof TypeError) {
+            // TypeError from fetch usually means a network error ("Failed to fetch")
+            return { error: true, message: t('chat-error-network') };
+        }
+        if (e && (e.name === 'AbortError' || (e.message && e.message.toLowerCase().includes('timeout')))) {
+            return { error: true, message: t('chat-error-timeout') };
+        }
+        return { error: true, message: t('chat-error') };
     }
 }
 
@@ -656,13 +663,15 @@ async function submitChatMessage() {
         if (thinkingEl) thinkingEl.remove();
 
         if (result.error) {
-            // Remove the user message that was saved before the failed request so that
-            // the next request does not send two consecutive user messages (which causes
-            // the LLM API to reject the request with HTTP 400 Bad Request).
-            if (chatMessages.length > 0 && chatMessages[chatMessages.length - 1].role === 'user') {
+            // Remove ALL trailing user messages so the history ends on an assistant turn.
+            // A single pop() is not enough if multiple orphaned user messages accumulated
+            // (e.g. due to page navigations during pending requests).  Removing all of them
+            // ensures the next request will have a valid alternating history.
+            const before = chatMessages.length;
+            while (chatMessages.length > 0 && chatMessages[chatMessages.length - 1].role === 'user') {
                 chatMessages.pop();
-                saveChatSession();
             }
+            if (chatMessages.length < before) saveChatSession();
             appendChatMessage(
                 'assistant',
                 `<span class="text-danger"><i class="bi bi-exclamation-triangle-fill"></i> ${escapeHtml(result.message)}</span>`
