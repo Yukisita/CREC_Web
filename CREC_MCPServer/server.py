@@ -15,6 +15,7 @@ The CREC Web C# backend acts as an MCP client and calls this server's
 """
 
 import json
+import logging
 import os
 import re
 from pathlib import Path
@@ -22,6 +23,8 @@ from typing import Any
 
 import httpx
 from mcp.server.fastmcp import FastMCP
+
+_logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Configuration (from environment variables with sensible defaults)
@@ -182,6 +185,47 @@ def _sanitize_response(text: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Message history sanitizer
+# ---------------------------------------------------------------------------
+
+def _sanitize_messages(messages: list[dict[str, str]]) -> list[dict[str, str]]:
+    """
+    Ensure the conversation messages list has strictly alternating user/assistant
+    roles.  System messages are preserved as-is at the front.
+
+    Rules applied (in order):
+    1. Consecutive messages of the same non-system role are collapsed — the
+       later message replaces the earlier one (keeps the most recent intent).
+    2. Leading assistant messages (appearing before the first user message) are
+       dropped — some models (e.g. Gemma 4) reject conversations that start
+       with an assistant turn.
+
+    This fixes intermittent 400 Bad Request errors that occur when the
+    client-side session retains orphaned user messages from previous failed
+    requests, creating non-trailing consecutive user turns in history.
+    """
+    system_msgs = [m for m in messages if m.get("role") == "system"]
+    conv_msgs   = [m for m in messages if m.get("role") in ("user", "assistant")]
+
+    # Collapse consecutive same-role messages (last message in each run wins)
+    sanitized: list[dict[str, str]] = []
+    for msg in conv_msgs:
+        if sanitized and sanitized[-1]["role"] == msg["role"]:
+            sanitized[-1] = msg
+        else:
+            sanitized.append(msg)
+
+    # Drop leading assistant messages
+    first_user = next(
+        (i for i, m in enumerate(sanitized) if m["role"] == "user"),
+        len(sanitized),
+    )
+    sanitized = sanitized[first_user:]
+
+    return system_msgs + sanitized
+
+
+# ---------------------------------------------------------------------------
 # MCP server definition
 # ---------------------------------------------------------------------------
 
@@ -229,6 +273,14 @@ async def process_chat(
         if role in ("user", "assistant") and content:
             messages.append({"role": role, "content": content})
 
+    # Sanitize to ensure strictly alternating user/assistant roles throughout.
+    # The trailing-user guard below only handles the last turn; this handles
+    # non-trailing consecutive same-role messages that can accumulate when
+    # previous requests failed without cleaning up the client-side session
+    # (e.g. page navigation mid-request).  Strict models such as Gemma 4
+    # return 400 Bad Request when consecutive same-role messages are present.
+    messages = _sanitize_messages(messages)
+
     # Remove any trailing user messages from history (defensive guard).
     # This can happen when a previous request failed after the user message was
     # already saved to the client-side session – leaving an orphaned user turn
@@ -239,8 +291,7 @@ async def process_chat(
         messages.pop()
         removed += 1
     if removed:
-        import logging
-        logging.warning(
+        _logger.warning(
             "process_chat: removed %d orphaned user message(s) from history "
             "(client-side session was likely corrupted by a previous error)",
             removed,
@@ -260,6 +311,12 @@ async def process_chat(
             json=payload,
             headers={"Content-Type": "application/json"},
         )
+        if not response.is_success:
+            _logger.error(
+                "LLM API returned %d. Response body: %s",
+                response.status_code,
+                response.text[:500],
+            )
         response.raise_for_status()
 
     data = response.json()
