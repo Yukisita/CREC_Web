@@ -32,7 +32,7 @@ const CHAT_EXCLUDED_BUTTON_IDS = new Set([
 ]);
 
 // Action types that trigger a full page navigation (used to split action sequences)
-const CHAT_NAV_ACTION_TYPES = new Set(['navigate', 'createNewCollection']);
+const CHAT_NAV_ACTION_TYPES = new Set(['navigate', 'createNewCollection', 'navigateToCollectionByName']);
 
 // Chat state
 let chatMessages = []; // { role: 'user'|'assistant', content: string }
@@ -322,6 +322,30 @@ function processChatActions(text) {
 }
 
 /**
+ * Find a collection ID from the DOM by display name.
+ * Performs three-tier matching: exact → case-insensitive exact → partial (contains).
+ * @param {string} targetName - Collection name to search for
+ * @returns {string|null} Collection ID or null if not found
+ */
+function findCollectionIdByName(targetName) {
+    const allCollectionEls = document.querySelectorAll('[data-collection-id]:not([data-collection-id=""])');
+    const lowerTarget = targetName.toLowerCase();
+    // 1. Exact match
+    for (const el of allCollectionEls) {
+        if (el.dataset.collectionName === targetName) return el.dataset.collectionId;
+    }
+    // 2. Case-insensitive exact match
+    for (const el of allCollectionEls) {
+        if ((el.dataset.collectionName || '').toLowerCase() === lowerTarget) return el.dataset.collectionId;
+    }
+    // 3. Partial (contains) match
+    for (const el of allCollectionEls) {
+        if ((el.dataset.collectionName || '').toLowerCase().includes(lowerTarget)) return el.dataset.collectionId;
+    }
+    return null;
+}
+
+/**
  * Execute a single parsed chat action command.
  * @param {object} cmd - Parsed action object
  */
@@ -363,36 +387,7 @@ function executeChatAction(cmd) {
             const targetName = typeof cmd.name === 'string' ? cmd.name.trim() : '';
             if (!targetName) break;
 
-            let collectionId = null;
-            const allCollectionEls = document.querySelectorAll('[data-collection-id]:not([data-collection-id=""])');
-            const lowerTarget = targetName.toLowerCase();
-
-            // 1. Exact match
-            for (const el of allCollectionEls) {
-                if (el.dataset.collectionName === targetName) {
-                    collectionId = el.dataset.collectionId;
-                    break;
-                }
-            }
-            // 2. Case-insensitive exact match
-            if (!collectionId) {
-                for (const el of allCollectionEls) {
-                    if ((el.dataset.collectionName || '').toLowerCase() === lowerTarget) {
-                        collectionId = el.dataset.collectionId;
-                        break;
-                    }
-                }
-            }
-            // 3. Partial (contains) match
-            if (!collectionId) {
-                for (const el of allCollectionEls) {
-                    if ((el.dataset.collectionName || '').toLowerCase().includes(lowerTarget)) {
-                        collectionId = el.dataset.collectionId;
-                        break;
-                    }
-                }
-            }
-
+            const collectionId = findCollectionIdByName(targetName);
             if (collectionId) {
                 if (typeof window.showCollectionOverview === 'function') {
                     window.showCollectionOverview(collectionId);
@@ -401,6 +396,23 @@ function executeChatAction(cmd) {
                 }
             } else {
                 console.warn('openCollectionByName: no collection found for name:', targetName);
+            }
+            break;
+        }
+
+        case 'navigateToCollectionByName': {
+            // Navigate to a collection's detail page by its display name.
+            // Looks up the ID from DOM data-collection-id / data-collection-name attributes.
+            // Use this when the user wants to see details (詳細); use openCollectionByName
+            // when the user wants the overview side panel (概要).
+            const targetName = typeof cmd.name === 'string' ? cmd.name.trim() : '';
+            if (!targetName) break;
+
+            const collectionId = findCollectionIdByName(targetName);
+            if (collectionId) {
+                window.location.href = `/Collection/${encodeURIComponent(collectionId)}`;
+            } else {
+                console.warn('navigateToCollectionByName: no collection found for name:', targetName);
             }
             break;
         }
