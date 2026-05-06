@@ -347,6 +347,11 @@ function findCollectionIdByName(targetName) {
     return null;
 }
 
+// Regex that detects "show the detail page" intent in a user message.
+// Matches Japanese 詳細+navigation-verb patterns and English equivalents.
+// Avoids false-positives on "詳細フィルタ" (advanced filters) or "詳細な説明" (detailed explanation).
+const DETAIL_PAGE_INTENT_PATTERN = /詳細(ページ|画面|を見|を表示|に遷移|に移動|へ移動|で見|に行|を開)|detail\s*(page|screen)|show\s+details\b/i;
+
 /**
  * Determine whether the most recent user message expresses intent to navigate to the
  * collection *detail page* (詳細) rather than opening the overview side panel (概要).
@@ -356,9 +361,9 @@ function findCollectionIdByName(targetName) {
  * @returns {boolean}
  */
 function wantsCollectionDetailPage() {
-    const lastUserMsg = chatMessages.filter(m => m.role === 'user').slice(-1)[0]?.content || '';
-    // Match explicit "詳細" mentions; avoid false-positive on "詳細フィルタ" (filter settings).
-    return /詳細(ページ|画面|を見|を表示|に遷移|に移動|へ移動|で見|に行|を開)|detail\s*(page|screen)|show\s+details\b/i.test(lastUserMsg);
+    const msgs = Array.isArray(chatMessages) ? chatMessages : [];
+    const lastUserMsg = msgs.filter(m => m.role === 'user').slice(-1)[0]?.content || '';
+    return DETAIL_PAGE_INTENT_PATTERN.test(lastUserMsg);
 }
 
 /**
