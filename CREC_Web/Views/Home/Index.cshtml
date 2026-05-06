@@ -189,8 +189,8 @@
                 { id: 'searchButton', event: 'click', handler: () => searchCollections() },// 検索ボタンのイベントリスナ
                 { id: 'qrScanButton', event: 'click', handler: openQrScanner },// QRスキャンボタンのイベントリスナ
                 { id: 'clearFiltersButton', event: 'click', handler: clearFilters },// フィルタクリアボタンのイベントリスナ
-                { id: 'detailPanelOverlay', event: 'click', handler: closeDetailPanel },// 詳細パネルオープンのイベントリスナ
-                { id: 'detailPanelClose', event: 'click', handler: closeDetailPanel },// 詳細パネルクローズのイベントリスナ
+                { id: 'overviewPanelOverlay', event: 'click', handler: closeOverviewPanel },// 概要パネルクローズのイベントリスナ
+                { id: 'overviewPanelClose', event: 'click', handler: closeOverviewPanel },// 概要パネルクローズのイベントリスナ
                 { id: 'gridViewBtn', event: 'click', handler: switchToGridView },// グリッド表示ボタンのイベントリスナ
                 { id: 'tableViewBtn', event: 'click', handler: switchToTableView },// テーブル表示ボタンのイベントリスナ
                 { id: 'toggleAdvancedFiltersButton', event: 'click', handler: toggleAdvancedFilters },// 詳細フィルタ表示切り替えボタンのイベントリスナ
@@ -824,10 +824,10 @@
          * @@param {object} collection - コレクションデータ
          */
         function displayCollectionOverviewPanel(collection) {
-            const panel = document.getElementById('detailPanel');
-            const overlay = document.getElementById('detailPanelOverlay');
-            const panelTitle = document.getElementById('detailPanelTitle');
-            const panelBody = document.getElementById('detailPanelBody');
+            const panel = document.getElementById('overviewPanel');
+            const overlay = document.getElementById('overviewPanelOverlay');
+            const panelTitle = document.getElementById('overviewPanelTitle');
+            const panelBody = document.getElementById('overviewPanelBody');
 
             // 新しいリスナを設定する前に既存のイベントリスナをクリーンアップ
             cleanupPanelEventListeners(panel);
@@ -1054,11 +1054,11 @@
         }
 
         /**
-         * 詳細パネルを閉じる
+         * 概要パネルを閉じる
          */
-        function closeDetailPanel() {
-            const panel = document.getElementById('detailPanel');
-            const overlay = document.getElementById('detailPanelOverlay');
+        function closeOverviewPanel() {
+            const panel = document.getElementById('overviewPanel');
+            const overlay = document.getElementById('overviewPanelOverlay');
 
             // イベントリスナをクリーンアップ
             cleanupPanelEventListeners(panel);

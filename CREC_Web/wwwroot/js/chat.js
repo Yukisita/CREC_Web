@@ -27,8 +27,10 @@ const CHAT_INPUT_ELEMENT_SELECTOR = 'input[id]:not([type="hidden"]):not([type="b
 // [page buttons] context.  Exposing them would cause the AI to try clickButton instead
 // of the purpose-built action, which may open a new browser window or behave differently.
 const CHAT_EXCLUDED_BUTTON_IDS = new Set([
-    'addNewCollectionBtn', // use createNewCollection action instead
-    'editProjectBtn',      // use navigate /ProjectEdit action instead
+    'addNewCollectionBtn',   // use createNewCollection action instead
+    'editProjectBtn',        // use navigate /ProjectEdit action instead
+    'overviewPanelClose',    // close button – AI should not close the overview panel
+    'openCollectionWindowBtn', // opens new window; use navigate or navigateToCollectionByName instead
 ]);
 
 // Action types that trigger a full page navigation (used to split action sequences)
@@ -346,6 +348,20 @@ function findCollectionIdByName(targetName) {
 }
 
 /**
+ * Determine whether the most recent user message expresses intent to navigate to the
+ * collection *detail page* (詳細) rather than opening the overview side panel (概要).
+ * This allows the frontend to route correctly even when the LLM uses the generic
+ * `openCollectionByName` action, without requiring any system-prompt changes or
+ * MCP server restart.
+ * @returns {boolean}
+ */
+function wantsCollectionDetailPage() {
+    const lastUserMsg = chatMessages.filter(m => m.role === 'user').slice(-1)[0]?.content || '';
+    // Match explicit "詳細" mentions; avoid false-positive on "詳細フィルタ" (filter settings).
+    return /詳細(ページ|画面|を見|を表示|に遷移|に移動|へ移動|で見|に行|を開)|detail\s*(page|screen)|show\s+details\b/i.test(lastUserMsg);
+}
+
+/**
  * Execute a single parsed chat action command.
  * @param {object} cmd - Parsed action object
  */
@@ -369,10 +385,13 @@ function executeChatAction(cmd) {
             break;
 
         case 'showCollectionPanel':
-            // Show the collection overview panel on the current page when available
-            // (home page), otherwise navigate to the collection page.
+            // Show the collection overview panel or navigate to detail page,
+            // depending on whether the user's message contains "詳細" (detail) intent.
+            // This frontend-driven routing works regardless of the system prompt version.
             if (cmd.id && typeof cmd.id === 'string') {
-                if (typeof window.showCollectionOverview === 'function') {
+                if (wantsCollectionDetailPage()) {
+                    window.location.href = `/Collection/${encodeURIComponent(cmd.id)}`;
+                } else if (typeof window.showCollectionOverview === 'function') {
                     window.showCollectionOverview(cmd.id);
                 } else {
                     openCollectionWindow(cmd.id);
@@ -382,14 +401,17 @@ function executeChatAction(cmd) {
 
         case 'openCollectionByName': {
             // Open a collection by its display name — looks up the ID from the DOM.
-            // This is the preferred action for opening collections because the AI only
-            // needs the name visible on screen, not an internal ID.
+            // Routes to detail page if the user's message contains "詳細" intent,
+            // otherwise opens the overview side panel (概要).
+            // This frontend-driven routing works regardless of the system prompt version.
             const targetName = typeof cmd.name === 'string' ? cmd.name.trim() : '';
             if (!targetName) break;
 
             const collectionId = findCollectionIdByName(targetName);
             if (collectionId) {
-                if (typeof window.showCollectionOverview === 'function') {
+                if (wantsCollectionDetailPage()) {
+                    window.location.href = `/Collection/${encodeURIComponent(collectionId)}`;
+                } else if (typeof window.showCollectionOverview === 'function') {
                     window.showCollectionOverview(collectionId);
                 } else {
                     openCollectionWindow(collectionId);
