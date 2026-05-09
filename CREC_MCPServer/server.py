@@ -109,6 +109,17 @@ _ACTION_RE: re.Pattern = re.compile(r"<action>([\s\S]*?)</action>")
 # Maximum timeout for LLM requests (seconds)
 LLM_TIMEOUT: float = float(os.getenv("LLM_TIMEOUT", "120"))
 
+# Maximum characters of page context to inject into the system prompt.
+# Keeping this small prevents the system prompt from exceeding the model's
+# context window (n_keep >= n_ctx 400 errors).  Clients may send up to
+# CHAT_PAGE_CONTEXT_MAX characters; this cap applies an additional server-side
+# guard.
+MAX_CONTEXT_CHARS: int = int(os.getenv("MAX_CONTEXT_CHARS", "1200"))
+
+# Maximum number of prior conversation turns (user+assistant pairs) to include
+# in each LLM request.  Older turns are dropped to stay within n_ctx.
+MAX_HISTORY_TURNS: int = int(os.getenv("MAX_HISTORY_TURNS", "8"))
+
 # ---------------------------------------------------------------------------
 # Prompt helpers
 # ---------------------------------------------------------------------------
@@ -132,19 +143,28 @@ def _load_prompt_template() -> str:
 
 
 def _build_system_prompt(lang: str, page_title: str, page_context: str, project_name: str) -> str:
-    """Build system prompt by filling template placeholders."""
+    """Build system prompt by filling template placeholders.
+
+    The page_context is truncated to MAX_CONTEXT_CHARS before injection to
+    prevent the system prompt from exceeding the model's context window
+    (which causes 400 Bad Request: n_keep >= n_ctx).
+    """
     template = _load_prompt_template()
 
     if not template:
         return ""
 
-    context = page_context.strip() or "（コンテンツなし）"
+    context_raw = page_context.strip() or "（コンテンツなし）"
+    # Truncate context to avoid exceeding the model's context window
+    if len(context_raw) > MAX_CONTEXT_CHARS:
+        context_raw = context_raw[:MAX_CONTEXT_CHARS] + "\n…（コンテキスト省略）"
+        _logger.debug("page_context truncated to %d chars", MAX_CONTEXT_CHARS)
 
     return (
         template
         .replace("{{projectName}}", project_name)
         .replace("{{pageTitle}}", page_title)
-        .replace("{{context}}", context)
+        .replace("{{context}}", context_raw)
     )
 
 
@@ -267,7 +287,11 @@ async def process_chat(
     if system_prompt:
         messages.append({"role": "system", "content": system_prompt})
 
-    for turn in history:
+    # Limit history to the most recent MAX_HISTORY_TURNS turns to stay within
+    # the model's context window.  Each "turn" = one user + one assistant message.
+    history_turns = history[-MAX_HISTORY_TURNS * 2:] if history else []
+
+    for turn in history_turns:
         role = turn.get("role", "")
         content = turn.get("content", "")
         if role in ("user", "assistant") and content:
