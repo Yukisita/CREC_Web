@@ -118,7 +118,9 @@ MAX_CONTEXT_CHARS: int = int(os.getenv("MAX_CONTEXT_CHARS", "3000"))
 
 # Maximum number of prior conversation turns (user+assistant pairs) to include
 # in each LLM request.  Older turns are dropped to stay within n_ctx.
-MAX_HISTORY_TURNS: int = int(os.getenv("MAX_HISTORY_TURNS", "16"))
+# With an 8192-token context and a system prompt that can occupy 3000–5000 tokens
+# (template + page context), keeping 10 turns leaves ~3000 tokens for history.
+MAX_HISTORY_TURNS: int = int(os.getenv("MAX_HISTORY_TURNS", "10"))
 
 # ---------------------------------------------------------------------------
 # Prompt helpers
@@ -327,6 +329,14 @@ async def process_chat(
         "model": LLM_MODEL,
         "messages": messages,
         "stream": False,
+        # llama.cpp / LM Studio extension: keep ALL system-prompt tokens intact
+        # when the sliding context window evicts old tokens.  Without this,
+        # system-prompt tokens are evicted first as history grows, causing the
+        # AI to "forget" its instructions (the behaviour reported as
+        # "プロンプト記載の内容が動かなくなる").
+        # -1 = preserve every token of the initial system message.
+        # Backends that do not support this parameter safely ignore it.
+        "n_keep": -1,
     }
 
     async with httpx.AsyncClient(timeout=LLM_TIMEOUT) as client:
