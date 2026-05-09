@@ -19,6 +19,10 @@ const CHAT_ACTION_INTERVAL       = 600;  // ms gap between consecutive actions
 
 // Maximum length of button label and input hint strings sent to the AI
 const CHAT_ELEMENT_LABEL_MAX     = 40;
+// Maximum number of select options to include per select element in AI context
+const CHAT_SELECT_OPTIONS_MAX    = 10;
+// Maximum length of a [page data] value string sent to the AI
+const CHAT_DATA_VALUE_MAX        = 80;
 
 // CSS selector for form inputs to include in the AI context (excludes hidden/button/checkbox/radio)
 const CHAT_INPUT_ELEMENT_SELECTOR = 'input[id]:not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="checkbox"]):not([type="radio"]), select[id], textarea[id]';
@@ -183,9 +187,16 @@ function getChatPageContext() {
     // --- Current collection page (Collection/Index.cshtml exposes this after async load) ---
     if (window.currentPageCollection && window.currentPageCollection.id) {
         const col = window.currentPageCollection;
-        structuredContext += `[current collection]\n` +
-            JSON.stringify({ id: col.id, name: col.name || '', url: col.url || `/Collection/${encodeURIComponent(col.id)}` }) +
-            '\n\n';
+        const colData = {
+            id: col.id,
+            name: col.name || '',
+            url: col.url || `/Collection/${encodeURIComponent(col.id)}`
+        };
+        if (col.inventory !== undefined) colData.inventory = col.inventory;
+        if (col.managementCode) colData.managementCode = col.managementCode;
+        if (col.category) colData.category = col.category;
+        if (col.location) colData.location = col.location;
+        structuredContext += `[current collection]\n` + JSON.stringify(colData) + '\n\n';
     }
 
     // --- Visible collections ---
@@ -219,13 +230,41 @@ function getChatPageContext() {
     document.querySelectorAll(CHAT_INPUT_ELEMENT_SELECTOR).forEach(el => {
         if (el.closest('#chatPanel')) return; // exclude chat panel
         if (!isChatContextElement(el)) return; // exclude elements in closed/hidden panels
-        const info = { id: el.id, type: el.tagName.toLowerCase() === 'input' ? (el.type || 'text') : el.tagName.toLowerCase() };
-        const hint = (el.getAttribute('placeholder') || el.getAttribute('aria-label') || '').trim().substring(0, CHAT_ELEMENT_LABEL_MAX);
+        const tag = el.tagName.toLowerCase();
+        const info = { id: el.id, type: tag === 'input' ? (el.type || 'text') : tag };
+        // Prefer <label for="id"> text, then placeholder/aria-label
+        const labelEl = el.id ? document.querySelector(`label[for="${CSS.escape(el.id)}"]`) : null;
+        const hint = (labelEl ? labelEl.textContent : (el.getAttribute('placeholder') || el.getAttribute('aria-label') || ''))
+            .trim().replace(/\s+/g, ' ').substring(0, CHAT_ELEMENT_LABEL_MAX);
         if (hint) info.hint = hint;
+        // For <select>, include available options so the AI knows valid values
+        if (tag === 'select') {
+            const opts = Array.from(el.options)
+                .map(o => `${o.value}:${o.text.trim()}`)
+                .slice(0, CHAT_SELECT_OPTIONS_MAX)
+                .join(', ');
+            if (opts) info.options = opts;
+        }
         inputItems.push(JSON.stringify(info));
     });
     if (inputItems.length > 0) {
         structuredContext += `[page inputs (${inputItems.length})]\n` + inputItems.join('\n') + '\n\n';
+    }
+
+    // --- Page data (elements tagged with data-chat-label expose displayed values to the AI) ---
+    const dataItems = [];
+    document.querySelectorAll('[data-chat-label]').forEach(el => {
+        if (el.closest('#chatPanel')) return;
+        const label = el.getAttribute('data-chat-label');
+        if (!label) return;
+        // data-chat-value attribute takes priority; otherwise use element text content
+        const value = el.hasAttribute('data-chat-value')
+            ? el.getAttribute('data-chat-value')
+            : el.textContent.trim().replace(/\s+/g, ' ').substring(0, CHAT_DATA_VALUE_MAX);
+        dataItems.push(JSON.stringify({ label, value }));
+    });
+    if (dataItems.length > 0) {
+        structuredContext += `[page data (${dataItems.length})]\n` + dataItems.join('\n') + '\n\n';
     }
 
     // --- Remaining visible page text ---

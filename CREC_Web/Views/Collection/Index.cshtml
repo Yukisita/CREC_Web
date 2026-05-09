@@ -531,7 +531,11 @@
                 window.currentPageCollection = {
                     id: collection.indexData.systemData.id,
                     name: collection.indexData.values.name,
-                    url: `/Collection/${encodeURIComponent(collection.indexData.systemData.id)}`
+                    url: `/Collection/${encodeURIComponent(collection.indexData.systemData.id)}`,
+                    inventory: collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : undefined,
+                    managementCode: collection.indexData.values.managementCode || undefined,
+                    category: collection.indexData.values.category || undefined,
+                    location: collection.indexData.values.location || undefined
                 };
 
 				// コレクションの詳細を表示(左パネル)
@@ -1283,7 +1287,9 @@
                     <div class="detail-section" style="flex: 1.5;">
                         <h6>
                             <p style="font-size: 1.5rem; font-weight: 600; margin: 0;">${t('inventory')}</p>
-                            <p style="font-size: 1.5rem; font-weight: 600; margin: 0;">${collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : t('not-set')}</p>
+                            <p style="font-size: 1.5rem; font-weight: 600; margin: 0;"
+                               data-chat-label="現在の在庫数"
+                               data-chat-value="${collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : ''}">${collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : t('not-set')}</p>
                         </h6>
                         <button id="inventoryOperationBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
                             <i class="bi bi-pencil-square"></i> ${t('inventory-operation')}
@@ -1293,7 +1299,9 @@
                     <div class="detail-section" style="flex: 1;">
                         <h6>
                             <p style="font-size: 1.5rem; font-weight: 600;">${t('inventory-status')}
-                            <p><span class="badge ${inventoryBadgeClass}">${inventoryStatusText}</span></p>
+                            <p><span class="badge ${inventoryBadgeClass}"
+                                     data-chat-label="在庫ステータス"
+                                     data-chat-value="${inventoryStatusText}">${inventoryStatusText}</span></p>
                         </h6>
                         <button id="inventoryManagementSettingsBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
                             <i class="bi bi-pencil-square"></i> ${t('inventory-management-settings')}
