@@ -114,11 +114,11 @@ LLM_TIMEOUT: float = float(os.getenv("LLM_TIMEOUT", "120"))
 # context window (n_keep >= n_ctx 400 errors).  Clients may send up to
 # CHAT_PAGE_CONTEXT_MAX characters; this cap applies an additional server-side
 # guard.
-MAX_CONTEXT_CHARS: int = int(os.getenv("MAX_CONTEXT_CHARS", "1200"))
+MAX_CONTEXT_CHARS: int = int(os.getenv("MAX_CONTEXT_CHARS", "3000"))
 
 # Maximum number of prior conversation turns (user+assistant pairs) to include
 # in each LLM request.  Older turns are dropped to stay within n_ctx.
-MAX_HISTORY_TURNS: int = int(os.getenv("MAX_HISTORY_TURNS", "8"))
+MAX_HISTORY_TURNS: int = int(os.getenv("MAX_HISTORY_TURNS", "16"))
 
 # ---------------------------------------------------------------------------
 # Prompt helpers
