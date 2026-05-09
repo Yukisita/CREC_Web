@@ -1288,7 +1288,7 @@
                         <h6>
                             <p style="font-size: 1.5rem; font-weight: 600; margin: 0;">${t('inventory')}</p>
                             <p style="font-size: 1.5rem; font-weight: 600; margin: 0;"
-                               data-chat-label="現在の在庫数"
+                               data-chat-label="current inventory count"
                                data-chat-value="${collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : ''}">${collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : t('not-set')}</p>
                         </h6>
                         <button id="inventoryOperationBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
@@ -1300,7 +1300,7 @@
                         <h6>
                             <p style="font-size: 1.5rem; font-weight: 600;">${t('inventory-status')}
                             <p><span class="badge ${inventoryBadgeClass}"
-                                     data-chat-label="在庫ステータス"
+                                     data-chat-label="inventory status"
                                      data-chat-value="${inventoryStatusText}">${inventoryStatusText}</span></p>
                         </h6>
                         <button id="inventoryManagementSettingsBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
