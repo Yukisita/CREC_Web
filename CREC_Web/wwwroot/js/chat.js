@@ -34,7 +34,7 @@ const CHAT_EXCLUDED_BUTTON_IDS = new Set([
 ]);
 
 // Action types that trigger a full page navigation (used to split action sequences)
-const CHAT_NAV_ACTION_TYPES = new Set(['navigate', 'createNewCollection', 'navigateToCollectionByName']);
+const CHAT_NAV_ACTION_TYPES = new Set(['navigate', 'navigateHome', 'createNewCollection', 'navigateToCollectionByName']);
 
 // Chat state
 let chatMessages = []; // { role: 'user'|'assistant', content: string }
@@ -179,6 +179,14 @@ function isChatContextElement(el) {
  */
 function getChatPageContext() {
     let structuredContext = '';
+
+    // --- Current collection page (Collection/Index.cshtml exposes this after async load) ---
+    if (window.currentPageCollection && window.currentPageCollection.id) {
+        const col = window.currentPageCollection;
+        structuredContext += `[current collection]\n` +
+            JSON.stringify({ id: col.id, name: col.name || '', url: col.url || `/Collection/${encodeURIComponent(col.id)}` }) +
+            '\n\n';
+    }
 
     // --- Visible collections ---
     const collectionEls = document.querySelectorAll('[data-collection-id]:not([data-collection-id=""])');
@@ -474,6 +482,10 @@ function executeChatAction(cmd) {
                     console.warn('createNewCollection action failed:', e);
                 }
             })();
+            break;
+
+        case 'navigateHome':
+            window.location.href = '/';
             break;
 
         case 'navigate':

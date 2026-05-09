@@ -527,6 +527,13 @@
                 const collection = await response.json();
                 currentCollection = collection;
 
+                // チャットAIがコレクションページのコンテキストを参照できるようにwindowに公開
+                window.currentPageCollection = {
+                    id: collection.indexData.systemData.id,
+                    name: collection.indexData.values.name,
+                    url: `/Collection/${encodeURIComponent(collection.indexData.systemData.id)}`
+                };
+
 				// コレクションの詳細を表示(左パネル)
                 displayCollectionDetails(collection);
                 // 在庫履歴を表示(右パネル)
