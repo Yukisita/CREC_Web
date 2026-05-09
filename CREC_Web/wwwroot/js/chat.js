@@ -323,6 +323,7 @@ function processChatActions(text) {
                     executeChatAction(cmd);
                 } catch (e) {
                     console.warn('Failed to execute chat action:', cmd, e);
+                    reportActionFailure('操作の実行中にエラーが発生しました。ページを更新して再度お試しください。');
                 }
             }, delay);
         });
@@ -381,12 +382,18 @@ function wantsCollectionDetailPage() {
 function executeChatAction(cmd) {
     switch (cmd.type) {
         case 'search':
-            if (typeof cmd.text === 'string' && isMainSearchPage()) {
+            if (typeof cmd.text === 'string') {
+                if (!isMainSearchPage()) {
+                    reportActionFailure('検索はホーム画面でのみ実行できます。まずホーム画面に移動してから検索してください。');
+                    break;
+                }
                 const searchInput = document.getElementById('searchText');
                 if (searchInput) {
                     searchInput.value = cmd.text;
                     const searchBtn = document.getElementById('searchButton');
                     if (searchBtn) searchBtn.click();
+                } else {
+                    reportActionFailure('検索ボックスが現在のページに見つかりません。');
                 }
             }
             break;
@@ -431,6 +438,10 @@ function executeChatAction(cmd) {
                 }
             } else {
                 console.warn('openCollectionByName: no collection found for name:', targetName);
+                reportActionFailure(
+                    `コレクション「${targetName}」が現在のページに見つかりません。` +
+                    'ホーム画面でコレクション一覧が表示されていることを確認してください。'
+                );
             }
             break;
         }
@@ -448,12 +459,20 @@ function executeChatAction(cmd) {
                 window.location.href = `/Collection/${encodeURIComponent(collectionId)}`;
             } else {
                 console.warn('navigateToCollectionByName: no collection found for name:', targetName);
+                reportActionFailure(
+                    `コレクション「${targetName}」が現在のページに見つかりません。` +
+                    'ホーム画面でコレクション一覧が表示されていることを確認してください。'
+                );
             }
             break;
         }
 
         case 'showAdminPanel':
-            openAdminPanel();
+            if (typeof openAdminPanel === 'function') {
+                openAdminPanel();
+            } else {
+                reportActionFailure('管理パネルを開く機能がこのページでは利用できません。');
+            }
             break;
 
         case 'createNewCollection':
@@ -472,14 +491,17 @@ function executeChatAction(cmd) {
                         } else {
                             clearPendingChatActions();
                             console.warn('createNewCollection: missing id in API response', result);
+                            reportActionFailure('コレクションは作成されましたが、IDが取得できませんでした。ページを更新してください。');
                         }
                     } else {
                         clearPendingChatActions();
                         console.warn('createNewCollection: API returned', response.status);
+                        reportActionFailure(`コレクションの作成に失敗しました（サーバーエラー: ${response.status}）。再度お試しください。`);
                     }
                 } catch (e) {
                     clearPendingChatActions();
                     console.warn('createNewCollection action failed:', e);
+                    reportActionFailure('コレクションの作成に失敗しました。ネットワーク接続を確認してください。');
                 }
             })();
             break;
@@ -507,8 +529,15 @@ function executeChatAction(cmd) {
             // IDs have already been validated server-side by the MCP server
             if (typeof cmd.id === 'string') {
                 const el = document.getElementById(cmd.id);
-                if (el) el.click();
-                else console.warn('clickButton: element not found:', cmd.id);
+                if (el) {
+                    el.click();
+                } else {
+                    console.warn('clickButton: element not found:', cmd.id);
+                    reportActionFailure(
+                        `ボタン「${cmd.id}」が現在のページに存在しません。` +
+                        '必要なモーダルやパネルが開いているか確認してください。'
+                    );
+                }
             }
             break;
 
@@ -523,6 +552,10 @@ function executeChatAction(cmd) {
                     el.dispatchEvent(new Event('change', { bubbles: true }));
                 } else {
                     console.warn('fillInput: element not found:', cmd.id);
+                    reportActionFailure(
+                        `入力欄「${cmd.id}」が現在のページに存在しません。` +
+                        '関連するモーダルが開いているか確認してください。'
+                    );
                 }
             }
             break;
@@ -534,9 +567,11 @@ function executeChatAction(cmd) {
                     selectLanguage(cmd.lang);
                 } else {
                     console.warn('switchLanguage: selectLanguage() not available');
+                    reportActionFailure('言語切り替え機能がこのページでは利用できません。');
                 }
             } else {
                 console.warn('switchLanguage: unsupported or missing lang:', cmd.lang);
+                reportActionFailure('サポートされていない言語コードが指定されました。ja / en / de のいずれかを使用してください。');
             }
             break;
 
@@ -643,6 +678,23 @@ function appendChatMessage(role, htmlContent, elementId) {
     div.appendChild(bubble);
     messages.appendChild(div);
     scrollChatToBottom();
+}
+
+/**
+ * Display an action execution failure message in the chat panel.
+ * Called when a chat action cannot be executed (element not found, API error, etc.).
+ * The message is appended as a warning bubble to the DOM but NOT pushed to the
+ * chatMessages array, so it is excluded from future LLM request history.
+ * @param {string} reason - Plain-text explanation of why the action failed.
+ *   The entire string is HTML-escaped before rendering, so dynamic values
+ *   (e.g. collection names or element IDs from the LLM response) are safe to
+ *   interpolate directly into `reason` without pre-escaping them.
+ */
+function reportActionFailure(reason) {
+    appendChatMessage(
+        'assistant',
+        `<span class="text-warning"><i class="bi bi-exclamation-circle-fill me-1"></i>${escapeHtml(reason)}</span>`
+    );
 }
 
 /**
