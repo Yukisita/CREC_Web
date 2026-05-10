@@ -243,9 +243,11 @@
             padding: 1.5rem;
         }
 
-        /* GPU レイヤーを固定し、Android Chrome スリープ直前の JPEG 点滅を防止する */
+        /* カラーマネジメントによる再描画負荷を最小限にし、画面暗転時の JPEG 点滅を防止する */
         img {
-            transform: translateZ(0);
+            color-interpolation-filters: sRGB;
+            color-rendering: optimizeSpeed;
+            image-rendering: auto;
         }
 
         .detail-image {
