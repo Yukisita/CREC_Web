@@ -106,21 +106,14 @@ namespace CREC_Web.Controllers
                 Response.Headers["Cache-Control"] = "public, max-age=3600";
                 Response.Headers["X-Content-Type-Options"] = "nosniff";
 
-                // JPEGはサーバー側でWebPに変換して配信する。
-                // SkiaSharpのデコード時にICCプロファイルが取り除かれるため、
-                // ブラウザがWeb標準sRGBとして扱い、Android Chrome での
-                // ハードウェアカラーマネジメントによる画面点滅を防止できる。
+                // JPEGはICCプロファイルを除去して配信する。
+                // ICCプロファイルを除去することでブラウザがWeb標準sRGBとして扱うようになり、
+                // Android Chrome でのハードウェアカラーマネジメントによる画面点滅を防止できる。
                 if (extension == ".jpg" || extension == ".jpeg")
                 {
                     var jpegBytes = await System.IO.File.ReadAllBytesAsync(fullPath);
-                    var webpBytes = WebPConverter.ConvertToWebP(jpegBytes);
-                    if (webpBytes != null)
-                    {
-                        _logger.LogInformation("JPEG converted to WebP for serving: {fileName}", Path.GetFileName(fileName).SanitizeForLog());
-                        return File(webpBytes, "image/webp");
-                    }
-                    _logger.LogWarning("WebP conversion failed, falling back to original JPEG: {fileName}", Path.GetFileName(fileName).SanitizeForLog());
-                    return File(jpegBytes, "image/jpeg");
+                    var stripped = JpegHelper.StripIccProfile(jpegBytes);
+                    return File(stripped, "image/jpeg");
                 }
 
                 // 画像は閲覧用（インライン）で提供し、ダウンロードは不可
