@@ -106,6 +106,63 @@ PROMPTS_DIR: Path = Path(__file__).parent / "prompts"
 # Regex to find <action>…</action> blocks in LLM responses
 _ACTION_RE: re.Pattern = re.compile(r"<action>([\s\S]*?)</action>")
 
+# Japanese action-completion phrases that indicate a hallucinated UI operation
+# (AI claiming completion without emitting any <action> tags).
+# Only Japanese phrases are listed; English false-positive risk is too high
+# with simple substring matching (e.g. "i saved" matches "the file i saved").
+_HALLUCINATION_PHRASES: tuple[str, ...] = (
+    "保存しました",
+    "クリックしました",
+    "入力しました",
+    "実行しました",
+    "操作しました",
+    "変更しました",
+    "設定しました",
+    "登録しました",
+    "削除しました",
+    "追加しました",
+    "更新しました",
+    "検索しました",
+    "遷移しました",
+    "切り替えました",
+    "押しました",
+    "開きました",
+    "閉じました",
+)
+
+# Number of characters to inspect after a completion phrase to determine
+# whether it forms part of a question ("保存しましたか？").  5 characters
+# gives enough lookahead for the question particle "か" even when whitespace
+# or punctuation appears between the phrase and the marker.
+_QUESTION_LOOKAHEAD: int = 5
+
+
+def _has_hallucinated_action(text: str) -> bool:
+    """Return True if the response claims to have performed a UI action but
+    contains no <action> tags.  This detects the common failure mode where
+    small LLMs output "保存しました" (I saved it) without actually emitting
+    the required <action> tag — causing nothing to happen in the UI.
+
+    False-positive guard: phrases followed within _QUESTION_LOOKAHEAD characters
+    by "か" or "？" are treated as questions ("保存しましたか？"), not claims.
+    """
+    if _ACTION_RE.search(text):
+        # Response contains at least one <action> tag — not hallucinating.
+        return False
+
+    for phrase in _HALLUCINATION_PHRASES:
+        idx = text.find(phrase)
+        if idx == -1:
+            continue
+        # Inspect the next _QUESTION_LOOKAHEAD characters after the phrase.
+        # If they contain a question indicator ("か" or "？") this is a
+        # question asked by the AI, not an action-completion claim.
+        suffix = text[idx + len(phrase): idx + len(phrase) + _QUESTION_LOOKAHEAD]
+        if "か" not in suffix and "？" not in suffix:
+            return True
+
+    return False
+
 # Maximum timeout for LLM requests (seconds)
 LLM_TIMEOUT: float = float(os.getenv("LLM_TIMEOUT", "120"))
 
@@ -372,6 +429,21 @@ async def process_chat(
     text_only = _ACTION_RE.sub("", sanitized).strip()
     if not text_only and sanitized.strip():
         sanitized = "操作を実行します。\n" + sanitized
+
+    # Guard against action hallucination: small LLMs sometimes claim to have
+    # performed a UI operation (e.g. "保存しました") without emitting any
+    # <action> tags, causing nothing to actually happen in the browser.
+    # Replace the hallucinated response with a clear error so the user knows
+    # to retry — showing the original incorrect text would only cause confusion.
+    if _has_hallucinated_action(sanitized):
+        _logger.warning(
+            "process_chat: LLM claimed action completion without <action> tags "
+            "(hallucinated operation); replacing response with error message"
+        )
+        sanitized = (
+            "⚠️ 操作を実行しようとしましたが、実際には動作しませんでした。\n"
+            "もう一度お試しいただくか、操作内容をより具体的にお伝えください。"
+        )
 
     return sanitized
 
