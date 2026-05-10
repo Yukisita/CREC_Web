@@ -624,7 +624,10 @@ namespace CREC_Web.Controllers
                 {
                     var jpegBytes = await System.IO.File.ReadAllBytesAsync(thumbnailPath);
                     var webpBytes = WebPConverter.ConvertToWebP(jpegBytes);
-                    return File(webpBytes, "image/webp");
+                    if (webpBytes != null)
+                        return File(webpBytes, "image/webp");
+                    _logger.LogWarning("WebP conversion failed for thumbnail, falling back to original JPEG: {collectionId}", collectionId.SanitizeForLog());
+                    return File(jpegBytes, "image/jpeg");
                 }
 
                 var contentType = ImageFormats.GetContentType(thumbnailExtension);

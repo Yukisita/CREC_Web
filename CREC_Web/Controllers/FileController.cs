@@ -114,8 +114,13 @@ namespace CREC_Web.Controllers
                 {
                     var jpegBytes = await System.IO.File.ReadAllBytesAsync(fullPath);
                     var webpBytes = WebPConverter.ConvertToWebP(jpegBytes);
-                    _logger.LogInformation("JPEG converted to WebP for serving: {fileName}", Path.GetFileName(fileName).SanitizeForLog());
-                    return File(webpBytes, "image/webp");
+                    if (webpBytes != null)
+                    {
+                        _logger.LogInformation("JPEG converted to WebP for serving: {fileName}", Path.GetFileName(fileName).SanitizeForLog());
+                        return File(webpBytes, "image/webp");
+                    }
+                    _logger.LogWarning("WebP conversion failed, falling back to original JPEG: {fileName}", Path.GetFileName(fileName).SanitizeForLog());
+                    return File(jpegBytes, "image/jpeg");
                 }
 
                 // 画像は閲覧用（インライン）で提供し、ダウンロードは不可
