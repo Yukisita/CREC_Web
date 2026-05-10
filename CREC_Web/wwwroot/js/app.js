@@ -79,30 +79,29 @@ document.addEventListener('DOMContentLoaded', function () {
 // 画面暗転時のフリッカー防止及びJPEG画像の色転び対策
 // JPEGはcanvas経由でWebP blob URLに変換し、ソフトウェアデコードパスへ切り替える。
 (function () {
-    // 変換対象はJPEG及び防御的に拡張子なしのみ
-    const JPEG_EXTS = ['.jpg', '.jpeg', ''];
-
     /**
      * 画像がソフトウェアデコードに変換する必要があるかどうかを判定する
-     * JPEG拡張子(.jpg/.jpeg)を持つURLのみ変換対象とする。
+     * JPEG拡張子(.jpg/.jpeg)を持つURL、及び拡張子なしのURL（APIエンドポイント等）のみ変換対象とする。
+     * 注意: endsWith('') はすべての文字列に一致するため、空文字列による判定は行わない。
      * @param {any} src
      * @returns {boolean}
      */
     function needsConvert(src) {
         if (!src || src.startsWith('blob:') || src.startsWith('data:')) return false;
         const path = src.split('?')[0].split('#')[0].toLowerCase();
-        for (let i = 0; i < JPEG_EXTS.length; i++) {
-            if (path.endsWith(JPEG_EXTS[i])) return true;
-        }
-        return false;
+        const filename = path.split('/').pop();
+        const dotIndex = filename.lastIndexOf('.');
+        if (dotIndex === -1) return true; // 拡張子なし（APIエンドポイント等）→ 変換対象（防御的）
+        const ext = filename.slice(dotIndex);
+        return ext === '.jpg' || ext === '.jpeg';
     }
 
     /**
-    * 画像をソフトウェアデコードに変換する
-    * toDataURL を同期実行することで、変換完了前に画面が暗転しても
-    * 点滅が発生しないようにする。
-    * @param {HTMLImageElement} img
-    * @returns {void}
+     * 画像をソフトウェアデコードに変換する
+     * toDataURL を同期実行することで、変換完了前に画面が暗転しても
+     * 点滅が発生しないようにする。
+     * @param {HTMLImageElement} img
+     * @returns {void}
      */
     function convertToSWDecoded(img) {
         if (img._swConverting || !needsConvert(img.src)) return;
@@ -114,7 +113,6 @@ document.addEventListener('DOMContentLoaded', function () {
             c.height = img.naturalHeight;
             c.getContext('2d').drawImage(img, 0, 0);
             img.src = c.toDataURL('image/webp', 1.0);
-            convertToSWDecoded(img); // ← 現在の画像を改めて変換
         } catch (_) {
             // SecurityError（クロスオリジン汚染）等は無視
         } finally {
@@ -134,18 +132,6 @@ document.addEventListener('DOMContentLoaded', function () {
         img.addEventListener('load', function () { convertToSWDecoded(img); });
     }
 
-    /**
-     * img要素がDOMから削除されたときにBlob URLを解放する
-     * @param {any} img
-     * @return {void}
-     */
-    function revokeBlob(img) {
-        if (img._swBlobUrl) {
-            URL.revokeObjectURL(img._swBlobUrl);
-            img._swBlobUrl = null;
-        }
-    }
-
     document.querySelectorAll('img').forEach(observe);
 
     new MutationObserver(function (mutations) {
@@ -155,11 +141,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 let n = m.addedNodes[j];
                 if (n.nodeName === 'IMG') observe(n);
                 else if (n.querySelectorAll) n.querySelectorAll('img').forEach(observe);
-            }
-            for (let k = 0; k < m.removedNodes.length; k++) {
-                let r = m.removedNodes[k];
-                if (r.nodeName === 'IMG') revokeBlob(r);
-                else if (r.querySelectorAll) r.querySelectorAll('img').forEach(revokeBlob);
             }
         }
     }).observe(document.documentElement, { childList: true, subtree: true });
