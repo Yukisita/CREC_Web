@@ -987,20 +987,12 @@
                         return;
                     }
 
-                    // 前回のリスナを確実にキャンセルするため、外部スコープで共有する（意図的）
-                    let revealAbortCtrl = null;
                     function updateImage() {
                         const collectionID = collection?.indexData?.systemData?.id;
                         if (!collectionID) {
                             console.error('Collection ID is missing.');
                             return;
                         }
-                        if (revealAbortCtrl) revealAbortCtrl.abort();
-                        revealAbortCtrl = new AbortController();
-                        const revealImage = () => { carouselImage.style.visibility = 'visible'; };
-                        carouselImage.addEventListener('load', revealImage, { once: true, signal: revealAbortCtrl.signal });
-                        carouselImage.addEventListener('error', revealImage, { once: true, signal: revealAbortCtrl.signal });
-                        carouselImage.style.visibility = 'hidden';
                         carouselImage.src = `/api/File/${encodeURIComponent(collectionID)}/picture/${encodeURIComponent(images[currentImageIndex])}`;
                         carouselImage.alt = images[currentImageIndex];
                         imageCounter.textContent = `${currentImageIndex + 1} / ${images.length}`;
