@@ -11,6 +11,18 @@ namespace CREC_Web.Helpers
     /// </summary>
     public static class JpegHelper
     {
+        // JPEGマーカー定数
+        private const byte MarkerPrefix = 0xFF;
+        private const byte MarkerSOI    = 0xD8; // Start of Image
+        private const byte MarkerEOI    = 0xD9; // End of Image
+        private const byte MarkerSOS    = 0xDA; // Start of Scan
+        private const byte MarkerRSTMin = 0xD0; // Restart Marker 0
+        private const byte MarkerRSTMax = 0xD7; // Restart Marker 7
+        private const byte MarkerAPP2   = 0xE2; // Application-specific segment 2 (ICC profile)
+
+        // ICC_PROFILE\0 シグネチャ（12バイト）
+        private static ReadOnlySpan<byte> IccSignature => "ICC_PROFILE\0"u8;
+
         /// <summary>
         /// JPEGバイト列からICCプロファイル（APP2マーカー）を除去して返す。
         /// ICCプロファイルを除去することでブラウザがWeb標準sRGBとして扱うようになり、
@@ -18,22 +30,20 @@ namespace CREC_Web.Helpers
         /// </summary>
         public static byte[] StripIccProfile(byte[] jpegData)
         {
-            // SOI確認（有効なJPEGでなければそのまま返す）
-            if (jpegData.Length < 2 || jpegData[0] != 0xFF || jpegData[1] != 0xD8)
+            if (!IsValidJpeg(jpegData))
                 return jpegData;
 
-            // 出力はICCプロファイル分小さくなるためデフォルトキャパシティで十分
             using var output = new MemoryStream();
             output.Write(jpegData, 0, 2); // SOI書き込み
 
             int pos = 2;
             while (pos < jpegData.Length - 1)
             {
-                if (jpegData[pos] != 0xFF)
+                if (jpegData[pos] != MarkerPrefix)
                     break; // 不正なJPEG
 
-                // JPEGでは0xFFのフィルバイトがマーカー前に許容される（1バイトずつスキップ）
-                if (jpegData[pos + 1] == 0xFF)
+                // 0xFFのフィルバイトはJPEG仕様上許容される（スキップ）
+                if (jpegData[pos + 1] == MarkerPrefix)
                 {
                     pos++;
                     continue;
@@ -41,55 +51,64 @@ namespace CREC_Web.Helpers
 
                 byte marker = jpegData[pos + 1];
 
-                // EOI（画像終端）
-                if (marker == 0xD9)
+                if (marker == MarkerEOI)
                 {
                     output.Write(jpegData, pos, 2);
                     break;
                 }
 
                 // RST0-RST7: 長さフィールドなし
-                if (marker is >= 0xD0 and <= 0xD7)
+                if (marker is >= MarkerRSTMin and <= MarkerRSTMax)
                 {
                     output.Write(jpegData, pos, 2);
                     pos += 2;
                     continue;
                 }
 
-                if (pos + 3 >= jpegData.Length)
-                    break; // 長さフィールドの読み取りに必要なバイト数が不足
-
-                int segLen = (jpegData[pos + 2] << 8) | jpegData[pos + 3]; // 長さフィールド自身を含む
-                if (segLen < 2)
-                    break; // 不正なJPEG
+                if (!TryReadSegmentLength(jpegData, pos, out int segLen))
+                    break;
 
                 int segEnd = pos + 2 + segLen;
                 if (segEnd > jpegData.Length)
                     break; // 切り詰められたデータ
 
-                // SOS（スキャン開始）以降は圧縮データのためそのままコピー
-                if (marker == 0xDA)
+                // SOS以降は可変長の圧縮データのためそのままコピー
+                if (marker == MarkerSOS)
                 {
                     output.Write(jpegData, pos, jpegData.Length - pos);
                     break;
                 }
 
-                // APP2マーカーにICCプロファイルシグネチャが含まれる場合はスキップ
-                // ICC_PROFILE\0 は12バイト: データはpos+4から始まりpos+15まで読む必要がある
-                bool isIcc = marker == 0xE2
-                    && segLen > 14
-                    && pos + 16 <= jpegData.Length  // pos+4 から12バイト（pos+4〜pos+15）が確実に存在する
-                    && jpegData.AsSpan(pos + 4, 12).SequenceEqual("ICC_PROFILE\0"u8);
-
-                if (!isIcc)
-                {
+                if (!IsIccProfileSegment(jpegData, pos, marker, segLen))
                     output.Write(jpegData, pos, 2 + segLen);
-                }
 
                 pos = segEnd;
             }
 
             return output.ToArray();
         }
+
+        /// <summary>有効なJPEGバイト列か（SOIマーカーで始まるか）確認する。</summary>
+        private static bool IsValidJpeg(byte[] data) =>
+            data.Length >= 2 && data[0] == MarkerPrefix && data[1] == MarkerSOI;
+
+        /// <summary>指定位置のセグメント長フィールド（2バイトビッグエンディアン）を読み取る。</summary>
+        private static bool TryReadSegmentLength(byte[] data, int pos, out int segLen)
+        {
+            if (pos + 3 >= data.Length)
+            {
+                segLen = 0;
+                return false;
+            }
+            segLen = (data[pos + 2] << 8) | data[pos + 3]; // 長さフィールド自身を含む
+            return segLen >= 2;
+        }
+
+        /// <summary>指定セグメントがICCプロファイルを含むAPP2セグメントかどうかを判定する。</summary>
+        private static bool IsIccProfileSegment(byte[] data, int pos, byte marker, int segLen) =>
+            marker == MarkerAPP2
+            && segLen > IccSignature.Length + 2
+            && pos + 4 + IccSignature.Length <= data.Length
+            && data.AsSpan(pos + 4, IccSignature.Length).SequenceEqual(IccSignature);
     }
 }
