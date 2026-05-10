@@ -106,12 +106,18 @@ namespace CREC_Web.Controllers
                 Response.Headers["Cache-Control"] = "public, max-age=3600";
                 Response.Headers["X-Content-Type-Options"] = "nosniff";
 
-                // JPEGはICCプロファイルを除去して配信する。
-                // ICCプロファイルを除去することでブラウザがWeb標準sRGBとして扱うようになり、
-                // Android Chrome でのハードウェアカラーマネジメントによる画面点滅を防止できる。
+                // JPEG はサーバー側で WebP に変換して配信する。
+                // WebP はブラウザネイティブデコードが使われ、JPEG のハードウェアカラーマネジメント
+                // パスを経由しないため、Android Chrome での画面点滅を防止できる。
+                // libturbojpeg / libwebp が未インストールの場合は ICC プロファイル除去にフォールバック。
                 if (extension == ".jpg" || extension == ".jpeg")
                 {
                     var jpegBytes = await System.IO.File.ReadAllBytesAsync(fullPath);
+                    var webpBytes = WebPConverter.ConvertToWebP(jpegBytes);
+                    if (webpBytes is not null)
+                        return File(webpBytes, "image/webp");
+
+                    // フォールバック: ICC プロファイルを除去して JPEG のまま配信
                     var stripped = JpegHelper.StripIccProfile(jpegBytes);
                     return File(stripped, "image/jpeg");
                 }
