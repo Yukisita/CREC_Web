@@ -5,9 +5,10 @@ This software is released under the MIT License.
 
 Python MCP server that provides AI chat support for CREC Web.
 The server exposes a `process_chat` tool that:
-  - Loads multilingual system prompt templates from the prompts/ directory
+  - Loads the system prompt template from the prompts/ directory
   - Calls any OpenAI-compatible LLM backend
   - Validates action IDs in the LLM response against configurable whitelists
+  - Detects and blocks hallucinated or dangerous actions
   - Returns the validated response
 
 The CREC Web C# backend acts as an MCP client and calls this server's
@@ -34,6 +35,26 @@ LLM_URL: str = os.getenv("LLM_URL", "http://localhost:1234").rstrip("/")
 LLM_MODEL: str = os.getenv("LLM_MODEL", "gemma-3-12b")
 MCP_HOST: str = os.getenv("MCP_HOST", "127.0.0.1")
 MCP_PORT: int = int(os.getenv("MCP_PORT", "8765"))
+
+# Maximum timeout for LLM requests (seconds)
+LLM_TIMEOUT: float = float(os.getenv("LLM_TIMEOUT", "120"))
+
+# Maximum characters of page context to inject into the system prompt.
+# Keeping this small prevents the system prompt from exceeding the model's
+# context window (n_keep >= n_ctx 400 errors).  Clients may send up to
+# CHAT_PAGE_CONTEXT_MAX characters; this cap applies an additional server-side
+# guard.
+MAX_CONTEXT_CHARS: int = int(os.getenv("MAX_CONTEXT_CHARS", "3000"))
+
+# Maximum number of prior conversation turns (user+assistant pairs) to include
+# in each LLM request.  Older turns are dropped to stay within n_ctx.
+# With an 8192-token context and a system prompt that can occupy 3000–5000 tokens
+# (template + page context), keeping 10 turns leaves ~3000 tokens for history.
+MAX_HISTORY_TURNS: int = int(os.getenv("MAX_HISTORY_TURNS", "10"))
+
+# ---------------------------------------------------------------------------
+# Whitelists (IDs the AI is permitted to interact with)
+# ---------------------------------------------------------------------------
 
 # Whitelist of element IDs the AI is permitted to click
 _SAFE_BUTTON_IDS_DEFAULT = ",".join([
@@ -114,6 +135,10 @@ _BLOCKED_BUTTON_IDS: frozenset[str] = frozenset([
     "deleteCollectionBtn",
 ])
 
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
 PROMPTS_DIR: Path = Path(__file__).parent / "prompts"
 
 # Regex to find <action>…</action> blocks in LLM responses
@@ -150,6 +175,10 @@ _HALLUCINATION_PHRASES: tuple[str, ...] = (
 _QUESTION_LOOKAHEAD: int = 5
 
 
+# ---------------------------------------------------------------------------
+# Hallucination detection
+# ---------------------------------------------------------------------------
+
 def _has_hallucinated_action(text: str) -> bool:
     """Return True if the response claims to have performed a UI action but
     contains no <action> tags.  This detects the common failure mode where
@@ -176,45 +205,31 @@ def _has_hallucinated_action(text: str) -> bool:
 
     return False
 
-# Maximum timeout for LLM requests (seconds)
-LLM_TIMEOUT: float = float(os.getenv("LLM_TIMEOUT", "120"))
-
-# Maximum characters of page context to inject into the system prompt.
-# Keeping this small prevents the system prompt from exceeding the model's
-# context window (n_keep >= n_ctx 400 errors).  Clients may send up to
-# CHAT_PAGE_CONTEXT_MAX characters; this cap applies an additional server-side
-# guard.
-MAX_CONTEXT_CHARS: int = int(os.getenv("MAX_CONTEXT_CHARS", "3000"))
-
-# Maximum number of prior conversation turns (user+assistant pairs) to include
-# in each LLM request.  Older turns are dropped to stay within n_ctx.
-# With an 8192-token context and a system prompt that can occupy 3000–5000 tokens
-# (template + page context), keeping 10 turns leaves ~3000 tokens for history.
-MAX_HISTORY_TURNS: int = int(os.getenv("MAX_HISTORY_TURNS", "10"))
 
 # ---------------------------------------------------------------------------
 # Prompt helpers
 # ---------------------------------------------------------------------------
 
-_prompt_cache: dict[str, str] = {}
+# Module-level storage for the system prompt template (loaded once from disk)
+_prompt_template: str | None = None
 
 
 def _load_prompt_template() -> str:
-    """Load and cache the single system prompt template."""
-    cache_key = "ja"
-    if cache_key in _prompt_cache:
-        return _prompt_cache[cache_key]
+    """Load and cache the system prompt template from disk."""
+    global _prompt_template
+    if _prompt_template is not None:
+        return _prompt_template
 
     path = PROMPTS_DIR / "system_prompt.ja.txt"
     if not path.exists():
+        _logger.warning("System prompt template not found: %s", path)
         return ""
 
-    text = path.read_text(encoding="utf-8")
-    _prompt_cache[cache_key] = text
-    return text
+    _prompt_template = path.read_text(encoding="utf-8")
+    return _prompt_template
 
 
-def _build_system_prompt(lang: str, page_title: str, page_context: str, project_name: str) -> str:
+def _build_system_prompt(page_title: str, page_context: str, project_name: str) -> str:
     """Build system prompt by filling template placeholders.
 
     The page_context is truncated to MAX_CONTEXT_CHARS before injection to
@@ -303,6 +318,8 @@ def _sanitize_messages(messages: list[dict[str, str]]) -> list[dict[str, str]]:
     2. Leading assistant messages (appearing before the first user message) are
        dropped — some models (e.g. Gemma 4) reject conversations that start
        with an assistant turn.
+    3. Trailing user messages are dropped — these are orphaned turns left by
+       previous failed requests where the assistant reply was never saved.
 
     This fixes intermittent 400 Bad Request errors that occur when the
     client-side session retains orphaned user messages from previous failed
@@ -325,6 +342,17 @@ def _sanitize_messages(messages: list[dict[str, str]]) -> list[dict[str, str]]:
         len(sanitized),
     )
     sanitized = sanitized[first_user:]
+
+    # Drop trailing user messages (orphaned turns from previous failed requests)
+    while sanitized and sanitized[-1]["role"] == "user":
+        sanitized.pop()
+
+    if len(conv_msgs) != len(sanitized):
+        _logger.warning(
+            "_sanitize_messages: removed %d message(s) from history "
+            "(orphaned turns from previous failed requests)",
+            len(conv_msgs) - len(sanitized),
+        )
 
     return system_msgs + sanitized
 
@@ -365,7 +393,7 @@ async def process_chat(
     Returns:
         Validated AI response text (may include <action> tags).
     """
-    system_prompt = _build_system_prompt(lang, page_title, page_context, project_name)
+    system_prompt = _build_system_prompt(page_title, page_context, project_name)
 
     messages: list[dict[str, str]] = []
     if system_prompt:
@@ -381,29 +409,9 @@ async def process_chat(
         if role in ("user", "assistant") and content:
             messages.append({"role": role, "content": content})
 
-    # Sanitize to ensure strictly alternating user/assistant roles throughout.
-    # The trailing-user guard below only handles the last turn; this handles
-    # non-trailing consecutive same-role messages that can accumulate when
-    # previous requests failed without cleaning up the client-side session
-    # (e.g. page navigation mid-request).  Strict models such as Gemma 4
-    # return 400 Bad Request when consecutive same-role messages are present.
+    # Sanitize to ensure strictly alternating user/assistant roles, drop leading
+    # assistant messages and trailing orphaned user messages (see _sanitize_messages).
     messages = _sanitize_messages(messages)
-
-    # Remove any trailing user messages from history (defensive guard).
-    # This can happen when a previous request failed after the user message was
-    # already saved to the client-side session – leaving an orphaned user turn
-    # with no assistant reply.  Sending two consecutive user messages to the LLM
-    # causes a 400 Bad Request.
-    removed = 0
-    while messages and messages[-1]["role"] == "user":
-        messages.pop()
-        removed += 1
-    if removed:
-        _logger.warning(
-            "process_chat: removed %d orphaned user message(s) from history "
-            "(client-side session was likely corrupted by a previous error)",
-            removed,
-        )
 
     messages.append({"role": "user", "content": message})
 
@@ -537,11 +545,13 @@ def click_button(button_id: str) -> str:
     """
     Return the action tag that clicks a whitelisted button in the CREC Web UI.
 
-    Allowed IDs: addNewCollectionBtn, editProjectBtn, adminPanelToggle,
-    searchButton, clearFiltersButton, inventoryOperationBtn,
-    inventoryManagementSettingsBtn, inventoryOperationSave,
-    inventoryOperationCancel, inventoryManagementSettingsSave,
-    inventoryManagementSettingsCancel, editIndexBtn.
+    Allowed IDs are defined by the SAFE_BUTTON_IDS environment variable (defaults
+    include: addNewCollectionBtn, editProjectBtn, adminPanelToggle, searchButton,
+    clearFiltersButton, inventoryOperationBtn, inventoryManagementSettingsBtn,
+    inventoryOperationSave, inventoryOperationCancel,
+    inventoryManagementSettingsSave, inventoryManagementSettingsCancel,
+    editIndexBtn, projectEditSaveBtn, saveIndexEdit, toggleAdvancedFiltersButton,
+    gridViewBtn, tableViewBtn).
 
     Args:
         button_id: The HTML element ID of the button to click.
@@ -562,9 +572,14 @@ def fill_input(field_id: str, value: str) -> str:
     Return the action tag that fills a whitelisted form field in the CREC Web
     UI.
 
-    Allowed IDs: operationType, operationQuantity, operationComment,
-    searchText, safetyStock, reorderPoint, maximumLevel, searchField,
-    searchMethod, inventoryStatusFilter.
+    Allowed IDs are defined by the SAFE_INPUT_IDS environment variable (defaults
+    include: operationType, operationQuantity, operationComment, safetyStock,
+    reorderPoint, maximumLevel, searchText, searchField, searchMethod,
+    inventoryStatusFilter, editName, editManagementCode, editRegistrationDate,
+    editCategory, editFirstTag, editSecondTag, editThirdTag, editLocation,
+    editProjectName, editCollectionNameLabel, editUUIDLabel,
+    editManagementCodeLabel, editCategoryLabel, editTag1Label, editTag2Label,
+    editTag3Label).
 
     Args:
         field_id: The HTML element ID of the form field.
