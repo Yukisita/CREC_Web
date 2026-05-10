@@ -5,6 +5,9 @@
     <CopyToPublishDirectory>Always</CopyToPublishDirectory>
   </Content>
 </ItemGroup>
+<ItemGroup>
+  <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+</ItemGroup>
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
