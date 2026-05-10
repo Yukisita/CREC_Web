@@ -32,7 +32,7 @@ _logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 LLM_URL: str = os.getenv("LLM_URL", "http://localhost:1234").rstrip("/")
-LLM_MODEL: str = os.getenv("LLM_MODEL", "gemma-3-12b")
+LLM_MODEL: str = os.getenv("LLM_MODEL", "google/gemma-4-e2b")
 MCP_HOST: str = os.getenv("MCP_HOST", "127.0.0.1")
 MCP_PORT: int = int(os.getenv("MCP_PORT", "8765"))
 
