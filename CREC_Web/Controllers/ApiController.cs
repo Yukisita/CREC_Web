@@ -9,6 +9,8 @@ using CREC_Web.Helpers;
 using CREC_Web.Models;
 using CREC_Web.Services;
 using Microsoft.AspNetCore.Mvc;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Webp;
 
 namespace CREC_Web.Controllers
 {
@@ -574,7 +576,7 @@ namespace CREC_Web.Controllers
         /// </summary>
         [HttpGet("thumbnail/{collectionId}")]
         // 呼び出し例: /api/Files/thumbnail/{collectionId}
-        public IActionResult GetThumbnail(string collectionId)
+        public async Task<IActionResult> GetThumbnail(string collectionId)
         {
             try
             {
@@ -616,10 +618,29 @@ namespace CREC_Web.Controllers
                     return NotFound($"Thumbnail not found for collection '{collectionId}'");
                 }
 
-                var contentType = ImageFormats.GetContentType(thumbnailExtension);
-
                 // サムネイルはユーザーが更新できるため、常に再検証する（ETag/Last-Modified を利用）
                 Response.Headers["Cache-Control"] = "no-cache";
+
+                // JPEGサムネイルはWebP（sRGB）に変換して配信する
+                if (thumbnailExtension == ".jpg" || thumbnailExtension == ".jpeg")
+                {
+                    using var image = await Image.LoadAsync(thumbnailPath);
+                    image.Metadata.IccProfile = null;
+                    var ms = new MemoryStream();
+                    try
+                    {
+                        await image.SaveAsWebpAsync(ms, new WebpEncoder { Quality = 90 });
+                        ms.Position = 0;
+                        return File(ms, "image/webp");
+                    }
+                    catch
+                    {
+                        await ms.DisposeAsync();
+                        throw;
+                    }
+                }
+
+                var contentType = ImageFormats.GetContentType(thumbnailExtension);
                 // img タグでインライン表示させるため、ファイル名は付与しない
                 return PhysicalFile(thumbnailPath, contentType);
             }
