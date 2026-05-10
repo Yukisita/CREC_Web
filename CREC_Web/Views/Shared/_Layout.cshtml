@@ -243,16 +243,10 @@
             padding: 1.5rem;
         }
 
-        /* 画像親要素のスタッキングコンテキストを独立させ、色計算の競合を防止する */
+        /* スリープ時のレイヤー再計算を抑制し、GPU合成レイヤーへ昇格させる */
         .image-carousel {
-            isolation: isolate;
-        }
-
-        /* カラーマネジメントによる再描画負荷を最小限にし、画面暗転時の JPEG 点滅を防止する */
-        img {
-            color-interpolation-filters: sRGB;
-            color-rendering: optimizeSpeed;
-            image-rendering: auto;
+            contain: layout paint;
+            transform: translateZ(0);
         }
 
         .detail-image {
