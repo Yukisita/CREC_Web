@@ -101,6 +101,19 @@ SAFE_INPUT_IDS: frozenset[str] = frozenset(
     os.getenv("SAFE_INPUT_IDS", _SAFE_INPUT_IDS_DEFAULT).split(",")
 )
 
+# ---------------------------------------------------------------------------
+# Blocked actions (hard-coded, cannot be overridden by env vars)
+# These actions are too dangerous to allow via AI even if the caller attempts
+# to whitelist them.  The response is replaced with an error message.
+# ---------------------------------------------------------------------------
+
+# Button IDs that are NEVER allowed — regardless of whitelist configuration.
+# Deletion of a collection is an irreversible destructive operation and must
+# always require explicit human confirmation.
+_BLOCKED_BUTTON_IDS: frozenset[str] = frozenset([
+    "deleteCollectionBtn",
+])
+
 PROMPTS_DIR: Path = Path(__file__).parent / "prompts"
 
 # Regex to find <action>…</action> blocks in LLM responses
@@ -231,14 +244,21 @@ def _build_system_prompt(lang: str, page_title: str, page_context: str, project_
 # Whitelist sanitizer
 # ---------------------------------------------------------------------------
 
-def _sanitize_response(text: str) -> str:
+def _sanitize_response(text: str) -> tuple[str, bool]:
     """
     Remove or strip any <action> blocks that reference element IDs not in the
     server-side whitelist.  Only clickButton and fillInput are ID-gated; other
     action types (search, navigate, showAdminPanel, openCollection) are passed
     through unchanged.
+
+    Returns:
+        (sanitized_text, blocked_deletion) — where blocked_deletion is True if
+        at least one collection-deletion action was detected and removed.
     """
+    blocked_deletion = False
+
     def _check(match: re.Match) -> str:
+        nonlocal blocked_deletion
         raw = match.group(1).strip()
         try:
             cmd: dict[str, Any] = json.loads(raw)
@@ -250,6 +270,10 @@ def _sanitize_response(text: str) -> str:
 
         if action_type == "clickButton":
             elem_id = str(cmd.get("id", ""))
+            # Hard block: dangerous destructive actions that are never allowed
+            if elem_id in _BLOCKED_BUTTON_IDS:
+                blocked_deletion = True
+                return ""  # strip blocked action
             if elem_id not in SAFE_BUTTON_IDS:
                 return ""  # strip unsafe action
 
@@ -260,7 +284,8 @@ def _sanitize_response(text: str) -> str:
 
         return match.group(0)  # keep safe action unchanged
 
-    return _ACTION_RE.sub(_check, text)
+    sanitized = _ACTION_RE.sub(_check, text)
+    return sanitized, blocked_deletion
 
 
 # ---------------------------------------------------------------------------
@@ -421,7 +446,21 @@ async def process_chat(
     if not text:
         return ""
 
-    sanitized = _sanitize_response(text)
+    sanitized, blocked_deletion = _sanitize_response(text)
+
+    # If a collection-deletion action was blocked server-side, override the
+    # entire response with a clear error so the user knows nothing happened.
+    # This is the second (backend) layer of protection — the system prompt is
+    # the first layer.
+    if blocked_deletion:
+        _logger.warning(
+            "process_chat: LLM attempted a blocked collection-deletion action; "
+            "replacing response with prohibition message"
+        )
+        return (
+            "⚠️ コレクションの削除はAI操作では実行できません。\n"
+            "削除する場合は画面上の削除ボタンから手動で行ってください。"
+        )
 
     # Ensure the response always contains human-readable text in addition to
     # any <action> tags.  Small models (≤4b) sometimes output only action XML;
