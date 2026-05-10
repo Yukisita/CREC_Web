@@ -59,6 +59,7 @@ const translations = {
         'clear-button': 'クリア',
         'advanced-filters': '詳細',
         'close': '閉じる',
+        'view-overview': '概要を見る',
         'view-details': '詳細を見る',
         'no-thumbnail': 'サムネイルなし',
         'grid-view': 'グリッド',
@@ -174,7 +175,16 @@ const translations = {
         'tag2-label': 'タグ2ラベル',
         'tag3-label': 'タグ3ラベル',
         'edit-project-success': 'プロジェクト設定を保存しました',
-        'edit-project-error': 'プロジェクト設定の保存に失敗しました'
+        'edit-project-error': 'プロジェクト設定の保存に失敗しました',
+        'chat-title': 'AIアシスタント',
+        'chat-placeholder': 'メッセージを入力...',
+        'chat-welcome': 'こんにちは！CREC Webのサポートアシスタントです。使い方に関するご質問や操作の依頼があればお気軽にどうぞ。',
+        'chat-thinking': '考え中...',
+        'chat-error': 'エラーが発生しました。もう一度お試しください。',
+        'chat-error-empty-response': '応答が空でした。もう一度お試しください。',
+        'chat-error-network': 'AIサーバーに接続できませんでした。ネットワーク接続を確認してください。',
+        'chat-error-server': 'AIサーバーでエラーが発生しました。しばらく待ってからもう一度お試しください。',
+        'chat-error-timeout': 'AIの応答がタイムアウトしました。もう一度お試しください。'
     },
     de: {
         'loading': 'Laden...',
@@ -229,6 +239,7 @@ const translations = {
         'clear-button': 'Löschen',
         'advanced-filters': 'Erweitert',
         'close': 'Schließen',
+        'view-overview': 'Übersicht anzeigen',
         'view-details': 'Details anzeigen',
         'no-thumbnail': 'Kein Thumbnail',
         'grid-view': 'Raster',
@@ -344,7 +355,16 @@ const translations = {
         'tag2-label': 'Tag2-Beschriftung',
         'tag3-label': 'Tag3-Beschriftung',
         'edit-project-success': 'Projekteinstellungen erfolgreich gespeichert',
-        'edit-project-error': 'Fehler beim Speichern der Projekteinstellungen'
+        'edit-project-error': 'Fehler beim Speichern der Projekteinstellungen',
+        'chat-title': 'KI-Assistent',
+        'chat-placeholder': 'Nachricht eingeben...',
+        'chat-welcome': 'Hallo! Ich bin der Support-Assistent von CREC Web. Bei Fragen zur Verwendung oder Wünschen nach bestimmten Aktionen helfe ich gerne weiter.',
+        'chat-thinking': 'Denke nach...',
+        'chat-error': 'Ein Fehler ist aufgetreten. Bitte erneut versuchen.',
+        'chat-error-empty-response': 'Die Antwort war leer. Bitte erneut versuchen.',
+        'chat-error-network': 'Der KI-Server ist nicht erreichbar. Bitte Netzwerkverbindung prüfen.',
+        'chat-error-server': 'Auf dem KI-Server ist ein Fehler aufgetreten. Bitte später erneut versuchen.',
+        'chat-error-timeout': 'Die KI-Antwort hat zu lange gedauert. Bitte erneut versuchen.'
     },
     en: {
         'loading': 'Loading...',
@@ -399,6 +419,7 @@ const translations = {
         'clear-button': 'Clear',
         'advanced-filters': 'Advanced',
         'close': 'Close',
+        'view-overview': 'View Overview',
         'view-details': 'View Details',
         'no-thumbnail': 'No Thumbnail',
         'grid-view': 'Grid',
@@ -514,7 +535,16 @@ const translations = {
         'tag2-label': 'Tag 2 Label',
         'tag3-label': 'Tag 3 Label',
         'edit-project-success': 'Project settings saved successfully',
-        'edit-project-error': 'Failed to save project settings'
+        'edit-project-error': 'Failed to save project settings',
+        'chat-title': 'AI Assistant',
+        'chat-placeholder': 'Type a message...',
+        'chat-welcome': "Hello! I'm the CREC Web support assistant. Feel free to ask questions about how to use the system or request any operations.",
+        'chat-thinking': 'Thinking...',
+        'chat-error': 'An error occurred. Please try again.',
+        'chat-error-empty-response': 'Response was empty. Please try again.',
+        'chat-error-network': 'Could not connect to the AI server. Please check your network connection.',
+        'chat-error-server': 'An error occurred on the AI server. Please try again later.',
+        'chat-error-timeout': 'The AI response timed out. Please try again.'
     }
 };
 

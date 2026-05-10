@@ -189,8 +189,8 @@
                 { id: 'searchButton', event: 'click', handler: () => searchCollections() },// 検索ボタンのイベントリスナ
                 { id: 'qrScanButton', event: 'click', handler: openQrScanner },// QRスキャンボタンのイベントリスナ
                 { id: 'clearFiltersButton', event: 'click', handler: clearFilters },// フィルタクリアボタンのイベントリスナ
-                { id: 'detailPanelOverlay', event: 'click', handler: closeDetailPanel },// 詳細パネルオープンのイベントリスナ
-                { id: 'detailPanelClose', event: 'click', handler: closeDetailPanel },// 詳細パネルクローズのイベントリスナ
+                { id: 'overviewPanelOverlay', event: 'click', handler: closeOverviewPanel },// 概要パネルクローズのイベントリスナ
+                { id: 'overviewPanelClose', event: 'click', handler: closeOverviewPanel },// 概要パネルクローズのイベントリスナ
                 { id: 'gridViewBtn', event: 'click', handler: switchToGridView },// グリッド表示ボタンのイベントリスナ
                 { id: 'tableViewBtn', event: 'click', handler: switchToTableView },// テーブル表示ボタンのイベントリスナ
                 { id: 'toggleAdvancedFiltersButton', event: 'click', handler: toggleAdvancedFilters },// 詳細フィルタ表示切り替えボタンのイベントリスナ
@@ -599,7 +599,9 @@
          */
         function createCollectionRow(collection) {
             const row = document.createElement('tr');
-            row.addEventListener('click', () => showCollectionDetails(collection.indexData?.systemData?.id));
+            row.dataset.collectionId = collection.indexData?.systemData?.id || '';
+            row.dataset.collectionName = collection.indexData?.values?.name || '';
+            row.addEventListener('click', () => showCollectionOverview(collection.indexData?.systemData?.id));
 
             const inventoryStatusText = getInventoryStatusText(
                 collection.collectionInventoryStatus,
@@ -702,6 +704,8 @@
         function createCollectionCard(collection) {
             const colDiv = document.createElement('div');
             colDiv.className = 'col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 mb-4';
+            colDiv.dataset.collectionId = collection.indexData?.systemData?.id || '';
+            colDiv.dataset.collectionName = collection.indexData?.values?.name || '';
 
             const inventoryStatusText = getInventoryStatusText(
                 collection.collectionInventoryStatus,
@@ -766,13 +770,22 @@
                 </p>
             `;
 
+            const overviewBtn = document.createElement('button');
+            overviewBtn.className = 'btn btn-outline-primary btn-sm w-100 mb-1';
+            overviewBtn.innerHTML = `<i class="bi bi-eye"></i> ${t('view-overview')}`;
+            overviewBtn.addEventListener('click', () => showCollectionOverview(collection.indexData.systemData.id));
+
             const detailsBtn = document.createElement('button');
             detailsBtn.className = 'btn btn-primary btn-sm w-100';
-            detailsBtn.innerHTML = `<i class="bi bi-eye"></i> ${t('view-details')}`;
-            detailsBtn.addEventListener('click', () => showCollectionDetails(collection.indexData.systemData.id));
+            detailsBtn.innerHTML = `<i class="bi bi-box-arrow-up-right"></i> ${t('view-details')}`;
+            detailsBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                window.location.href = `/Collection/${encodeURIComponent(collection.indexData.systemData.id)}`;
+            });
 
             const cardFooter = document.createElement('div');
             cardFooter.className = 'card-footer';
+            cardFooter.appendChild(overviewBtn);
             cardFooter.appendChild(detailsBtn);
 
             const card = document.createElement('div');
@@ -786,10 +799,10 @@
         }
 
         /**
-         * コレクションの詳細を表示する
+         * コレクションの概要をサイドパネルに表示する
          * @@param {string} collectionId - コレクションのID
          */
-        async function showCollectionDetails(collectionId) {
+        async function showCollectionOverview(collectionId) {
             try {
                 const response = await fetch(`/api/collections/${encodeURIComponent(collectionId)}`);
                 if (!response.ok) {
@@ -797,22 +810,24 @@
                 }
 
                 const collection = await response.json();
-                displayCollectionPanel(collection);
+                displayCollectionOverviewPanel(collection);
             } catch (error) {
-                console.error('Error loading collection details:', error);
+                console.error('Error loading collection overview:', error);
                 alert(t('error-loading') + ': ' + error.message);
             }
         }
+        // Expose to chat.js (AI chat panel openCollectionByName / showCollectionPanel actions)
+        window.showCollectionOverview = showCollectionOverview;
 
         /**
-         * コレクションの詳細パネルに情報を表示する
-         * @@param {object} collection - コレクションの詳細データ
+         * コレクションの概要パネルに情報を表示する
+         * @@param {object} collection - コレクションデータ
          */
-        function displayCollectionPanel(collection) {
-            const panel = document.getElementById('detailPanel');
-            const overlay = document.getElementById('detailPanelOverlay');
-            const panelTitle = document.getElementById('detailPanelTitle');
-            const panelBody = document.getElementById('detailPanelBody');
+        function displayCollectionOverviewPanel(collection) {
+            const panel = document.getElementById('overviewPanel');
+            const overlay = document.getElementById('overviewPanelOverlay');
+            const panelTitle = document.getElementById('overviewPanelTitle');
+            const panelBody = document.getElementById('overviewPanelBody');
 
             // 新しいリスナを設定する前に既存のイベントリスナをクリーンアップ
             cleanupPanelEventListeners(panel);
@@ -1039,11 +1054,11 @@
         }
 
         /**
-         * 詳細パネルを閉じる
+         * 概要パネルを閉じる
          */
-        function closeDetailPanel() {
-            const panel = document.getElementById('detailPanel');
-            const overlay = document.getElementById('detailPanelOverlay');
+        function closeOverviewPanel() {
+            const panel = document.getElementById('overviewPanel');
+            const overlay = document.getElementById('overviewPanelOverlay');
 
             // イベントリスナをクリーンアップ
             cleanupPanelEventListeners(panel);
@@ -1536,8 +1551,8 @@
                     throw new Error(errorText || `HTTP error! status: ${response.status}`);
                 }
 
-                // 詳細パネルを再読み込み
-                await showCollectionDetails(currentInventoryCollectionId);
+                // 概要パネルを再読み込み
+                await showCollectionOverview(currentInventoryCollectionId);
 
                 // 検索結果も更新
                 await searchCollections(currentPage);
@@ -1877,8 +1892,8 @@
                     throw new Error(errorText || `HTTP error! status: ${response.status}`);
                 }
 
-                // 詳細パネルを再読み込み
-                await showCollectionDetails(currentInventoryCollectionId);
+                // 概要パネルを再読み込み
+                await showCollectionOverview(currentInventoryCollectionId);
 
                 // 成功したらモーダルを閉じる
                 closeInventoryManagementSettingsModal();
