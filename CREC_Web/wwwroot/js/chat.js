@@ -45,71 +45,34 @@ let chatMessages = []; // { role: 'user'|'assistant', content: string }
 let chatIsOpen = false;
 let chatIsSending = false;
 
-/**
- * Save conversation history to sessionStorage (survives page navigation).
- */
-function saveChatSession() {
+// =====================
+// SessionStorage helpers
+// =====================
+
+/** Read a JSON value from sessionStorage. Returns null when key is absent or value is unparseable. */
+function sessionGet(key) {
     try {
-        sessionStorage.setItem(CHAT_SESSION_KEY, JSON.stringify(chatMessages));
-    } catch (e) {
-        // sessionStorage unavailable – ignore
-    }
+        // JSON.parse(null) returns null (no throw) when the key is absent,
+        // so we don't need a separate null-check before parsing.
+        return JSON.parse(sessionStorage.getItem(key));
+    } catch (e) { return null; }
+}
+/** Write a JSON value to sessionStorage. Silently ignores quota/security errors. */
+function sessionSet(key, value) {
+    try { sessionStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+}
+/** Remove a key from sessionStorage. Silently ignores errors. */
+function sessionDel(key) {
+    try { sessionStorage.removeItem(key); } catch (e) {}
 }
 
-/**
- * Load conversation history from sessionStorage.
- * @returns {Array|null}
- */
-function loadChatSession() {
-    try {
-        const saved = sessionStorage.getItem(CHAT_SESSION_KEY);
-        return saved ? JSON.parse(saved) : null;
-    } catch (e) {
-        return null;
-    }
-}
+function saveChatSession()          { sessionSet(CHAT_SESSION_KEY, chatMessages); }
+function loadChatSession()          { return sessionGet(CHAT_SESSION_KEY); }
+function clearChatSession()         { sessionDel(CHAT_SESSION_KEY); }
 
-/**
- * Remove conversation history from sessionStorage.
- */
-function clearChatSession() {
-    try {
-        sessionStorage.removeItem(CHAT_SESSION_KEY);
-    } catch (e) {}
-}
-
-/**
- * Save pending post-navigation actions to sessionStorage.
- * These are executed when the next page finishes loading.
- * @param {Array} actions
- */
-function savePendingChatActions(actions) {
-    try {
-        sessionStorage.setItem(CHAT_PENDING_ACTIONS_KEY, JSON.stringify(actions));
-    } catch (e) {}
-}
-
-/**
- * Load pending post-navigation actions from sessionStorage.
- * @returns {Array|null}
- */
-function loadPendingChatActions() {
-    try {
-        const saved = sessionStorage.getItem(CHAT_PENDING_ACTIONS_KEY);
-        return saved ? JSON.parse(saved) : null;
-    } catch (e) {
-        return null;
-    }
-}
-
-/**
- * Remove pending post-navigation actions from sessionStorage.
- */
-function clearPendingChatActions() {
-    try {
-        sessionStorage.removeItem(CHAT_PENDING_ACTIONS_KEY);
-    } catch (e) {}
-}
+function savePendingChatActions(a)  { sessionSet(CHAT_PENDING_ACTIONS_KEY, a); }
+function loadPendingChatActions()   { return sessionGet(CHAT_PENDING_ACTIONS_KEY); }
+function clearPendingChatActions()  { sessionDel(CHAT_PENDING_ACTIONS_KEY); }
 
 /**
  * Execute pending post-navigation actions stored in sessionStorage.
@@ -303,15 +266,13 @@ function processChatActions(text) {
             try {
                 cmd = JSON.parse(raw.trim());
             } catch (e2) {
-            // Fallback 2: strip trailing extra closing braces and retry.
-            // This only runs when JSON.parse already failed, so the input is
-            // already invalid JSON — we are recovering from a single common
-            // malformation (e.g. {"type":"x"}} with a doubled closing brace).
-            try {
-                cmd = JSON.parse(raw.trim().replace(/}+$/, '}'));
-            } catch (e3) {
-                console.warn('Failed to parse chat action JSON:', raw, e3);
-            }
+                // Fallback 2: strip trailing extra closing braces and retry.
+                // Recovers from doubled closing braces (e.g. {"type":"x"}}).
+                try {
+                    cmd = JSON.parse(raw.trim().replace(/}+$/, '}'));
+                } catch (e3) {
+                    console.warn('Failed to parse chat action JSON:', raw, e3);
+                }
             }
         }
         if (cmd && typeof cmd.type === 'string') {
@@ -415,6 +376,23 @@ function wantsCollectionDetailPage() {
 }
 
 /**
+ * Open a collection by ID: navigate to its detail page when the user's
+ * message signals detail-page intent (詳細), otherwise open the overview
+ * side panel.  Falls back to openCollectionWindow when the panel function
+ * is unavailable (e.g. on non-home pages).
+ * @param {string} id - Collection ID
+ */
+function openCollectionById(id) {
+    if (wantsCollectionDetailPage()) {
+        window.location.href = `/Collection/${encodeURIComponent(id)}`;
+    } else if (typeof window.showCollectionOverview === 'function') {
+        window.showCollectionOverview(id);
+    } else {
+        openCollectionWindow(id);
+    }
+}
+
+/**
  * Execute a single parsed chat action command.
  * @param {object} cmd - Parsed action object
  */
@@ -444,37 +422,18 @@ function executeChatAction(cmd) {
             break;
 
         case 'showCollectionPanel':
-            // Show the collection overview panel or navigate to detail page,
-            // depending on whether the user's message contains "詳細" (detail) intent.
-            // This frontend-driven routing works regardless of the system prompt version.
             if (cmd.id && typeof cmd.id === 'string') {
-                if (wantsCollectionDetailPage()) {
-                    window.location.href = `/Collection/${encodeURIComponent(cmd.id)}`;
-                } else if (typeof window.showCollectionOverview === 'function') {
-                    window.showCollectionOverview(cmd.id);
-                } else {
-                    openCollectionWindow(cmd.id);
-                }
+                openCollectionById(cmd.id);
             }
             break;
 
         case 'openCollectionByName': {
-            // Open a collection by its display name — looks up the ID from the DOM.
-            // Routes to detail page if the user's message contains "詳細" intent,
-            // otherwise opens the overview side panel (概要).
-            // This frontend-driven routing works regardless of the system prompt version.
             const targetName = typeof cmd.name === 'string' ? cmd.name.trim() : '';
             if (!targetName) break;
 
             const collectionId = findCollectionIdByName(targetName);
             if (collectionId) {
-                if (wantsCollectionDetailPage()) {
-                    window.location.href = `/Collection/${encodeURIComponent(collectionId)}`;
-                } else if (typeof window.showCollectionOverview === 'function') {
-                    window.showCollectionOverview(collectionId);
-                } else {
-                    openCollectionWindow(collectionId);
-                }
+                openCollectionById(collectionId);
             } else {
                 console.warn('openCollectionByName: no collection found for name:', targetName);
                 reportActionFailure(
@@ -842,7 +801,7 @@ function openChatPanel() {
     if (panel) {
         panel.classList.add('open');
         chatIsOpen = true;
-        try { sessionStorage.setItem(CHAT_PANEL_STATE_KEY, '1'); } catch (e) {}
+        sessionSet(CHAT_PANEL_STATE_KEY, 1); // stored as JSON number 1 (truthy)
         const input = document.getElementById('chatInput');
         if (input) input.focus();
         scrollChatToBottom();
@@ -854,7 +813,7 @@ function closeChatPanel() {
     if (panel) {
         panel.classList.remove('open');
         chatIsOpen = false;
-        try { sessionStorage.removeItem(CHAT_PANEL_STATE_KEY); } catch (e) {}
+        sessionDel(CHAT_PANEL_STATE_KEY);
     }
 }
 
@@ -918,11 +877,9 @@ function initializeChat() {
     executePendingChatActions();
 
     // Restore panel open/close state from before page navigation
-    try {
-        if (sessionStorage.getItem(CHAT_PANEL_STATE_KEY) === '1') {
-            openChatPanel();
-        }
-    } catch (e) {}
+    if (sessionGet(CHAT_PANEL_STATE_KEY)) {
+        openChatPanel();
+    }
 
     // Prevent Bootstrap modal focus trap from stealing focus when the user
     // interacts with the chat panel while a modal is open.  Bootstrap adds a
