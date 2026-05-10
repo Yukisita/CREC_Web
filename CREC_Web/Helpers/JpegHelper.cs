@@ -22,7 +22,8 @@ namespace CREC_Web.Helpers
             if (jpegData.Length < 2 || jpegData[0] != 0xFF || jpegData[1] != 0xD8)
                 return jpegData;
 
-            using var output = new MemoryStream(jpegData.Length);
+            // 出力はICCプロファイル分小さくなるためデフォルトキャパシティで十分
+            using var output = new MemoryStream();
             output.Write(jpegData, 0, 2); // SOI書き込み
 
             int pos = 2;
@@ -31,12 +32,12 @@ namespace CREC_Web.Helpers
                 if (jpegData[pos] != 0xFF)
                     break; // 不正なJPEG
 
-                // FFパディングバイトをスキップ
-                while (pos < jpegData.Length - 1 && jpegData[pos + 1] == 0xFF)
+                // JPEGでは0xFFのフィルバイトがマーカー前に許容される（1バイトずつスキップ）
+                if (jpegData[pos + 1] == 0xFF)
+                {
                     pos++;
-
-                if (pos >= jpegData.Length - 1)
-                    break;
+                    continue;
+                }
 
                 byte marker = jpegData[pos + 1];
 
@@ -74,9 +75,10 @@ namespace CREC_Web.Helpers
                 }
 
                 // APP2マーカーにICCプロファイルシグネチャが含まれる場合はスキップ
+                // ICC_PROFILE\0 は12バイト: データはpos+4から始まりpos+15まで読む必要がある
                 bool isIcc = marker == 0xE2
                     && segLen > 14
-                    && pos + 4 + 12 <= jpegData.Length
+                    && pos + 16 <= jpegData.Length  // pos+4 から12バイト（pos+4〜pos+15）が確実に存在する
                     && jpegData.AsSpan(pos + 4, 12).SequenceEqual("ICC_PROFILE\0"u8);
 
                 if (!isIcc)
