@@ -112,6 +112,7 @@ namespace CREC_Web.Helpers
                     rgb, width, height, width * 3, quality, out IntPtr webpPtr);
 
                 if (encodedSize == 0 || webpPtr == IntPtr.Zero) return null;
+                if (encodedSize > (nuint)Array.MaxLength) return null; // 実用上起こり得ないが安全のため
 
                 try
                 {
