@@ -8,8 +8,6 @@ using CREC_Web.Extensions;
 using CREC_Web.Helpers;
 using CREC_Web.Services;
 using Microsoft.AspNetCore.Mvc;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Webp;
 
 namespace CREC_Web.Controllers
 {
@@ -108,27 +106,15 @@ namespace CREC_Web.Controllers
                 Response.Headers["Cache-Control"] = "public, max-age=3600";
                 Response.Headers["X-Content-Type-Options"] = "nosniff";
 
-                // JPEGはサーバー側でWebP（sRGB）に変換して配信する。
-                // AndroidChrome等でJPEGのハードウェアデコードが原因で発生する点滅を防止するため、
-                // ICCプロファイルを除去したWebPとして配信することでブラウザはsRGBとして扱う。
+                // JPEGはICCプロファイルを除去してそのまま配信する。
+                // ICCプロファイルを除去することでブラウザがWeb標準sRGBとして扱うようになり、
+                // Android Chrome でのハードウェアカラーマネジメントによる点滅を防止できる。
                 if (extension == ".jpg" || extension == ".jpeg")
                 {
-                    using var image = await Image.LoadAsync(fullPath);
-                    // ICCプロファイルを除去してWeb標準sRGBとして出力
-                    image.Metadata.IccProfile = null;
-                    var ms = new MemoryStream();
-                    try
-                    {
-                        await image.SaveAsWebpAsync(ms, new WebpEncoder { Quality = 90 });
-                        ms.Position = 0;
-                        _logger.LogInformation("JPEG converted to WebP (sRGB) for serving: {fileName}", Path.GetFileName(fileName).SanitizeForLog());
-                        return File(ms, "image/webp");
-                    }
-                    catch
-                    {
-                        await ms.DisposeAsync();
-                        throw;
-                    }
+                    var jpegBytes = await System.IO.File.ReadAllBytesAsync(fullPath);
+                    var stripped = JpegHelper.StripIccProfile(jpegBytes);
+                    _logger.LogInformation("ICC profile stripped from JPEG for serving: {fileName}", Path.GetFileName(fileName).SanitizeForLog());
+                    return File(stripped, "image/jpeg");
                 }
 
                 // 画像は閲覧用（インライン）で提供し、ダウンロードは不可
