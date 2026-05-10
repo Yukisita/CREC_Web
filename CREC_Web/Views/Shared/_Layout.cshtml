@@ -243,6 +243,11 @@
             padding: 1.5rem;
         }
 
+        /* GPU レイヤーを固定し、Android Chrome スリープ直前の JPEG 点滅を防止する */
+        img {
+            transform: translateZ(0);
+        }
+
         .detail-image {
             width: 100%;
             max-height: 400px;
