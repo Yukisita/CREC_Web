@@ -76,6 +76,76 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeApp();
 });
 
+// 画面暗転時のフリッカー防止及びJPEG画像の色転び対策
+// JPEGはcanvas経由でWebP blob URLに変換し、ソフトウェアデコードパスへ切り替える。
+(function () {
+    /**
+     * 画像がソフトウェアデコードに変換する必要があるかどうかを判定する
+     * JPEG拡張子(.jpg/.jpeg)を持つURL、及び拡張子なしのURL（APIエンドポイント等）のみ変換対象とする。
+     * 注意: endsWith('') はすべての文字列に一致するため、空文字列による判定は行わない。
+     * @param {any} src
+     * @returns {boolean}
+     */
+    function needsConvert(src) {
+        if (!src || src.startsWith('blob:') || src.startsWith('data:')) return false;
+        const path = src.split('?')[0].split('#')[0].toLowerCase();
+        const filename = path.split('/').pop();
+        const dotIndex = filename.lastIndexOf('.');
+        if (dotIndex === -1) return true; // 拡張子なし（APIエンドポイント等）→ 変換対象（防御的）
+        const ext = filename.slice(dotIndex);
+        return ext === '.jpg' || ext === '.jpeg';
+    }
+
+    /**
+    * 画像をソフトウェアデコードに変換する
+    * toDataURL を同期実行することで、変換完了前に画面が暗転しても
+    * 点滅が発生しないようにする。
+    * @param {HTMLImageElement} img
+    * @returns {void}
+     */
+    function convertToSWDecoded(img) {
+        if (img._swConverting || !needsConvert(img.src)) return;
+        if (!img.naturalWidth || !img.naturalHeight) return;
+        img._swConverting = true;
+        try {
+            const c = document.createElement('canvas');
+            c.width = img.naturalWidth;
+            c.height = img.naturalHeight;
+            c.getContext('2d').drawImage(img, 0, 0);
+            img.src = c.toDataURL('image/webp', 1.0);
+        } catch (_) {
+            // SecurityError（クロスオリジン汚染）等は無視
+        } finally {
+            img._swConverting = false;
+        }
+    }
+
+    /**
+     * img要素を監視し、必要に応じてソフトウェアデコードに変換する
+     * @param {any} img
+     * @returns {void}
+     */
+    function observe(img) {
+        if (img._swObserved) return;
+        img._swObserved = true;
+        if (img.complete && img.naturalWidth) convertToSWDecoded(img);
+        img.addEventListener('load', function () { convertToSWDecoded(img); });
+    }
+
+    document.querySelectorAll('img').forEach(observe);
+
+    new MutationObserver(function (mutations) {
+        for (let i = 0; i < mutations.length; i++) {
+            let m = mutations[i];
+            for (let j = 0; j < m.addedNodes.length; j++) {
+                let n = m.addedNodes[j];
+                if (n.nodeName === 'IMG') observe(n);
+                else if (n.querySelectorAll) n.querySelectorAll('img').forEach(observe);
+            }
+        }
+    }).observe(document.documentElement, { childList: true, subtree: true });
+})();
+
 // UI 言語の更新
 function updateUILanguage() {
     const lang = currentLanguage;

@@ -38,7 +38,7 @@ namespace CREC_Web.Controllers
         /// <returns>画像ファイル</returns>
         // 呼び出し例: /api/File/{collectionId}/picture/{fileName}
         [HttpGet("{collectionId}/picture/{fileName}")]
-        public async Task<IActionResult> GetFile(string collectionId, string fileName)
+        public IActionResult GetFile(string collectionId, string fileName)
         {
             try
             {
@@ -105,15 +105,6 @@ namespace CREC_Web.Controllers
                 Response.Headers["Access-Control-Allow-Origin"] = "*";
                 Response.Headers["Cache-Control"] = "public, max-age=3600";
                 Response.Headers["X-Content-Type-Options"] = "nosniff";
-
-                // JPEG: ICC プロファイルを除去して配信する（純 .NET、サードパーティライブラリ不使用）。
-                // ICC プロファイルを除去することでブラウザは画像を Web 標準 sRGB として扱う。
-                if (extension == ".jpg" || extension == ".jpeg")
-                {
-                    var jpegBytes = await System.IO.File.ReadAllBytesAsync(fullPath);
-                    var stripped = JpegHelper.StripIccProfile(jpegBytes);
-                    return File(stripped, "image/jpeg");
-                }
 
                 // 画像は閲覧用（インライン）で提供し、ダウンロードは不可
                 return PhysicalFile(fullPath, contentType, enableRangeProcessing: true);

@@ -574,7 +574,7 @@ namespace CREC_Web.Controllers
         /// </summary>
         [HttpGet("thumbnail/{collectionId}")]
         // 呼び出し例: /api/Files/thumbnail/{collectionId}
-        public async Task<IActionResult> GetThumbnail(string collectionId)
+        public IActionResult GetThumbnail(string collectionId)
         {
             try
             {
@@ -618,15 +618,6 @@ namespace CREC_Web.Controllers
 
                 // サムネイルはユーザーが更新できるため、常に再検証する（ETag/Last-Modified を利用）
                 Response.Headers["Cache-Control"] = "no-cache";
-
-                // JPEG: ICC プロファイルを除去して配信する（純 .NET、サードパーティライブラリ不使用）。
-                // ICC プロファイルを除去することでブラウザは画像を Web 標準 sRGB として扱う。
-                if (thumbnailExtension == ".jpg" || thumbnailExtension == ".jpeg")
-                {
-                    var jpegBytes = await System.IO.File.ReadAllBytesAsync(thumbnailPath);
-                    var stripped = JpegHelper.StripIccProfile(jpegBytes);
-                    return File(stripped, "image/jpeg");
-                }
 
                 var contentType = ImageFormats.GetContentType(thumbnailExtension);
                 // img タグでインライン表示させるため、ファイル名は付与しない
