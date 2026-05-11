@@ -619,16 +619,10 @@ namespace CREC_Web.Controllers
                 // サムネイルはユーザーが更新できるため、常に再検証する（ETag/Last-Modified を利用）
                 Response.Headers["Cache-Control"] = "no-cache";
 
-                // JPEG サムネイルはサーバー側で WebP に変換して配信する
-                // libturbojpeg / libwebp が未インストールの場合は ICC プロファイル除去にフォールバック
+                // JPEGサムネイルはICCプロファイルを除去してそのまま配信する
                 if (thumbnailExtension == ".jpg" || thumbnailExtension == ".jpeg")
                 {
                     var jpegBytes = await System.IO.File.ReadAllBytesAsync(thumbnailPath);
-                    var webpBytes = WebPConverter.ConvertToWebP(jpegBytes);
-                    if (webpBytes is not null)
-                        return File(webpBytes, "image/webp");
-
-                    // フォールバック: ICC プロファイルを除去して JPEG のまま配信
                     var stripped = JpegHelper.StripIccProfile(jpegBytes);
                     return File(stripped, "image/jpeg");
                 }
