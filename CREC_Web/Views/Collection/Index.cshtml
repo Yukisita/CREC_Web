@@ -957,14 +957,23 @@
                         imageCounter.textContent = `${idx + 1} / ${images.length}`;
                         imageName.textContent = images[idx];
                     };
-                    const updateImage = () => {
+                    const updateImage = async () => {
                         const collectionID = collection?.indexData?.systemData?.id;
                         if (!collectionID) {
                             console.error('Collection ID is missing.');
                             return;
                         }
-                        const imageUrl = `/api/File/${encodeURIComponent(collectionID)}/picture/${encodeURIComponent(images[currentImageIndex])}`;
-                        applyCarouselUi(currentImageIndex, imageUrl);
+                        const capturedIndex = currentImageIndex;
+                        const imageUrl = `/api/File/${encodeURIComponent(collectionID)}/picture/${encodeURIComponent(images[capturedIndex])}`;
+                        // img.decode() で画像を完全にデコードしてから DOM に適用する。
+                        // JPEG の YCbCr→RGB 変換を事前に完了させることで、画面 dim 時に
+                        // コンポジタが変換を再評価して点滅するのを防ぐ。
+                        const preload = new Image();
+                        preload.src = imageUrl;
+                        try { await preload.decode(); } catch (err) { console.warn('Image decode failed:', err); }
+                        if (currentImageIndex === capturedIndex) {
+                            applyCarouselUi(capturedIndex, imageUrl);
+                        }
                     };
 
                     prevBtn.addEventListener('click', () => {
