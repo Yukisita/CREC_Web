@@ -987,39 +987,16 @@
                         return;
                     }
 
-                    const applyCarouselUi = (idx, src) => {
-                        carouselImage.src = src;
-                        carouselImage.alt = images[idx];
-                        imageCounter.textContent = `${idx + 1} / ${images.length}`;
-                        imageName.textContent = images[idx];
-                    };
-                    async function updateImage() {
+                    function updateImage() {
                         const collectionID = collection?.indexData?.systemData?.id;
                         if (!collectionID) {
                             console.error('Collection ID is missing.');
                             return;
                         }
-                        const jpegUrl = `/api/File/${encodeURIComponent(collectionID)}/picture/${encodeURIComponent(images[currentImageIndex])}`;
-                        const capturedIndex = currentImageIndex;
-                        // オフスクリーンでWebP変換してからcarouselImgに反映し、IIFE変換との競合を防止する
-                        const tmp = new Image();
-                        tmp.onload = function () {
-                            if (capturedIndex !== currentImageIndex) return;
-                            let displayUrl = jpegUrl;
-                            try {
-                                const c = document.createElement('canvas');
-                                c.width = tmp.naturalWidth;
-                                c.height = tmp.naturalHeight;
-                                c.getContext('2d').drawImage(tmp, 0, 0);
-                                displayUrl = c.toDataURL('image/webp', 1.0);
-                            } catch (err) { console.warn('Canvas WebP conversion failed:', err); }
-                            applyCarouselUi(capturedIndex, displayUrl);
-                        };
-                        tmp.onerror = function () {
-                            if (capturedIndex !== currentImageIndex) return;
-                            applyCarouselUi(capturedIndex, jpegUrl);
-                        };
-                        tmp.src = jpegUrl;
+                        carouselImage.src = `/api/File/${encodeURIComponent(collectionID)}/picture/${encodeURIComponent(images[currentImageIndex])}`;
+                        carouselImage.alt = images[currentImageIndex];
+                        imageCounter.textContent = `${currentImageIndex + 1} / ${images.length}`;
+                        imageName.textContent = images[currentImageIndex];
                     }
 
                     const prevHandler = () => {
