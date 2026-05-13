@@ -36,8 +36,12 @@ const MIN_COLUMN_WIDTH = (() => {
     return Number.isFinite(parsed) ? parsed : 80; // 0 を正しく受け入れ、NaN の場合のみフォールバック
 })();
 
+/** フェッチ済み Blob のキャッシュ（URL → Promise<Blob>）。同一 URL の重複フェッチを防ぐ。 */
+const _drawUrlCache = new Map();
+
 /**
  * 指定URLの画像を取得し、createImageBitmap でデコード後、canvas に直接描画する。
+ * 同一 URL は HTTP リクエストを1度のみ実行し、Blob をキャッシュする。
  * fit='cover'  : canvas.width/height を事前にセットすること。画像を中央クロップして塗りつぶす。
  * fit='natural': canvas.width/height は画像サイズに自動セット。画像をそのまま描画。
  * @param {string} url
@@ -46,8 +50,13 @@ const MIN_COLUMN_WIDTH = (() => {
  * @returns {Promise<void>}
  */
 function drawUrlToCanvas(url, canvas, fit) {
-    return fetch(url)
-        .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.blob(); })
+    if (!_drawUrlCache.has(url)) {
+        const p = fetch(url)
+            .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.blob(); });
+        p.catch(() => _drawUrlCache.delete(url));
+        _drawUrlCache.set(url, p);
+    }
+    return _drawUrlCache.get(url)
         .then(blob => createImageBitmap(blob))
         .then(bitmap => {
             const ctx = canvas.getContext('2d');
