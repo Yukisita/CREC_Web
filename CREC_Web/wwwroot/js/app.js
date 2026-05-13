@@ -87,6 +87,41 @@ function convertToWebP(url) {
     return promise;
 }
 
+/**
+ * 指定URLの画像を取得し、createImageBitmap でデコード後、canvas に直接描画する。
+ * WebP エンコード不要 — convertToWebP より大幅に高速（特に JPEG）。
+ * fit='cover'  : canvas.width/height を事前にセットすること。画像を中央クロップして塗りつぶす。
+ * fit='natural': canvas.width/height は画像サイズに自動セット。画像をそのまま描画。
+ * @param {string} url
+ * @param {HTMLCanvasElement} canvas
+ * @param {'cover'|'natural'} [fit='natural']
+ * @returns {Promise<void>}
+ */
+function drawUrlToCanvas(url, canvas, fit) {
+    return fetch(url)
+        .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.blob(); })
+        .then(blob => createImageBitmap(blob))
+        .then(bitmap => {
+            const ctx = canvas.getContext('2d');
+            if (!ctx) { bitmap.close(); throw new Error('canvas context unavailable'); }
+            try {
+                if (fit === 'cover') {
+                    const w = canvas.width, h = canvas.height;
+                    const scale = Math.max(w / bitmap.width, h / bitmap.height);
+                    const sw = w / scale, sh = h / scale;
+                    const sx = (bitmap.width - sw) / 2, sy = (bitmap.height - sh) / 2;
+                    ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, w, h);
+                } else {
+                    canvas.width = bitmap.width;
+                    canvas.height = bitmap.height;
+                    ctx.drawImage(bitmap, 0, 0);
+                }
+            } finally {
+                bitmap.close();
+            }
+        });
+}
+
 // モバイルブレークポイントをCSSから取得
 function getMobileBreakpoint() {
     const breakpoint = getComputedStyle(document.documentElement)

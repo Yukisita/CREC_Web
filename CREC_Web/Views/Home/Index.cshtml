@@ -613,28 +613,27 @@
             const collectionId = collection.indexData.systemData.id || 'unknown';
             const thumbnailUrl = `/api/Files/thumbnail/${encodeURIComponent(collectionId)}`;
 
-            const thumbnailImg = document.createElement('img');
-            thumbnailImg.className = 'thumbnail-small';
-            thumbnailImg.alt = 'Thumbnail';
-            thumbnailImg.style.display = 'none';
+            const thumbnailCanvas = document.createElement('canvas');
+            thumbnailCanvas.width = 60;
+            thumbnailCanvas.height = 60;
+            thumbnailCanvas.style.cssText = 'width:60px;height:60px;border-radius:0.25rem;display:none;';
 
             const thumbnailPlaceholder = document.createElement('div');
             thumbnailPlaceholder.className = 'thumbnail-placeholder-small';
             thumbnailPlaceholder.style.display = 'flex';
             thumbnailPlaceholder.innerHTML = '<i class="bi bi-image"></i>';
 
-            convertToWebP(thumbnailUrl).then(webpSrc => {
-                thumbnailImg.src = webpSrc;
-                thumbnailImg.style.display = '';
+            drawUrlToCanvas(thumbnailUrl, thumbnailCanvas, 'cover').then(() => {
+                thumbnailCanvas.style.display = 'block';
                 thumbnailPlaceholder.style.display = 'none';
             }).catch(() => {
-                thumbnailImg.style.display = 'none';
+                thumbnailCanvas.style.display = 'none';
                 thumbnailPlaceholder.style.display = 'flex';
             });
 
             const thumbnailCell = document.createElement('td');
             thumbnailCell.className = 'thumbnail-cell';
-            thumbnailCell.appendChild(thumbnailImg);
+            thumbnailCell.appendChild(thumbnailCanvas);
             thumbnailCell.appendChild(thumbnailPlaceholder);
 
             const nameCell = document.createElement('td');
@@ -735,29 +734,27 @@
             const collectionId = collection.indexData.systemData.id || 'unknown';
             const thumbnailUrl = `/api/Files/thumbnail/${encodeURIComponent(collectionId)}`;
 
-            const thumbnailImg = document.createElement('img');
-            thumbnailImg.className = 'card-img-top';
-            thumbnailImg.alt = 'Thumbnail';
-            thumbnailImg.style.display = 'none';
+            const thumbnailCanvas = document.createElement('canvas');
+            // 'natural' fit: canvas は画像の実寸で描画し、CSS の max-height/max-width でアスペクト比を保ちつつ 200px に収める
+            thumbnailCanvas.style.cssText = 'display:none;max-height:200px;max-width:100%;';
 
             const thumbnailPlaceholder = document.createElement('div');
-            thumbnailPlaceholder.className = 'thumbnail-placeholder';
-            thumbnailPlaceholder.style.display = 'flex';
+            thumbnailPlaceholder.style.cssText = 'display:flex;width:100%;height:100%;flex-direction:column;align-items:center;justify-content:center;color:#6c757d;';
             thumbnailPlaceholder.innerHTML = `<i class="bi bi-image display-4"></i><br><small>${t('no-thumbnail')}</small>`;
 
-            convertToWebP(thumbnailUrl).then(webpSrc => {
-                thumbnailImg.src = webpSrc;
-                thumbnailImg.style.display = 'block';
+            // 200px の固定高さコンテナで object-fit: contain 相当の表示を再現する
+            const thumbnailContainer = document.createElement('div');
+            thumbnailContainer.style.cssText = 'height:200px;display:flex;align-items:center;justify-content:center;overflow:hidden;background-color:#e9ecef;position:relative;width:100%;';
+            thumbnailContainer.appendChild(thumbnailCanvas);
+            thumbnailContainer.appendChild(thumbnailPlaceholder);
+
+            drawUrlToCanvas(thumbnailUrl, thumbnailCanvas).then(() => {
+                thumbnailCanvas.style.display = 'block';
                 thumbnailPlaceholder.style.display = 'none';
             }).catch(() => {
-                thumbnailImg.style.display = 'none';
+                thumbnailCanvas.style.display = 'none';
                 thumbnailPlaceholder.style.display = 'flex';
             });
-
-            const thumbnailContainer = document.createElement('div');
-            thumbnailContainer.style.position = 'relative';
-            thumbnailContainer.appendChild(thumbnailImg);
-            thumbnailContainer.appendChild(thumbnailPlaceholder);
 
             const cardBody = document.createElement('div');
             cardBody.className = 'card-body';
