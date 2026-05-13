@@ -840,7 +840,7 @@
             const imagesHtml = images.length > 0
                 ? `
                     <div class="image-carousel">
-                        <img id="carouselImage" src="/api/File/${encodeURIComponent(collection.indexData.systemData.id)}/picture/${encodeURIComponent(images[0])}"
+                        <img id="carouselImage" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
                                 class="detail-image"
                                 alt="${escapeHtml(images[0])}"
                                 onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\'%3E%3Crect width=\'200\' height=\'200\' fill=\'%23ddd\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-family=\'sans-serif\' font-size=\'16\' fill=\'%23999\'%3EImage not found%3C/text%3E%3C/svg%3E';">
@@ -987,16 +987,47 @@
                         return;
                     }
 
+                    const collectionID = collection?.indexData?.systemData?.id;
+                    const webpCache = new Map();
+                    const convertAndCacheWebP = (filename) => {
+                        if (webpCache.has(filename)) return Promise.resolve(webpCache.get(filename));
+                        const url = `/api/File/${encodeURIComponent(collectionID)}/picture/${encodeURIComponent(filename)}`;
+                        return new Promise((resolve, reject) => {
+                            const tmp = new Image();
+                            tmp.onload = () => {
+                                const canvas = document.createElement('canvas');
+                                canvas.width = tmp.naturalWidth;
+                                canvas.height = tmp.naturalHeight;
+                                canvas.getContext('2d').drawImage(tmp, 0, 0);
+                                const dataUrl = canvas.toDataURL('image/webp');
+                                webpCache.set(filename, dataUrl);
+                                resolve(dataUrl);
+                            };
+                            tmp.onerror = () => reject(new Error('load failed'));
+                            tmp.src = url;
+                        });
+                    };
                     function updateImage() {
-                        const collectionID = collection?.indexData?.systemData?.id;
+                        const capturedIndex = currentImageIndex;
+                        const filename = images[capturedIndex];
                         if (!collectionID) {
                             console.error('Collection ID is missing.');
                             return;
                         }
-                        carouselImage.src = `/api/File/${encodeURIComponent(collectionID)}/picture/${encodeURIComponent(images[currentImageIndex])}`;
-                        carouselImage.alt = images[currentImageIndex];
-                        imageCounter.textContent = `${currentImageIndex + 1} / ${images.length}`;
-                        imageName.textContent = images[currentImageIndex];
+                        carouselImage.alt = filename;
+                        imageCounter.textContent = `${capturedIndex + 1} / ${images.length}`;
+                        imageName.textContent = filename;
+                        convertAndCacheWebP(filename).then(dataUrl => {
+                            if (currentImageIndex !== capturedIndex) return;
+                            carouselImage.src = dataUrl;
+                            if (images.length > 1) {
+                                convertAndCacheWebP(images[(capturedIndex + 1) % images.length]).catch(() => {});
+                                convertAndCacheWebP(images[(capturedIndex - 1 + images.length) % images.length]).catch(() => {});
+                            }
+                        }).catch(() => {
+                            if (currentImageIndex !== capturedIndex) return;
+                            carouselImage.src = `/api/File/${encodeURIComponent(collectionID)}/picture/${encodeURIComponent(filename)}`;
+                        });
                     }
 
                     const prevHandler = () => {
@@ -1019,6 +1050,8 @@
                         prevHandler: prevHandler,
                         nextHandler: nextHandler
                     });
+
+                    updateImage();
                 }, ANIMATION_DELAY);
             }
         }
