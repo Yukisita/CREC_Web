@@ -998,7 +998,9 @@
                                 const canvas = document.createElement('canvas');
                                 canvas.width = tmp.naturalWidth;
                                 canvas.height = tmp.naturalHeight;
-                                canvas.getContext('2d').drawImage(tmp, 0, 0);
+                                const ctx = canvas.getContext('2d');
+                                if (!ctx) { reject(new Error('canvas 2d context unavailable')); return; }
+                                ctx.drawImage(tmp, 0, 0);
                                 const dataUrl = canvas.toDataURL('image/webp');
                                 webpCache.set(filename, dataUrl);
                                 resolve(dataUrl);
@@ -1021,8 +1023,8 @@
                             if (currentImageIndex !== capturedIndex) return;
                             carouselImage.src = dataUrl;
                             if (images.length > 1) {
-                                convertAndCacheWebP(images[(capturedIndex + 1) % images.length]).catch(() => {});
-                                convertAndCacheWebP(images[(capturedIndex - 1 + images.length) % images.length]).catch(() => {});
+                                convertAndCacheWebP(images[(capturedIndex + 1) % images.length]).catch(e => console.warn('preload failed:', e));
+                                convertAndCacheWebP(images[(capturedIndex - 1 + images.length) % images.length]).catch(e => console.warn('preload failed:', e));
                             }
                         }).catch(() => {
                             if (currentImageIndex !== capturedIndex) return;
