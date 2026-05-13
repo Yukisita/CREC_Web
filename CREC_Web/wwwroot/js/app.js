@@ -55,7 +55,7 @@ function convertToWebP(url) {
             return r.blob();
         })
         .then(blob => {
-            if (!blob.type.includes('jpeg')) {
+            if (!/jpe?g/i.test(blob.type)) {
                 // 非JPEG は GPU YCbCr パスを使わないため canvas 変換不要。
                 // FileReader で raw バイトをそのまま base64 化するだけなので高速。
                 return new Promise((resolve, reject) => {
@@ -71,10 +71,16 @@ function convertToWebP(url) {
                 canvas.width = bitmap.width;
                 canvas.height = bitmap.height;
                 const ctx = canvas.getContext('2d');
-                if (!ctx) throw new Error('canvas context unavailable');
-                ctx.drawImage(bitmap, 0, 0);
-                bitmap.close();
-                return canvas.toDataURL('image/webp');
+                if (!ctx) {
+                    bitmap.close();
+                    throw new Error('canvas context unavailable');
+                }
+                try {
+                    ctx.drawImage(bitmap, 0, 0);
+                    return canvas.toDataURL('image/webp');
+                } finally {
+                    bitmap.close();
+                }
             });
         });
     _webpConvertCache.set(url, promise);
