@@ -995,26 +995,10 @@
                     }
 
                     const collectionID = collection?.indexData?.systemData?.id;
-                    const webpCache = new Map();
+                    // グローバル convertToWebP（app.js）に委譲。URL ベースのキャッシュで重複変換を防ぐ。
                     const convertAndCacheWebP = (filename) => {
-                        if (webpCache.has(filename)) return Promise.resolve(webpCache.get(filename));
                         const url = `/api/File/${encodeURIComponent(collectionID)}/picture/${encodeURIComponent(filename)}`;
-                        return new Promise((resolve, reject) => {
-                            const tmp = new Image();
-                            tmp.onload = () => {
-                                const canvas = document.createElement('canvas');
-                                canvas.width = tmp.naturalWidth;
-                                canvas.height = tmp.naturalHeight;
-                                const ctx = canvas.getContext('2d');
-                                if (!ctx) { reject(new Error('canvas 2d context unavailable')); return; }
-                                ctx.drawImage(tmp, 0, 0);
-                                const dataUrl = canvas.toDataURL('image/webp');
-                                webpCache.set(filename, dataUrl);
-                                resolve(dataUrl);
-                            };
-                            tmp.onerror = () => reject(new Error('load failed'));
-                            tmp.src = url;
-                        });
+                        return convertToWebP(url);
                     };
                     function updateImage() {
                         const capturedIndex = currentImageIndex;

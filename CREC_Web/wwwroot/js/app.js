@@ -36,29 +36,49 @@ const MIN_COLUMN_WIDTH = (() => {
     return Number.isFinite(parsed) ? parsed : 80; // 0 を正しく受け入れ、NaN の場合のみフォールバック
 })();
 
+/** 変換済み URL のキャッシュ（URL → Promise<string>）。同一 URL の重複変換を防ぐ。 */
+const _webpConvertCache = new Map();
+
 /**
- * 指定URLの画像をオフスクリーンで読み込み、canvas 経由で WebP data URL に変換して返す。
- * ブラウザが WebP エンコードに対応していない場合、toDataURL は PNG data URL を返す（PNG でも
- * JPEG の GPU YCbCr デコードパスを回避できるため点滅防止の目的は達成される）。
- * 画像の読み込みに失敗した場合（404 等）は reject する。
+ * 指定URLの画像を取得し、content-type に応じて変換して data URL を返す。
+ * - JPEG: fetch → createImageBitmap → canvas → WebP data URL（GPU YCbCr パス回避）
+ * - 非JPEG（PNG, GIF, WebP 等）: fetch → FileReader.readAsDataURL（canvas エンコード不要）
+ * 同一 URL は1度のみ変換し、結果をキャッシュする。
  * @param {string} url
- * @returns {Promise<string>} WebP（またはフォールバック PNG）data URL
+ * @returns {Promise<string>} data URL
  */
 function convertToWebP(url) {
-    return new Promise((resolve, reject) => {
-        const tmp = new Image();
-        tmp.onload = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = tmp.naturalWidth;
-            canvas.height = tmp.naturalHeight;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) { reject(new Error('canvas context unavailable')); return; }
-            ctx.drawImage(tmp, 0, 0);
-            resolve(canvas.toDataURL('image/webp'));
-        };
-        tmp.onerror = () => reject(new Error('image load failed: ' + url));
-        tmp.src = url;
-    });
+    if (_webpConvertCache.has(url)) return _webpConvertCache.get(url);
+    const promise = fetch(url)
+        .then(r => {
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            return r.blob();
+        })
+        .then(blob => {
+            if (!blob.type.includes('jpeg')) {
+                // 非JPEG は GPU YCbCr パスを使わないため canvas 変換不要。
+                // FileReader で raw バイトをそのまま base64 化するだけなので高速。
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(/** @type {string} */ (reader.result));
+                    reader.onerror = () => reject(new Error('FileReader failed'));
+                    reader.readAsDataURL(blob);
+                });
+            }
+            // JPEG: createImageBitmap でデコード後、canvas 経由で WebP に変換
+            return createImageBitmap(blob).then(bitmap => {
+                const canvas = document.createElement('canvas');
+                canvas.width = bitmap.width;
+                canvas.height = bitmap.height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) throw new Error('canvas context unavailable');
+                ctx.drawImage(bitmap, 0, 0);
+                bitmap.close();
+                return canvas.toDataURL('image/webp');
+            });
+        });
+    _webpConvertCache.set(url, promise);
+    return promise;
 }
 
 // モバイルブレークポイントをCSSから取得
