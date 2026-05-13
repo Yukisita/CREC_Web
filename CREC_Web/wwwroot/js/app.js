@@ -36,6 +36,31 @@ const MIN_COLUMN_WIDTH = (() => {
     return Number.isFinite(parsed) ? parsed : 80; // 0 を正しく受け入れ、NaN の場合のみフォールバック
 })();
 
+/**
+ * 指定URLの画像をオフスクリーンで読み込み、canvas 経由で WebP data URL に変換して返す。
+ * ブラウザが WebP エンコードに対応していない場合、toDataURL は PNG data URL を返す（PNG でも
+ * JPEG の GPU YCbCr デコードパスを回避できるため点滅防止の目的は達成される）。
+ * 画像の読み込みに失敗した場合（404 等）は reject する。
+ * @param {string} url
+ * @returns {Promise<string>} WebP（またはフォールバック PNG）data URL
+ */
+function convertToWebP(url) {
+    return new Promise((resolve, reject) => {
+        const tmp = new Image();
+        tmp.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = tmp.naturalWidth;
+            canvas.height = tmp.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) { reject(new Error('canvas context unavailable')); return; }
+            ctx.drawImage(tmp, 0, 0);
+            resolve(canvas.toDataURL('image/webp'));
+        };
+        tmp.onerror = () => reject(new Error('image load failed: ' + url));
+        tmp.src = url;
+    });
+}
+
 // モバイルブレークポイントをCSSから取得
 function getMobileBreakpoint() {
     const breakpoint = getComputedStyle(document.documentElement)

@@ -614,16 +614,20 @@
             const thumbnailUrl = `/api/Files/thumbnail/${encodeURIComponent(collectionId)}`;
 
             const thumbnailImg = document.createElement('img');
-            thumbnailImg.src = thumbnailUrl;
             thumbnailImg.className = 'thumbnail-small';
             thumbnailImg.alt = 'Thumbnail';
+            thumbnailImg.style.display = 'none';
 
             const thumbnailPlaceholder = document.createElement('div');
             thumbnailPlaceholder.className = 'thumbnail-placeholder-small';
-            thumbnailPlaceholder.style.display = 'none';
+            thumbnailPlaceholder.style.display = 'flex';
             thumbnailPlaceholder.innerHTML = '<i class="bi bi-image"></i>';
 
-            thumbnailImg.addEventListener('error', () => {
+            convertToWebP(thumbnailUrl).then(webpSrc => {
+                thumbnailImg.src = webpSrc;
+                thumbnailImg.style.display = '';
+                thumbnailPlaceholder.style.display = 'none';
+            }).catch(() => {
                 thumbnailImg.style.display = 'none';
                 thumbnailPlaceholder.style.display = 'flex';
             });
@@ -732,17 +736,20 @@
             const thumbnailUrl = `/api/Files/thumbnail/${encodeURIComponent(collectionId)}`;
 
             const thumbnailImg = document.createElement('img');
-            thumbnailImg.src = thumbnailUrl;
             thumbnailImg.className = 'card-img-top';
             thumbnailImg.alt = 'Thumbnail';
-            thumbnailImg.style.display = 'block';
+            thumbnailImg.style.display = 'none';
 
             const thumbnailPlaceholder = document.createElement('div');
             thumbnailPlaceholder.className = 'thumbnail-placeholder';
-            thumbnailPlaceholder.style.display = 'none';
+            thumbnailPlaceholder.style.display = 'flex';
             thumbnailPlaceholder.innerHTML = `<i class="bi bi-image display-4"></i><br><small>${t('no-thumbnail')}</small>`;
 
-            thumbnailImg.addEventListener('error', () => {
+            convertToWebP(thumbnailUrl).then(webpSrc => {
+                thumbnailImg.src = webpSrc;
+                thumbnailImg.style.display = 'block';
+                thumbnailPlaceholder.style.display = 'none';
+            }).catch(() => {
                 thumbnailImg.style.display = 'none';
                 thumbnailPlaceholder.style.display = 'flex';
             });
