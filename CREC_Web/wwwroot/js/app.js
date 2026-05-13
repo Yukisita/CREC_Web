@@ -36,60 +36,8 @@ const MIN_COLUMN_WIDTH = (() => {
     return Number.isFinite(parsed) ? parsed : 80; // 0 を正しく受け入れ、NaN の場合のみフォールバック
 })();
 
-/** 変換済み URL のキャッシュ（URL → Promise<string>）。同一 URL の重複変換を防ぐ。 */
-const _webpConvertCache = new Map();
-
-/**
- * 指定URLの画像を取得し、content-type に応じて変換して data URL を返す。
- * - JPEG: fetch → createImageBitmap → canvas → WebP data URL（GPU YCbCr パス回避）
- * - 非JPEG（PNG, GIF, WebP 等）: fetch → FileReader.readAsDataURL（canvas エンコード不要）
- * 同一 URL は1度のみ変換し、結果をキャッシュする。
- * @param {string} url
- * @returns {Promise<string>} data URL
- */
-function convertToWebP(url) {
-    if (_webpConvertCache.has(url)) return _webpConvertCache.get(url);
-    const promise = fetch(url)
-        .then(r => {
-            if (!r.ok) throw new Error(`HTTP ${r.status}`);
-            return r.blob();
-        })
-        .then(blob => {
-            if (!/jpe?g/i.test(blob.type)) {
-                // 非JPEG は GPU YCbCr パスを使わないため canvas 変換不要。
-                // FileReader で raw バイトをそのまま base64 化するだけなので高速。
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(/** @type {string} */ (reader.result));
-                    reader.onerror = () => reject(new Error('FileReader failed'));
-                    reader.readAsDataURL(blob);
-                });
-            }
-            // JPEG: createImageBitmap でデコード後、canvas 経由で WebP に変換
-            return createImageBitmap(blob).then(bitmap => {
-                const canvas = document.createElement('canvas');
-                canvas.width = bitmap.width;
-                canvas.height = bitmap.height;
-                const ctx = canvas.getContext('2d');
-                if (!ctx) {
-                    bitmap.close();
-                    throw new Error('canvas context unavailable');
-                }
-                try {
-                    ctx.drawImage(bitmap, 0, 0);
-                    return canvas.toDataURL('image/webp');
-                } finally {
-                    bitmap.close();
-                }
-            });
-        });
-    _webpConvertCache.set(url, promise);
-    return promise;
-}
-
 /**
  * 指定URLの画像を取得し、createImageBitmap でデコード後、canvas に直接描画する。
- * WebP エンコード不要 — convertToWebP より大幅に高速（特に JPEG）。
  * fit='cover'  : canvas.width/height を事前にセットすること。画像を中央クロップして塗りつぶす。
  * fit='natural': canvas.width/height は画像サイズに自動セット。画像をそのまま描画。
  * @param {string} url
