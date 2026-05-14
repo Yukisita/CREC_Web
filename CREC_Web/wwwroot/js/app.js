@@ -36,6 +36,46 @@ const MIN_COLUMN_WIDTH = (() => {
     return Number.isFinite(parsed) ? parsed : 80; // 0 を正しく受け入れ、NaN の場合のみフォールバック
 })();
 
+/**
+ * 指定URLの画像を取得し、createImageBitmap でデコード後、canvas に直接描画する。
+ * fit='cover'  : canvas.width/height を事前にセットすること。画像を中央クロップして塗りつぶす。
+ * fit='natural': canvas.width/height は画像サイズに自動セット。画像をそのまま描画。
+ * @param {string} url
+ * @param {HTMLCanvasElement} canvas
+ * @param {'cover'|'natural'} [fit='natural']
+ * @returns {Promise<void>}
+ */
+function drawUrlToCanvas(url, canvas, fit) {
+    return fetch(url)
+        .then(r => { 
+            if (!r.ok) throw new Error(`HTTP ${r.status}`); 
+            return r.blob(); 
+        })
+        .then(blob => createImageBitmap(blob))
+        .then(bitmap => {
+            const ctx = canvas.getContext('2d');
+            if (!ctx) { 
+                bitmap.close(); 
+                throw new Error('canvas context unavailable'); 
+            }
+            try {
+                if (fit === 'cover') {
+                    const w = canvas.width, h = canvas.height;
+                    const scale = Math.max(w / bitmap.width, h / bitmap.height);
+                    const sw = w / scale, sh = h / scale;
+                    const sx = (bitmap.width - sw) / 2, sy = (bitmap.height - sh) / 2;
+                    ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, w, h);
+                } else {
+                    canvas.width = bitmap.width;
+                    canvas.height = bitmap.height;
+                    ctx.drawImage(bitmap, 0, 0);
+                }
+            } finally {
+                bitmap.close();
+            }
+        });
+}
+
 // モバイルブレークポイントをCSSから取得
 function getMobileBreakpoint() {
     const breakpoint = getComputedStyle(document.documentElement)
@@ -75,95 +115,6 @@ function getCurrentCollectionId() {
 document.addEventListener('DOMContentLoaded', function () {
     initializeApp();
 });
-
-// 画面暗転時のフリッカー防止及びJPEG画像の色転び対策
-// JPEGはcanvas経由でWebP blob URLに変換し、ソフトウェアデコードパスへ切り替える。
-(function () {
-    // 変換対象はJPEG及び防御的に拡張子なしのみ
-    const JPEG_EXTS = ['.jpg', '.jpeg', ''];
-
-    /**
-     * 画像がソフトウェアデコードに変換する必要があるかどうかを判定する
-     * JPEG拡張子(.jpg/.jpeg)を持つURLのみ変換対象とする。
-     * @param {any} src
-     * @returns {boolean}
-     */
-    function needsConvert(src) {
-        if (!src || src.startsWith('blob:') || src.startsWith('data:')) return false;
-        const path = src.split('?')[0].split('#')[0].toLowerCase();
-        for (let i = 0; i < JPEG_EXTS.length; i++) {
-            if (path.endsWith(JPEG_EXTS[i])) return true;
-        }
-        return false;
-    }
-
-    /**
-    * 画像をソフトウェアデコードに変換する
-    * toDataURL を同期実行することで、変換完了前に画面が暗転しても
-    * 点滅が発生しないようにする。
-    * @param {HTMLImageElement} img
-    * @returns {void}
-     */
-    function convertToSWDecoded(img) {
-        if (img._swConverting || !needsConvert(img.src)) return;
-        if (!img.naturalWidth || !img.naturalHeight) return;
-        img._swConverting = true;
-        try {
-            const c = document.createElement('canvas');
-            c.width = img.naturalWidth;
-            c.height = img.naturalHeight;
-            c.getContext('2d').drawImage(img, 0, 0);
-            img.src = c.toDataURL('image/webp', 1.0);
-            convertToSWDecoded(img); // ← 現在の画像を改めて変換
-        } catch (_) {
-            // SecurityError（クロスオリジン汚染）等は無視
-        } finally {
-            img._swConverting = false;
-        }
-    }
-
-    /**
-     * img要素を監視し、必要に応じてソフトウェアデコードに変換する
-     * @param {any} img
-     * @returns {void}
-     */
-    function observe(img) {
-        if (img._swObserved) return;
-        img._swObserved = true;
-        if (img.complete && img.naturalWidth) convertToSWDecoded(img);
-        img.addEventListener('load', function () { convertToSWDecoded(img); });
-    }
-
-    /**
-     * img要素がDOMから削除されたときにBlob URLを解放する
-     * @param {any} img
-     * @return {void}
-     */
-    function revokeBlob(img) {
-        if (img._swBlobUrl) {
-            URL.revokeObjectURL(img._swBlobUrl);
-            img._swBlobUrl = null;
-        }
-    }
-
-    document.querySelectorAll('img').forEach(observe);
-
-    new MutationObserver(function (mutations) {
-        for (let i = 0; i < mutations.length; i++) {
-            let m = mutations[i];
-            for (let j = 0; j < m.addedNodes.length; j++) {
-                let n = m.addedNodes[j];
-                if (n.nodeName === 'IMG') observe(n);
-                else if (n.querySelectorAll) n.querySelectorAll('img').forEach(observe);
-            }
-            for (let k = 0; k < m.removedNodes.length; k++) {
-                let r = m.removedNodes[k];
-                if (r.nodeName === 'IMG') revokeBlob(r);
-                else if (r.querySelectorAll) r.querySelectorAll('img').forEach(revokeBlob);
-            }
-        }
-    }).observe(document.documentElement, { childList: true, subtree: true });
-})();
 
 // UI 言語の更新
 function updateUILanguage() {
