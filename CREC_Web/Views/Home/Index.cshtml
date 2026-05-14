@@ -613,24 +613,27 @@
             const collectionId = collection.indexData.systemData.id || 'unknown';
             const thumbnailUrl = `/api/Files/thumbnail/${encodeURIComponent(collectionId)}`;
 
-            const thumbnailImg = document.createElement('img');
-            thumbnailImg.src = thumbnailUrl;
-            thumbnailImg.className = 'thumbnail-small';
-            thumbnailImg.alt = 'Thumbnail';
+            const thumbnailCanvas = document.createElement('canvas');
+            thumbnailCanvas.width = 60;
+            thumbnailCanvas.height = 60;
+            thumbnailCanvas.style.cssText = 'width:60px;height:60px;border-radius:0.25rem;display:none;';
 
             const thumbnailPlaceholder = document.createElement('div');
             thumbnailPlaceholder.className = 'thumbnail-placeholder-small';
-            thumbnailPlaceholder.style.display = 'none';
+            thumbnailPlaceholder.style.display = 'flex';
             thumbnailPlaceholder.innerHTML = '<i class="bi bi-image"></i>';
 
-            thumbnailImg.addEventListener('error', () => {
-                thumbnailImg.style.display = 'none';
+            drawUrlToCanvas(thumbnailUrl, thumbnailCanvas, 'cover').then(() => {
+                thumbnailCanvas.style.display = 'block';
+                thumbnailPlaceholder.style.display = 'none';
+            }).catch(() => {
+                thumbnailCanvas.style.display = 'none';
                 thumbnailPlaceholder.style.display = 'flex';
             });
 
             const thumbnailCell = document.createElement('td');
             thumbnailCell.className = 'thumbnail-cell';
-            thumbnailCell.appendChild(thumbnailImg);
+            thumbnailCell.appendChild(thumbnailCanvas);
             thumbnailCell.appendChild(thumbnailPlaceholder);
 
             const nameCell = document.createElement('td');
@@ -731,26 +734,27 @@
             const collectionId = collection.indexData.systemData.id || 'unknown';
             const thumbnailUrl = `/api/Files/thumbnail/${encodeURIComponent(collectionId)}`;
 
-            const thumbnailImg = document.createElement('img');
-            thumbnailImg.src = thumbnailUrl;
-            thumbnailImg.className = 'card-img-top';
-            thumbnailImg.alt = 'Thumbnail';
-            thumbnailImg.style.display = 'block';
+            const thumbnailCanvas = document.createElement('canvas');
+            // 'natural' fit: canvas は画像の実寸で描画し、CSS の max-height/max-width でアスペクト比を保ちつつ 200px に収める
+            thumbnailCanvas.style.cssText = 'display:none;max-height:200px;max-width:100%;';
 
             const thumbnailPlaceholder = document.createElement('div');
-            thumbnailPlaceholder.className = 'thumbnail-placeholder';
-            thumbnailPlaceholder.style.display = 'none';
+            thumbnailPlaceholder.style.cssText = 'display:flex;width:100%;height:100%;flex-direction:column;align-items:center;justify-content:center;color:#6c757d;';
             thumbnailPlaceholder.innerHTML = `<i class="bi bi-image display-4"></i><br><small>${t('no-thumbnail')}</small>`;
 
-            thumbnailImg.addEventListener('error', () => {
-                thumbnailImg.style.display = 'none';
+            // 200px の固定高さコンテナで object-fit: contain 相当の表示を再現する
+            const thumbnailContainer = document.createElement('div');
+            thumbnailContainer.style.cssText = 'height:200px;display:flex;align-items:center;justify-content:center;overflow:hidden;background-color:#e9ecef;position:relative;width:100%;';
+            thumbnailContainer.appendChild(thumbnailCanvas);
+            thumbnailContainer.appendChild(thumbnailPlaceholder);
+
+            drawUrlToCanvas(thumbnailUrl, thumbnailCanvas).then(() => {
+                thumbnailCanvas.style.display = 'block';
+                thumbnailPlaceholder.style.display = 'none';
+            }).catch(() => {
+                thumbnailCanvas.style.display = 'none';
                 thumbnailPlaceholder.style.display = 'flex';
             });
-
-            const thumbnailContainer = document.createElement('div');
-            thumbnailContainer.style.position = 'relative';
-            thumbnailContainer.appendChild(thumbnailImg);
-            thumbnailContainer.appendChild(thumbnailPlaceholder);
 
             const cardBody = document.createElement('div');
             cardBody.className = 'card-body';
@@ -840,10 +844,7 @@
             const imagesHtml = images.length > 0
                 ? `
                     <div class="image-carousel">
-                        <img id="carouselImage" src="/api/File/${encodeURIComponent(collection.indexData.systemData.id)}/picture/${encodeURIComponent(images[0])}"
-                                class="detail-image"
-                                alt="${escapeHtml(images[0])}"
-                                onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\'%3E%3Crect width=\'200\' height=\'200\' fill=\'%23ddd\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-family=\'sans-serif\' font-size=\'16\' fill=\'%23999\'%3EImage not found%3C/text%3E%3C/svg%3E';">
+                        <canvas id="carouselImage" class="detail-image" width="400" height="300"></canvas>
                         <div class="text-center mt-3" style="display: flex; justify-content: center; align-items: center; gap: 15px;">
                             <button id="prevImage" class="btn btn-outline-secondary btn-sm">◀</button>
                             <span id="imageCounter" style="font-size: 14px; min-width: 60px;">${currentImageIndex + 1} / ${images.length}</span>
@@ -987,16 +988,52 @@
                         return;
                     }
 
+                    const collectionID = collection?.indexData?.systemData?.id;
                     function updateImage() {
-                        const collectionID = collection?.indexData?.systemData?.id;
+                        const capturedIndex = currentImageIndex;
+                        const filename = images[capturedIndex];
                         if (!collectionID) {
                             console.error('Collection ID is missing.');
                             return;
                         }
-                        carouselImage.src = `/api/File/${encodeURIComponent(collectionID)}/picture/${encodeURIComponent(images[currentImageIndex])}`;
-                        carouselImage.alt = images[currentImageIndex];
-                        imageCounter.textContent = `${currentImageIndex + 1} / ${images.length}`;
-                        imageName.textContent = images[currentImageIndex];
+                        imageCounter.textContent = `${capturedIndex + 1} / ${images.length}`;
+                        imageName.textContent = filename;
+                        const url = `/api/File/${encodeURIComponent(collectionID)}/picture/${encodeURIComponent(filename)}`;
+                        fetch(url)
+                            .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.blob(); })
+                            .then(blob => createImageBitmap(blob))
+                            .then(bitmap => {
+                                if (currentImageIndex !== capturedIndex) { bitmap.close(); return; }
+                                carouselImage.width = bitmap.width;
+                                carouselImage.height = bitmap.height;
+                                const ctx = carouselImage.getContext('2d');
+                                if (!ctx) { bitmap.close(); return; }
+                                try {
+                                    ctx.drawImage(bitmap, 0, 0);
+                                } finally {
+                                    bitmap.close();
+                                }
+                                if (images.length > 1) {
+                                    const preload = (fname) => fetch(`/api/File/${encodeURIComponent(collectionID)}/picture/${encodeURIComponent(fname)}`).catch(e => console.warn('Preload failed:', fname, e));
+                                    preload(images[(capturedIndex + 1) % images.length]);
+                                    preload(images[(capturedIndex - 1 + images.length) % images.length]);
+                                }
+                            })
+                            .catch(() => {
+                                if (currentImageIndex !== capturedIndex) return;
+                                const errW = 300, errH = 150;
+                                carouselImage.width = errW;
+                                carouselImage.height = errH;
+                                const ctx = carouselImage.getContext('2d');
+                                if (ctx) {
+                                    ctx.fillStyle = '#ddd';
+                                    ctx.fillRect(0, 0, errW, errH);
+                                    ctx.fillStyle = '#999';
+                                    ctx.font = '14px sans-serif';
+                                    ctx.textAlign = 'center';
+                                    ctx.fillText('Image not found', errW / 2, errH / 2);
+                                }
+                            });
                     }
 
                     const prevHandler = () => {
@@ -1019,6 +1056,8 @@
                         prevHandler: prevHandler,
                         nextHandler: nextHandler
                     });
+
+                    updateImage();
                 }, ANIMATION_DELAY);
             }
         }
