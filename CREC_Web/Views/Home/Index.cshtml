@@ -617,6 +617,8 @@
             thumbnailCanvas.width = 60;
             thumbnailCanvas.height = 60;
             thumbnailCanvas.style.cssText = 'width:60px;height:60px;border-radius:0.25rem;display:none;';
+            thumbnailCanvas.setAttribute('role', 'img');
+            thumbnailCanvas.setAttribute('aria-label', 'Thumbnail');
 
             const thumbnailPlaceholder = document.createElement('div');
             thumbnailPlaceholder.className = 'thumbnail-placeholder-small';
@@ -737,6 +739,8 @@
             const thumbnailCanvas = document.createElement('canvas');
             // 'natural' fit: canvas は画像の実寸で描画し、CSS の max-height/max-width でアスペクト比を保ちつつ 200px に収める
             thumbnailCanvas.style.cssText = 'display:none;max-height:200px;max-width:100%;';
+            thumbnailCanvas.setAttribute('role', 'img');
+            thumbnailCanvas.setAttribute('aria-label', 'Thumbnail');
 
             const thumbnailPlaceholder = document.createElement('div');
             thumbnailPlaceholder.style.cssText = 'display:flex;width:100%;height:100%;flex-direction:column;align-items:center;justify-content:center;color:#6c757d;';
