@@ -602,7 +602,7 @@
             const carouselHtml = images.length > 0
                 ? `
                     <div class="image-carousel">
-                        <canvas id="carouselImage" class="detail-image" width="400" height="300"></canvas>
+                        <canvas id="carouselImage" class="detail-image" width="400" height="300" role="img" aria-label="${escapeHtml(images[currentImageIndex])}">${escapeHtml(images[currentImageIndex])}</canvas>
                         <div class="text-center mt-3" style="display: flex; justify-content: center; align-items: center; gap: 15px;">
                             <button id="prevImage" class="btn btn-outline-secondary btn-sm">◀</button>
                             <span id="imageCounter" style="font-size: 14px; min-width: 60px;">${currentImageIndex + 1} / ${images.length}</span>
