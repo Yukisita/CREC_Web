@@ -616,10 +616,10 @@ namespace CREC_Web.Controllers
                     return NotFound($"Thumbnail not found for collection '{collectionId}'");
                 }
 
+                var contentType = ImageFormats.GetContentType(thumbnailExtension);
+
                 // サムネイルはユーザーが更新できるため、常に再検証する（ETag/Last-Modified を利用）
                 Response.Headers["Cache-Control"] = "no-cache";
-
-                var contentType = ImageFormats.GetContentType(thumbnailExtension);
                 // img タグでインライン表示させるため、ファイル名は付与しない
                 return PhysicalFile(thumbnailPath, contentType);
             }
