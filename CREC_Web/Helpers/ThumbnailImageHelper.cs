@@ -19,6 +19,10 @@ namespace CREC_Web.Helpers
             using var managedStream = new SKManagedStream(sourceStream);
             using var codec = SKCodec.Create(managedStream) ?? throw new InvalidOperationException("Unsupported image format");
             using var sourceBitmap = SKBitmap.Decode(codec) ?? throw new InvalidOperationException("Failed to decode image");
+            if (sourceBitmap.Width <= 0 || sourceBitmap.Height <= 0)
+            {
+                throw new InvalidOperationException("Invalid image size");
+            }
 
             var targetWidth = sourceBitmap.Width;
             var targetHeight = sourceBitmap.Height;
