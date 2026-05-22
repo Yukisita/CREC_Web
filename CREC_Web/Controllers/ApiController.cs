@@ -560,6 +560,7 @@ namespace CREC_Web.Controllers
     [Route("api/[controller]")]
     public class FilesController : ControllerBase
     {
+        private const string ThumbnailConversionWarningCode = "thumbnail-png-conversion-failed";
         private readonly IConfiguration _configuration;
         private readonly ILogger<FilesController> _logger;
 
@@ -574,7 +575,7 @@ namespace CREC_Web.Controllers
         /// </summary>
         [HttpGet("thumbnail/{collectionId}")]
         // 呼び出し例: /api/Files/thumbnail/{collectionId}
-        public IActionResult GetThumbnail(string collectionId)
+        public async Task<IActionResult> GetThumbnail(string collectionId)
         {
             try
             {
@@ -600,7 +601,10 @@ namespace CREC_Web.Controllers
                 // Thumbnail.* を検索
                 string? thumbnailPath = null;
                 string? thumbnailExtension = null;
-                foreach (var ext in ImageFormats.AllowedExtensions)
+                var thumbnailSearchExtensions = new[] { ".png" }
+                    .Concat(ImageFormats.AllowedExtensions.Where(ext => ext != ".png"));
+
+                foreach (var ext in thumbnailSearchExtensions)
                 {
                     var candidate = Path.GetFullPath(Path.Combine(systemDataFolder, $"Thumbnail{ext}"));
                     if (System.IO.File.Exists(candidate))
@@ -614,6 +618,24 @@ namespace CREC_Web.Controllers
                 if (thumbnailPath == null)
                 {
                     return NotFound($"Thumbnail not found for collection '{collectionId}'");
+                }
+
+                if (!string.Equals(thumbnailExtension, ".png", StringComparison.OrdinalIgnoreCase))
+                {
+                    var pngThumbnailPath = Path.GetFullPath(Path.Combine(systemDataFolder, "Thumbnail.png"));
+                    try
+                    {
+                        await ThumbnailImageHelper.ConvertToPngWithHdResizeAsync(thumbnailPath, pngThumbnailPath);
+                        System.IO.File.Delete(thumbnailPath);
+                        thumbnailPath = pngThumbnailPath;
+                        thumbnailExtension = ".png";
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Automatic PNG conversion failed while loading thumbnail for collection {CollectionId}. Serving original format.",
+                            collectionId.SanitizeForLog());
+                        Response.Headers["X-Thumbnail-Warning"] = ThumbnailConversionWarningCode;
+                    }
                 }
 
                 var contentType = ImageFormats.GetContentType(thumbnailExtension);

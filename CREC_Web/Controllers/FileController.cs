@@ -15,6 +15,7 @@ namespace CREC_Web.Controllers
     [Route("api/[controller]")]
     public class FileController : ControllerBase
     {
+        private const string ThumbnailConversionWarningCode = "thumbnail-png-conversion-failed";
         private readonly IConfiguration _configuration;
         private readonly ILogger<FileController> _logger;
         private readonly CrecDataService _crecDataService;
@@ -356,18 +357,17 @@ namespace CREC_Web.Controllers
                     Directory.CreateDirectory(systemDataPath);
                 }
 
-                // 元画像の拡張子でサムネイルファイル名を決定（例: Thumbnail.jpg）
-                var thumbnailExtension = Path.GetExtension(fileName).ToLowerInvariant();
-                if (!ImageFormats.AllowedExtensions.Contains(thumbnailExtension))
+                // 元画像の拡張子を検証
+                var sourceExtension = Path.GetExtension(fileName).ToLowerInvariant();
+                if (!ImageFormats.AllowedExtensions.Contains(sourceExtension))
                 {
                     return BadRequest("Unsupported file format. Supported formats: JPEG, PNG, GIF, BMP, WebP");
                 }
 
-                var thumbnailFileName = $"Thumbnail{thumbnailExtension}";
-                var thumbnailPath = Path.GetFullPath(Path.Combine(systemDataPath, thumbnailFileName));
+                var thumbnailPngPath = Path.GetFullPath(Path.Combine(systemDataPath, "Thumbnail.png"));
 
                 // セキュリティ: サムネイルパスが SystemData ディレクトリ配下に留まっていることを確認
-                if (!IsPathWithinDirectory(thumbnailPath, systemDataPath))
+                if (!IsPathWithinDirectory(thumbnailPngPath, systemDataPath))
                 {
                     return BadRequest("Access denied");
                 }
@@ -382,15 +382,32 @@ namespace CREC_Web.Controllers
                     }
                 }
 
-                // 画像をサムネイルとしてコピー
-                using var sourceStream = System.IO.File.OpenRead(sourceFilePath);
-                using var destStream = System.IO.File.Create(thumbnailPath);
-                await sourceStream.CopyToAsync(destStream);
+                string? warningCode = null;
+                try
+                {
+                    await ThumbnailImageHelper.ConvertToPngWithHdResizeAsync(sourceFilePath, thumbnailPngPath);
+                }
+                catch (Exception ex)
+                {
+                    warningCode = ThumbnailConversionWarningCode;
+                    _logger.LogWarning(ex, "PNG conversion failed while setting thumbnail for collection {CollectionId}. Falling back to original format.",
+                        collectionId.SanitizeForLog());
+
+                    var fallbackThumbnailPath = Path.GetFullPath(Path.Combine(systemDataPath, $"Thumbnail{sourceExtension}"));
+                    if (!IsPathWithinDirectory(fallbackThumbnailPath, systemDataPath))
+                    {
+                        return BadRequest("Access denied");
+                    }
+
+                    using var sourceStream = System.IO.File.OpenRead(sourceFilePath);
+                    using var destStream = System.IO.File.Create(fallbackThumbnailPath);
+                    await sourceStream.CopyToAsync(destStream);
+                }
 
                 _logger.LogInformation("Thumbnail set for collection {CollectionId}: {FileName}",
                     collectionId.SanitizeForLog(), Path.GetFileName(sourceFilePath).SanitizeForLog());
 
-                return Ok(new { message = "Thumbnail set successfully" });
+                return Ok(new { message = "Thumbnail set successfully", warningCode });
             }
             catch (Exception ex)
             {

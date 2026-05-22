@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:557024ea-22eb-4bbe-9a70-cc6af6138a8f",
-  "version": 2,
+  "serialNumber": "urn:uuid:4ed6b3be-aef4-4a11-b260-73bce64dafc0",
+  "version": 3,
   "metadata": {
-    "timestamp": "2026-03-18T07:50:00Z",
+    "timestamp": "2026-05-20T13:19:27Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -157,6 +157,32 @@
           "url": "https://cdn.jsdelivr.net/npm/three@0.183.2/"
         }
       ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/SkiaSharp@3.119.2",
+      "name": "SkiaSharp",
+      "version": "3.119.2",
+      "description": "SkiaSharp is a cross-platform 2D graphics API for .NET platforms based on Google's Skia Graphics Library.",
+      "purl": "pkg:nuget/SkiaSharp@3.119.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT",
+            "url": "https://licenses.nuget.org/MIT"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://go.microsoft.com/fwlink/?linkid=868515"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/mono/SkiaSharp"
+        }
+      ]
     }
   ],
   "dependencies": [
@@ -167,7 +193,8 @@
         "pkg:npm/bootstrap@5.3.0",
         "pkg:npm/bootstrap-icons@1.10.0",
         "pkg:npm/jsqr@1.4.0",
-        "pkg:npm/three@0.183.2"
+        "pkg:npm/three@0.183.2",
+        "pkg:nuget/SkiaSharp@3.119.2"
       ]
     }
   ]
