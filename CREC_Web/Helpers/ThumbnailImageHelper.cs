@@ -33,11 +33,11 @@ namespace CREC_Web.Helpers
                 targetHeight = Math.Max(1, (int)Math.Round(sourceBitmap.Height * scale));
             }
 
-            using var outputBitmap = targetWidth == sourceBitmap.Width && targetHeight == sourceBitmap.Height
-                ? sourceBitmap.Copy()
+            using var resizedBitmap = targetWidth == sourceBitmap.Width && targetHeight == sourceBitmap.Height
+                ? null
                 : sourceBitmap.Resize(new SKImageInfo(targetWidth, targetHeight), SKSamplingOptions.Default)
                     ?? throw new InvalidOperationException("Failed to resize image");
-            using var image = SKImage.FromBitmap(outputBitmap);
+            using var image = SKImage.FromBitmap(resizedBitmap ?? sourceBitmap);
             using var encoded = image.Encode(SKEncodedImageFormat.Png, 100);
             if (encoded == null)
             {
