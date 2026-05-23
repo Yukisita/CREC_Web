@@ -622,19 +622,60 @@ namespace CREC_Web.Controllers
 
                 if (!string.Equals(thumbnailExtension, ".png", StringComparison.OrdinalIgnoreCase))
                 {
+                    var originalThumbnailPath = thumbnailPath;
                     var pngThumbnailPath = Path.GetFullPath(Path.Combine(systemDataFolder, "Thumbnail.png"));
                     try
                     {
                         await ThumbnailImageHelper.ConvertToPngWithHdResizeAsync(thumbnailPath, pngThumbnailPath);
-                        System.IO.File.Delete(thumbnailPath);
                         thumbnailPath = pngThumbnailPath;
                         thumbnailExtension = ".png";
+
+                        try
+                        {
+                            if (System.IO.File.Exists(originalThumbnailPath))
+                            {
+                                System.IO.File.Delete(originalThumbnailPath);
+                            }
+                        }
+                        catch (Exception deleteEx)
+                        {
+                            _logger.LogWarning(deleteEx, "Failed to delete original thumbnail after PNG conversion for collection {CollectionId}.",
+                                collectionId.SanitizeForLog());
+                        }
                     }
                     catch (Exception ex)
                     {
                         _logger.LogWarning(ex, "Automatic PNG conversion failed while loading thumbnail for collection {CollectionId}. Serving original format.",
                             collectionId.SanitizeForLog());
                         Response.Headers["X-Thumbnail-Warning"] = ThumbnailConversionWarningCode;
+
+                        if (System.IO.File.Exists(pngThumbnailPath))
+                        {
+                            thumbnailPath = pngThumbnailPath;
+                            thumbnailExtension = ".png";
+                        }
+                    }
+                }
+
+                if (!System.IO.File.Exists(thumbnailPath))
+                {
+                    thumbnailPath = null;
+                    thumbnailExtension = null;
+
+                    foreach (var ext in thumbnailSearchExtensions)
+                    {
+                        var candidate = Path.GetFullPath(Path.Combine(systemDataFolder, $"Thumbnail{ext}"));
+                        if (System.IO.File.Exists(candidate))
+                        {
+                            thumbnailPath = candidate;
+                            thumbnailExtension = ext;
+                            break;
+                        }
+                    }
+
+                    if (thumbnailPath == null)
+                    {
+                        return NotFound($"Thumbnail not found for collection '{collectionId}'");
                     }
                 }
 
