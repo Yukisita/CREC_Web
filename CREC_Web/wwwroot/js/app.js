@@ -549,6 +549,7 @@ async function setCollectionThumbnail(collectionId, fileName) {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
+        await response.json().catch(() => null);
 
         // サムネイル画像のキャッシュを更新（対象コレクションのサムネイルのみ）
         const baseUrl = `/api/Files/thumbnail/${encodeURIComponent(collectionId)}`;
