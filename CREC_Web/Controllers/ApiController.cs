@@ -574,7 +574,7 @@ namespace CREC_Web.Controllers
         /// </summary>
         [HttpGet("thumbnail/{collectionId}")]
         // 呼び出し例: /api/Files/thumbnail/{collectionId}
-        public IActionResult GetThumbnail(string collectionId)
+        public async Task<IActionResult> GetThumbnail(string collectionId)
         {
             try
             {
@@ -600,7 +600,10 @@ namespace CREC_Web.Controllers
                 // Thumbnail.* を検索
                 string? thumbnailPath = null;
                 string? thumbnailExtension = null;
-                foreach (var ext in ImageFormats.AllowedExtensions)
+                var thumbnailSearchExtensions = new[] { ".png" }
+                    .Concat(ImageFormats.AllowedExtensions.Where(ext => ext != ".png"));
+
+                foreach (var ext in thumbnailSearchExtensions)
                 {
                     var candidate = Path.GetFullPath(Path.Combine(systemDataFolder, $"Thumbnail{ext}"));
                     if (System.IO.File.Exists(candidate))
@@ -614,6 +617,64 @@ namespace CREC_Web.Controllers
                 if (thumbnailPath == null)
                 {
                     return NotFound($"Thumbnail not found for collection '{collectionId}'");
+                }
+
+                if (!string.Equals(thumbnailExtension, ".png", StringComparison.OrdinalIgnoreCase))
+                {
+                    var originalThumbnailPath = thumbnailPath;
+                    var pngThumbnailPath = Path.GetFullPath(Path.Combine(systemDataFolder, "Thumbnail.png"));
+                    try
+                    {
+                        await ThumbnailImageHelper.ConvertToPngWithHdResizeAsync(thumbnailPath, pngThumbnailPath);
+                        thumbnailPath = pngThumbnailPath;
+                        thumbnailExtension = ".png";
+
+                        try
+                        {
+                            if (System.IO.File.Exists(originalThumbnailPath))
+                            {
+                                System.IO.File.Delete(originalThumbnailPath);
+                            }
+                        }
+                        catch (Exception deleteEx)
+                        {
+                            _logger.LogWarning(deleteEx, "Failed to delete original thumbnail after PNG conversion for collection {CollectionId}.",
+                                collectionId.SanitizeForLog());
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Automatic PNG conversion failed while loading thumbnail for collection {CollectionId}. Serving original format.",
+                            collectionId.SanitizeForLog());
+
+                        if (System.IO.File.Exists(pngThumbnailPath))
+                        {
+                            thumbnailPath = pngThumbnailPath;
+                            thumbnailExtension = ".png";
+                        }
+                    }
+                }
+
+                if (!System.IO.File.Exists(thumbnailPath))
+                {
+                    thumbnailPath = null;
+                    thumbnailExtension = null;
+
+                    foreach (var ext in thumbnailSearchExtensions)
+                    {
+                        var candidate = Path.GetFullPath(Path.Combine(systemDataFolder, $"Thumbnail{ext}"));
+                        if (System.IO.File.Exists(candidate))
+                        {
+                            thumbnailPath = candidate;
+                            thumbnailExtension = ext;
+                            break;
+                        }
+                    }
+
+                    if (thumbnailPath == null)
+                    {
+                        return NotFound($"Thumbnail not found for collection '{collectionId}'");
+                    }
                 }
 
                 var contentType = ImageFormats.GetContentType(thumbnailExtension);

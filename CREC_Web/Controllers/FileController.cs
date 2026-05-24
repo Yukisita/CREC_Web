@@ -356,18 +356,17 @@ namespace CREC_Web.Controllers
                     Directory.CreateDirectory(systemDataPath);
                 }
 
-                // 元画像の拡張子でサムネイルファイル名を決定（例: Thumbnail.jpg）
-                var thumbnailExtension = Path.GetExtension(fileName).ToLowerInvariant();
-                if (!ImageFormats.AllowedExtensions.Contains(thumbnailExtension))
+                // 元画像の拡張子を検証
+                var sourceExtension = Path.GetExtension(fileName).ToLowerInvariant();
+                if (!ImageFormats.AllowedExtensions.Contains(sourceExtension))
                 {
                     return BadRequest("Unsupported file format. Supported formats: JPEG, PNG, GIF, BMP, WebP");
                 }
 
-                var thumbnailFileName = $"Thumbnail{thumbnailExtension}";
-                var thumbnailPath = Path.GetFullPath(Path.Combine(systemDataPath, thumbnailFileName));
+                var thumbnailPngPath = Path.GetFullPath(Path.Combine(systemDataPath, "Thumbnail.png"));
 
                 // セキュリティ: サムネイルパスが SystemData ディレクトリ配下に留まっていることを確認
-                if (!IsPathWithinDirectory(thumbnailPath, systemDataPath))
+                if (!IsPathWithinDirectory(thumbnailPngPath, systemDataPath))
                 {
                     return BadRequest("Access denied");
                 }
@@ -382,10 +381,49 @@ namespace CREC_Web.Controllers
                     }
                 }
 
-                // 画像をサムネイルとしてコピー
-                using var sourceStream = System.IO.File.OpenRead(sourceFilePath);
-                using var destStream = System.IO.File.Create(thumbnailPath);
-                await sourceStream.CopyToAsync(destStream);
+                try
+                {
+                    await ThumbnailImageHelper.ConvertToPngWithHdResizeAsync(sourceFilePath, thumbnailPngPath);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "PNG conversion failed while setting thumbnail for collection {CollectionId}. Falling back to original format.",
+                        collectionId.SanitizeForLog());
+
+                    if (System.IO.File.Exists(thumbnailPngPath))
+                    {
+                        System.IO.File.Delete(thumbnailPngPath);
+                    }
+
+                    var fallbackThumbnailPath = Path.GetFullPath(Path.Combine(systemDataPath, $"Thumbnail{sourceExtension}"));
+                    if (!IsPathWithinDirectory(fallbackThumbnailPath, systemDataPath))
+                    {
+                        return BadRequest("Access denied");
+                    }
+
+                    var fallbackThumbnailTempPath = Path.GetFullPath(Path.Combine(systemDataPath, $"{Path.GetFileName(fallbackThumbnailPath)}.{Path.GetRandomFileName()}.tmp"));
+                    if (!IsPathWithinDirectory(fallbackThumbnailTempPath, systemDataPath))
+                    {
+                        return BadRequest("Access denied");
+                    }
+
+                    try
+                    {
+                        using var sourceStream = System.IO.File.OpenRead(sourceFilePath);
+                        using var destStream = System.IO.File.Create(fallbackThumbnailTempPath);
+                        await sourceStream.CopyToAsync(destStream);
+                        await destStream.FlushAsync();
+
+                        System.IO.File.Move(fallbackThumbnailTempPath, fallbackThumbnailPath, true);
+                    }
+                    finally
+                    {
+                        if (System.IO.File.Exists(fallbackThumbnailTempPath))
+                        {
+                            System.IO.File.Delete(fallbackThumbnailTempPath);
+                        }
+                    }
+                }
 
                 _logger.LogInformation("Thumbnail set for collection {CollectionId}: {FileName}",
                     collectionId.SanitizeForLog(), Path.GetFileName(sourceFilePath).SanitizeForLog());
