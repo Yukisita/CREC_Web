@@ -78,7 +78,6 @@ public class ChatController : ControllerBase
                 ["history"]      = request.History ?? [],
                 ["page_context"] = request.PageContext ?? string.Empty,
                 ["page_title"]   = request.PageTitle ?? "CREC Web",
-                ["lang"]         = request.Lang ?? "ja",
                 ["project_name"] = request.ProjectName ?? "CREC Web"
             };
 
@@ -391,9 +390,6 @@ public class ChatRequest
 
     /// <summary>Current page title</summary>
     public string? PageTitle { get; set; }
-
-    /// <summary>UI language code ("ja" | "en" | "de")</summary>
-    public string? Lang { get; set; }
 
     /// <summary>CREC Web project name</summary>
     public string? ProjectName { get; set; }

@@ -356,39 +356,16 @@ function findCollectionIdByName(targetName) {
     return null;
 }
 
-// Regex that detects "show the detail page" intent in a user message.
-// Matches Japanese 詳細+navigation-verb patterns and English equivalents.
-// Avoids false-positives on "詳細フィルタ" (advanced filters) or "詳細な説明" (detailed explanation).
-const DETAIL_PAGE_INTENT_PATTERN = /詳細(ページ|画面|を見|を表示|に遷移|に移動|へ移動|で見|に行|を開)|detail\s*(page|screen)|show\s+details\b/i;
-
 /**
- * Determine whether the most recent user message expresses intent to navigate to the
- * collection *detail page* (詳細) rather than opening the overview side panel (概要).
- * This allows the frontend to route correctly even when the LLM uses the generic
- * `openCollectionByName` action, without requiring any system-prompt changes or
- * MCP server restart.
- * @returns {boolean}
- */
-function wantsCollectionDetailPage() {
-    const msgs = Array.isArray(chatMessages) ? chatMessages : [];
-    const lastUserMsg = msgs.filter(m => m.role === 'user').slice(-1)[0]?.content || '';
-    return DETAIL_PAGE_INTENT_PATTERN.test(lastUserMsg);
-}
-
-/**
- * Open a collection by ID: navigate to its detail page when the user's
- * message signals detail-page intent (詳細), otherwise open the overview
- * side panel.  Falls back to openCollectionWindow when the panel function
- * is unavailable (e.g. on non-home pages).
+ * Open a collection by ID: show the overview side panel on the home page,
+ * or navigate to the detail page if the panel function is unavailable.
  * @param {string} id - Collection ID
  */
 function openCollectionById(id) {
-    if (wantsCollectionDetailPage()) {
-        window.location.href = `/Collection/${encodeURIComponent(id)}`;
-    } else if (typeof window.showCollectionOverview === 'function') {
+    if (typeof window.showCollectionOverview === 'function') {
         window.showCollectionOverview(id);
     } else {
-        openCollectionWindow(id);
+        window.location.href = `/Collection/${encodeURIComponent(id)}`;
     }
 }
 
@@ -412,12 +389,6 @@ function executeChatAction(cmd) {
                 } else {
                     reportActionFailure('検索ボックスが現在のページに見つかりません。');
                 }
-            }
-            break;
-
-        case 'openCollection':
-            if (cmd.id && typeof cmd.id === 'string') {
-                openCollectionWindow(cmd.id);
             }
             break;
 
@@ -605,7 +576,6 @@ function renderChatMarkdown(text) {
 async function sendChatToServer(userText) {
     const pageContext = getChatPageContext();
     const pageTitle = document.title || 'CREC Web';
-    const lang = currentLanguage || 'ja';
     const projectName = (typeof projectSettings !== 'undefined' && projectSettings.projectName)
         ? projectSettings.projectName
         : 'CREC Web';
@@ -617,7 +587,6 @@ async function sendChatToServer(userText) {
         history,
         pageContext,
         pageTitle,
-        lang,
         projectName
     };
 
