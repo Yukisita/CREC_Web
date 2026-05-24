@@ -387,7 +387,9 @@ async def process_chat(
                       {"role": "user"|"assistant", "content": "…"} dicts.
         page_context: Excerpt of the current page's visible text (RAG).
         page_title:   Browser tab title of the current page.
-        lang:         UI language code – "ja", "en", or "de".
+        lang:         UI language code – "ja", "en", or "de" (reserved for
+                      future per-language behaviour; currently unused as the
+                      system prompt is language-agnostic).
         project_name: CREC Web project name shown to the user.
 
     Returns:

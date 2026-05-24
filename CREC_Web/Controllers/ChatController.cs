@@ -93,8 +93,19 @@ public class ChatController : ControllerBase
         }
         catch (HttpRequestException ex)
         {
+            // Invalidate the cached session so the next request re-initializes.
+            // This handles the case where the MCP server restarts and the old
+            // session ID is no longer valid.
+            _mcpSessionId = null;
             _logger.LogError(ex, "Failed to connect to MCP server at {Url}", mcpUrl);
             return StatusCode(503, new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.StartsWith("MCP error:"))
+        {
+            // MCP protocol error — session may be stale; invalidate for next retry
+            _mcpSessionId = null;
+            _logger.LogWarning(ex, "MCP protocol error; session invalidated");
+            return StatusCode(502, new { error = ex.Message });
         }
         catch (Exception ex)
         {

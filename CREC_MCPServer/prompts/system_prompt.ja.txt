@@ -26,7 +26,6 @@
 <action>{"type":"openCollectionByName","name":"コレクション名"}</action>  ← 名前でコレクション**概要パネル**を開く（推奨）
 <action>{"type":"navigateToCollectionByName","name":"コレクション名"}</action>  ← 名前でコレクション**詳細ページ**に遷移（推奨）
 <action>{"type":"showCollectionPanel","id":"ID"}</action>  ← IDでコレクション概要パネルを開く
-<action>{"type":"openCollection","id":"ID"}</action>  ← コレクション詳細ページを新しいウィンドウで開く
 <action>{"type":"showAdminPanel"}</action>
 <action>{"type":"createNewCollection"}</action>
 <action>{"type":"navigateHome"}</action>  ← メイン画面・ホーム画面・トップに戻る（確実）
