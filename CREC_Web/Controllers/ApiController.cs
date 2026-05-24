@@ -560,7 +560,6 @@ namespace CREC_Web.Controllers
     [Route("api/[controller]")]
     public class FilesController : ControllerBase
     {
-        private const string ThumbnailConversionWarningCode = "thumbnail-png-conversion-failed";
         private readonly IConfiguration _configuration;
         private readonly ILogger<FilesController> _logger;
 
@@ -647,7 +646,6 @@ namespace CREC_Web.Controllers
                     {
                         _logger.LogWarning(ex, "Automatic PNG conversion failed while loading thumbnail for collection {CollectionId}. Serving original format.",
                             collectionId.SanitizeForLog());
-                        Response.Headers["X-Thumbnail-Warning"] = ThumbnailConversionWarningCode;
 
                         if (System.IO.File.Exists(pngThumbnailPath))
                         {

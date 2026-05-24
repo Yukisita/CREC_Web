@@ -15,7 +15,6 @@ namespace CREC_Web.Controllers
     [Route("api/[controller]")]
     public class FileController : ControllerBase
     {
-        private const string ThumbnailConversionWarningCode = "thumbnail-png-conversion-failed";
         private readonly IConfiguration _configuration;
         private readonly ILogger<FileController> _logger;
         private readonly CrecDataService _crecDataService;
@@ -382,14 +381,12 @@ namespace CREC_Web.Controllers
                     }
                 }
 
-                string? warningCode = null;
                 try
                 {
                     await ThumbnailImageHelper.ConvertToPngWithHdResizeAsync(sourceFilePath, thumbnailPngPath);
                 }
                 catch (Exception ex)
                 {
-                    warningCode = ThumbnailConversionWarningCode;
                     _logger.LogWarning(ex, "PNG conversion failed while setting thumbnail for collection {CollectionId}. Falling back to original format.",
                         collectionId.SanitizeForLog());
 
@@ -431,7 +428,7 @@ namespace CREC_Web.Controllers
                 _logger.LogInformation("Thumbnail set for collection {CollectionId}: {FileName}",
                     collectionId.SanitizeForLog(), Path.GetFileName(sourceFilePath).SanitizeForLog());
 
-                return Ok(new { message = "Thumbnail set successfully", warningCode });
+                return Ok(new { message = "Thumbnail set successfully" });
             }
             catch (Exception ex)
             {

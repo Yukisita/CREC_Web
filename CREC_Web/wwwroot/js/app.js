@@ -22,7 +22,6 @@ let projectSettings = {
     tag2Name: 'タグ 2',
     tag3Name: 'タグ 3'
 }; // .crec ファイルから読み込まれるプロジェクト設定
-const thumbnailWarningShown = new Set();
 
 // アニメーション遅延時間（ミリ秒）
 const ANIMATION_DELAY = 10
@@ -50,14 +49,6 @@ function drawUrlToCanvas(url, canvas, fit) {
     return fetch(url)
         .then(r => { 
             if (!r.ok) throw new Error(`HTTP ${r.status}`); 
-            const warningCode = r.headers.get('X-Thumbnail-Warning');
-            if (warningCode === 'thumbnail-png-conversion-failed' && url.includes('/api/Files/thumbnail/')) {
-                const warningKey = `${warningCode}:${url.split('?')[0]}`;
-                if (!thumbnailWarningShown.has(warningKey)) {
-                    thumbnailWarningShown.add(warningKey);
-                    alert(t('thumbnail-convert-warning'));
-                }
-            }
             return r.blob(); 
         })
         .then(blob => createImageBitmap(blob))
@@ -558,7 +549,7 @@ async function setCollectionThumbnail(collectionId, fileName) {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const result = await response.json().catch(() => null);
+        await response.json().catch(() => null);
 
         // サムネイル画像のキャッシュを更新（対象コレクションのサムネイルのみ）
         const baseUrl = `/api/Files/thumbnail/${encodeURIComponent(collectionId)}`;
@@ -568,9 +559,6 @@ async function setCollectionThumbnail(collectionId, fileName) {
         });
 
         alert(t('set-thumbnail-success'));
-        if (result?.warningCode === 'thumbnail-png-conversion-failed') {
-            alert(t('thumbnail-convert-warning'));
-        }
     } catch (error) {
         console.error('Error setting thumbnail:', error);
         alert(t('set-thumbnail-error'));
