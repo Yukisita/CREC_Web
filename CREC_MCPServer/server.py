@@ -22,8 +22,12 @@ import re
 from pathlib import Path
 from typing import Any
 
+import time
+
 import httpx
 from mcp.server.fastmcp import FastMCP
+
+from chat_logger import chat_log
 
 _logger = logging.getLogger(__name__)
 
@@ -427,6 +431,10 @@ async def process_chat(
         "n_keep": -1,
     }
 
+    warnings: list[str] = []
+    llm_raw_output = ""
+    start_time = time.perf_counter()
+
     async with httpx.AsyncClient(timeout=LLM_TIMEOUT) as client:
         response = await client.post(
             f"{LLM_URL}/v1/chat/completions",
@@ -441,6 +449,8 @@ async def process_chat(
             )
         response.raise_for_status()
 
+    duration_ms = int((time.perf_counter() - start_time) * 1000)
+
     data = response.json()
     text: str = (
         data.get("choices", [{}])[0]
@@ -448,8 +458,20 @@ async def process_chat(
         .get("content", "")
         or ""
     )
+    llm_raw_output = text
 
     if not text:
+        warnings.append("empty_response")
+        chat_log.interaction(
+            user_message=message,
+            page_title=page_title,
+            page_context=page_context,
+            project_name=project_name,
+            llm_raw_output=llm_raw_output,
+            final_response="",
+            warnings=warnings,
+            duration_ms=duration_ms,
+        )
         return ""
 
     sanitized, blocked_deletion = _sanitize_response(text)
@@ -463,10 +485,22 @@ async def process_chat(
             "process_chat: LLM attempted a blocked collection-deletion action; "
             "replacing response with prohibition message"
         )
-        return (
+        warnings.append("blocked_deletion")
+        final = (
             "⚠️ コレクションの削除はAI操作では実行できません。\n"
             "削除する場合は画面上の削除ボタンから手動で行ってください。"
         )
+        chat_log.interaction(
+            user_message=message,
+            page_title=page_title,
+            page_context=page_context,
+            project_name=project_name,
+            llm_raw_output=llm_raw_output,
+            final_response=final,
+            warnings=warnings,
+            duration_ms=duration_ms,
+        )
+        return final
 
     # Ensure the response always contains human-readable text in addition to
     # any <action> tags.  Small models (≤4b) sometimes output only action XML;
@@ -485,10 +519,22 @@ async def process_chat(
             "process_chat: LLM claimed action completion without <action> tags "
             "(hallucinated operation); replacing response with error message"
         )
+        warnings.append("hallucination_detected")
         sanitized = (
             "⚠️ 操作を実行しようとしましたが、実際には動作しませんでした。\n"
             "もう一度お試しいただくか、操作内容をより具体的にお伝えください。"
         )
+
+    chat_log.interaction(
+        user_message=message,
+        page_title=page_title,
+        page_context=page_context,
+        project_name=project_name,
+        llm_raw_output=llm_raw_output,
+        final_response=sanitized,
+        warnings=warnings if warnings else None,
+        duration_ms=duration_ms,
+    )
 
     return sanitized
 
