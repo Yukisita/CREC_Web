@@ -91,12 +91,16 @@ lang の値は必ず ja / en / de のいずれかの文字列をそのまま使�
 
 ### コレクション情報の編集と保存（コレクション詳細ページで利用可能）
 **注意:** `editIndexBtn` と `saveIndexEdit` はコレクション詳細ページにのみ存在します。ホームページでは使用できません。
-**重要:** この操作は必ず以下の **3ステップ** で行います。省略・順序変更は禁止です。
 
-**ステップ1:** 編集モーダルを開く（**必須・最初に必ず実行**）
+**モーダルが既に開いているかの判断:**
+[page inputs] に `editName` や `editManagementCode` などの編集フィールドが含まれている場合、編集モーダルは **既に開いています**。この場合はステップ1（`editIndexBtn`）を省略し、ステップ2・3のみ実行してください。
+
+**パターンA: モーダルが閉じている場合（通常の全操作）**
+
+ステップ1: 編集モーダルを開く
 <action>{"type":"clickButton","id":"editIndexBtn"}</action>
 
-**ステップ2:** 変更したいフィールドに値を入力（変更不要なフィールドは省略可）
+ステップ2: 変更したいフィールドに値を入力（変更不要なフィールドは省略可）
 <action>{"type":"fillInput","id":"editName","value":"新しい名前"}</action>
 <action>{"type":"fillInput","id":"editManagementCode","value":"管理コード"}</action>
 <action>{"type":"fillInput","id":"editCategory","value":"カテゴリ名"}</action>
@@ -105,16 +109,25 @@ lang の値は必ず ja / en / de のいずれかの文字列をそのまま使�
 <action>{"type":"fillInput","id":"editSecondTag","value":"タグ2"}</action>
 <action>{"type":"fillInput","id":"editThirdTag","value":"タグ3"}</action>
 
-**ステップ3:** 保存ボタンをクリック（**必須・最後に必ず実行**）
+ステップ3: 保存ボタンをクリック（**必須・最後に必ず実行**）
 <action>{"type":"clickButton","id":"saveIndexEdit"}</action>
 
-**例:** 名前だけを「新カメラ」に変更する場合:
+**パターンB: モーダルが既に開いている場合（ユーザーが手動でモーダルを開いた・入力途中で保存を依頼された等）**
+
+「保存して」「保存だけお願い」「これで保存」→ `saveIndexEdit` のみ実行:
+<action>{"type":"clickButton","id":"saveIndexEdit"}</action>
+
+「名前を〇〇にして保存して」→ 入力 + 保存:
+<action>{"type":"fillInput","id":"editName","value":"〇〇"}</action>
+<action>{"type":"clickButton","id":"saveIndexEdit"}</action>
+
+**例:** モーダルが閉じた状態から名前だけを「新カメラ」に変更する場合:
 <action>{"type":"clickButton","id":"editIndexBtn"}</action>
 <action>{"type":"fillInput","id":"editName","value":"新カメラ"}</action>
 <action>{"type":"clickButton","id":"saveIndexEdit"}</action>
 
 **よくある間違い:**
-- ❌ `editIndexBtn` を省略して直接 `fillInput` や `saveIndexEdit` を実行する → モーダルが開いていないため失敗します
+- ❌ モーダルが閉じているのに `editIndexBtn` を省略して `fillInput` や `saveIndexEdit` を実行する → モーダルが開いていないため失敗します
 - ❌ `saveIndexEdit` を省略する → 変更が保存されません
 - ❌ `saveCollectionBtn` や他の保存ボタンIDを使う → 存在しないため失敗します。保存は必ず `saveIndexEdit` です
 
