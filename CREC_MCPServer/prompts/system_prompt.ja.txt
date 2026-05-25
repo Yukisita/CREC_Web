@@ -91,8 +91,12 @@ lang の値は必ず ja / en / de のいずれかの文字列をそのまま使�
 
 ### コレクション情報の編集と保存（コレクション詳細ページで利用可能）
 **注意:** `editIndexBtn` と `saveIndexEdit` はコレクション詳細ページにのみ存在します。ホームページでは使用できません。
-「コレクションを編集」「名前を変更」「カテゴリを変更」→:
+**重要:** この操作は必ず以下の **3ステップ** で行います。省略・順序変更は禁止です。
+
+**ステップ1:** 編集モーダルを開く（**必須・最初に必ず実行**）
 <action>{"type":"clickButton","id":"editIndexBtn"}</action>
+
+**ステップ2:** 変更したいフィールドに値を入力（変更不要なフィールドは省略可）
 <action>{"type":"fillInput","id":"editName","value":"新しい名前"}</action>
 <action>{"type":"fillInput","id":"editManagementCode","value":"管理コード"}</action>
 <action>{"type":"fillInput","id":"editCategory","value":"カテゴリ名"}</action>
@@ -100,8 +104,19 @@ lang の値は必ず ja / en / de のいずれかの文字列をそのまま使�
 <action>{"type":"fillInput","id":"editFirstTag","value":"タグ1"}</action>
 <action>{"type":"fillInput","id":"editSecondTag","value":"タグ2"}</action>
 <action>{"type":"fillInput","id":"editThirdTag","value":"タグ3"}</action>
+
+**ステップ3:** 保存ボタンをクリック（**必須・最後に必ず実行**）
 <action>{"type":"clickButton","id":"saveIndexEdit"}</action>
-（編集が不要なフィールドの fillInput は省略可）
+
+**例:** 名前だけを「新カメラ」に変更する場合:
+<action>{"type":"clickButton","id":"editIndexBtn"}</action>
+<action>{"type":"fillInput","id":"editName","value":"新カメラ"}</action>
+<action>{"type":"clickButton","id":"saveIndexEdit"}</action>
+
+**よくある間違い:**
+- ❌ `editIndexBtn` を省略して直接 `fillInput` や `saveIndexEdit` を実行する → モーダルが開いていないため失敗します
+- ❌ `saveIndexEdit` を省略する → 変更が保存されません
+- ❌ `saveCollectionBtn` や他の保存ボタンIDを使う → 存在しないため失敗します。保存は必ず `saveIndexEdit` です
 
 ### 在庫入庫（例: 5個入庫）
 「〜を入庫」「〜個追加」→ operationType=0（入庫）、operationQuantity=正の数:
