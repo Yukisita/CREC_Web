@@ -323,7 +323,7 @@ function processChatActions(text) {
                     executeChatAction(cmd);
                 } catch (e) {
                     console.warn('Failed to execute chat action:', cmd, e);
-                    reportActionFailure('操作の実行中にエラーが発生しました。ページを更新して再度お試しください。');
+                    reportActionFailure('An error occurred while executing the action. Please refresh the page and try again.');
                 }
             }, delay);
         });
@@ -378,7 +378,7 @@ function executeChatAction(cmd) {
         case 'search':
             if (typeof cmd.text === 'string') {
                 if (!isMainSearchPage()) {
-                    reportActionFailure('検索はホーム画面でのみ実行できます。まずホーム画面に移動してから検索してください。');
+                    reportActionFailure('Search can only be performed on the home page. Please navigate to the home page first.');
                     break;
                 }
                 const searchInput = document.getElementById('searchText');
@@ -387,7 +387,7 @@ function executeChatAction(cmd) {
                     const searchBtn = document.getElementById('searchButton');
                     if (searchBtn) searchBtn.click();
                 } else {
-                    reportActionFailure('検索ボックスが現在のページに見つかりません。');
+                    reportActionFailure('The search box was not found on the current page.');
                 }
             }
             break;
@@ -408,8 +408,8 @@ function executeChatAction(cmd) {
             } else {
                 console.warn('openCollectionByName: no collection found for name:', targetName);
                 reportActionFailure(
-                    `コレクション「${targetName}」が現在のページに見つかりません。` +
-                    'ホーム画面でコレクション一覧が表示されていることを確認してください。'
+                    `Collection "${targetName}" was not found on the current page. ` +
+                    'Please make sure the collection list is displayed on the home page.'
                 );
             }
             break;
@@ -418,8 +418,8 @@ function executeChatAction(cmd) {
         case 'navigateToCollectionByName': {
             // Navigate to a collection's detail page by its display name.
             // Looks up the ID from DOM data-collection-id / data-collection-name attributes.
-            // Use this when the user wants to see details (詳細); use openCollectionByName
-            // when the user wants the overview side panel (概要).
+            // Use this when the user wants to see details; use openCollectionByName
+            // when the user wants the overview side panel.
             const targetName = typeof cmd.name === 'string' ? cmd.name.trim() : '';
             if (!targetName) break;
 
@@ -429,8 +429,8 @@ function executeChatAction(cmd) {
             } else {
                 console.warn('navigateToCollectionByName: no collection found for name:', targetName);
                 reportActionFailure(
-                    `コレクション「${targetName}」が現在のページに見つかりません。` +
-                    'ホーム画面でコレクション一覧が表示されていることを確認してください。'
+                    `Collection "${targetName}" was not found on the current page. ` +
+                    'Please make sure the collection list is displayed on the home page.'
                 );
             }
             break;
@@ -440,7 +440,7 @@ function executeChatAction(cmd) {
             if (typeof openAdminPanel === 'function') {
                 openAdminPanel();
             } else {
-                reportActionFailure('管理パネルを開く機能がこのページでは利用できません。');
+                reportActionFailure('The admin panel feature is not available on this page.');
             }
             break;
 
@@ -460,17 +460,17 @@ function executeChatAction(cmd) {
                         } else {
                             clearPendingChatActions();
                             console.warn('createNewCollection: missing id in API response', result);
-                            reportActionFailure('コレクションは作成されましたが、IDが取得できませんでした。ページを更新してください。');
+                            reportActionFailure('The collection was created but the ID could not be retrieved. Please refresh the page.');
                         }
                     } else {
                         clearPendingChatActions();
                         console.warn('createNewCollection: API returned', response.status);
-                        reportActionFailure(`コレクションの作成に失敗しました（サーバーエラー: ${response.status}）。再度お試しください。`);
+                        reportActionFailure(`Failed to create collection (server error: ${response.status}). Please try again.`);
                     }
                 } catch (e) {
                     clearPendingChatActions();
                     console.warn('createNewCollection action failed:', e);
-                    reportActionFailure('コレクションの作成に失敗しました。ネットワーク接続を確認してください。');
+                    reportActionFailure('Failed to create collection. Please check your network connection.');
                 }
             })();
             break;
@@ -503,8 +503,8 @@ function executeChatAction(cmd) {
                 } else {
                     console.warn('clickButton: element not found:', cmd.id);
                     reportActionFailure(
-                        `ボタン「${cmd.id}」が現在のページに存在しません。` +
-                        '必要なモーダルやパネルが開いているか確認してください。'
+                        `Button "${cmd.id}" was not found on the current page. ` +
+                        'Please make sure the required modal or panel is open.'
                     );
                 }
             }
@@ -522,8 +522,8 @@ function executeChatAction(cmd) {
                 } else {
                     console.warn('fillInput: element not found:', cmd.id);
                     reportActionFailure(
-                        `入力欄「${cmd.id}」が現在のページに存在しません。` +
-                        '関連するモーダルが開いているか確認してください。'
+                        `Input field "${cmd.id}" was not found on the current page. ` +
+                        'Please make sure the related modal is open.'
                     );
                 }
             }
@@ -536,11 +536,11 @@ function executeChatAction(cmd) {
                     selectLanguage(cmd.lang);
                 } else {
                     console.warn('switchLanguage: selectLanguage() not available');
-                    reportActionFailure('言語切り替え機能がこのページでは利用できません。');
+                    reportActionFailure('The language switching feature is not available on this page.');
                 }
             } else {
                 console.warn('switchLanguage: unsupported or missing lang:', cmd.lang);
-                reportActionFailure('サポートされていない言語コードが指定されました。ja / en / de のいずれかを使用してください。');
+                reportActionFailure('Unsupported language code specified. Please use one of: ja / en / de.');
             }
             break;
 

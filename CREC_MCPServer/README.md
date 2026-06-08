@@ -1,61 +1,61 @@
 # CREC MCPServer
 
-CREC Web 用 Python MCP サーバです。  
-ローカル LLM（Ollama・LM Studio 等、OpenAI 互換 API）と連携し、CREC Web の AI チャット機能を提供します。  
-CREC Web の C# バックエンドが MCP クライアントとして接続し、`process_chat` ツールを呼び出します。
+A Python MCP server for CREC Web.  
+Integrates with a local LLM (Ollama, LM Studio, or any OpenAI-compatible API) to provide AI chat functionality for CREC Web.  
+The CREC Web C# backend connects as an MCP client and calls the `process_chat` tool.
 
 ---
 
-## アーキテクチャ
+## Architecture
 
 ```
-ブラウザ（チャット UI）
+Browser (Chat UI)
     ↓ POST /api/Chat
-CREC Web C# バックエンド（MCP クライアント）
+CREC Web C# Backend (MCP Client)
     ↓ MCP tools/call  HTTP POST /mcp
-CREC MCPServer（本サーバ、Python）
+CREC MCPServer (this server, Python)
     ↓ POST /v1/chat/completions
-LLM バックエンド（Ollama / LM Studio 等）
+LLM Backend (Ollama / LM Studio / etc.)
 ```
 
 ---
 
-## 必要条件
+## Prerequisites
 
-- Python 3.11 以上
+- Python 3.11 or higher
 - pip
-- OpenAI 互換 LLM バックエンド（Ollama / LM Studio 等）が別途起動済みであること
+- An OpenAI-compatible LLM backend (Ollama / LM Studio / etc.) running separately
 
 ---
 
-## セットアップ
+## Setup
 
 ```bash
-# 1. リポジトリルートから CREC_MCPServer ディレクトリへ移動
+# 1. Navigate to the CREC_MCPServer directory from the repository root
 cd CREC_MCPServer
 
-# 2. 仮想環境の作成（推奨）
+# 2. Create a virtual environment (recommended)
 python -m venv .venv
 source .venv/bin/activate       # Windows: .venv\Scripts\activate
 
-# 3. 依存パッケージのインストール
+# 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. 環境変数の設定
+# 4. Configure environment variables
 cp .env.example .env
-# .env をテキストエディタで開いて LLM_URL / LLM_MODEL 等を設定する
+# Open .env in a text editor and set LLM_URL / LLM_MODEL etc.
 ```
 
 ---
 
-## 起動
+## Starting the Server
 
 ```bash
-# 仮想環境を有効化した状態で
+# With the virtual environment activated
 python server.py
 ```
 
-起動すると以下のようなメッセージが表示されます：
+On startup, the following message is displayed:
 
 ```
 Starting CREC Web MCP Server on 127.0.0.1:8765
@@ -64,89 +64,89 @@ LLM backend: http://localhost:11434  model: llama3.2
 
 ---
 
-## 設定項目（環境変数）
+## Configuration (Environment Variables)
 
-| 変数名 | デフォルト値 | 説明 |
-|--------|-------------|------|
-| `LLM_URL` | `http://localhost:11434` | LLM バックエンドのベース URL（末尾スラッシュなし）。Ollama のデフォルト。LM Studio の場合は `http://localhost:1234`。 |
-| `LLM_MODEL` | `llama3.2` | 使用するモデル名。Ollama の場合は `ollama pull` 済みのモデル名。 |
-| `MCP_HOST` | `127.0.0.1` | MCP サーバのバインドアドレス。外部から接続する場合は `0.0.0.0` に変更。 |
-| `MCP_PORT` | `8765` | MCP サーバのポート番号。CREC Web の `appsettings.json` の `McpServer:Url` と合わせること。 |
-| `LLM_TIMEOUT` | `120` | LLM リクエストのタイムアウト（秒）。 |
-| `SAFE_BUTTON_IDS` | （下記参照） | AI がクリックを許可されるボタン ID のカンマ区切りリスト。 |
-| `SAFE_INPUT_IDS` | （下記参照） | AI が入力を許可されるフォームフィールド ID のカンマ区切りリスト。 |
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LLM_URL` | `http://localhost:11434` | Base URL of the LLM backend (no trailing slash). Default is for Ollama. For LM Studio use `http://localhost:1234`. |
+| `LLM_MODEL` | `llama3.2` | Model name to use. For Ollama, use a model that has been pulled with `ollama pull`. |
+| `MCP_HOST` | `127.0.0.1` | Bind address for the MCP server. Change to `0.0.0.0` for external access. |
+| `MCP_PORT` | `8765` | Port number for the MCP server. Must match `McpServer:Url` in CREC Web's `appsettings.json`. |
+| `LLM_TIMEOUT` | `120` | Timeout for LLM requests (seconds). |
+| `SAFE_BUTTON_IDS` | (see below) | Comma-separated list of button IDs the AI is allowed to click. |
+| `SAFE_INPUT_IDS` | (see below) | Comma-separated list of form field IDs the AI is allowed to fill. |
 
-環境変数は `.env` ファイルにまとめて記述するか、OS のシェル設定で指定してください。
-
----
-
-## デフォルトのホワイトリスト
-
-### ボタン ID（`SAFE_BUTTON_IDS`）
-
-| ID | 説明 |
-|----|------|
-| `addNewCollectionBtn` | 新規コレクション作成 |
-| `editProjectBtn` | プロジェクト設定を開く |
-| `adminPanelToggle` | 管理パネルを開閉 |
-| `searchButton` | 検索実行 |
-| `clearFiltersButton` | フィルタクリア |
-| `inventoryOperationBtn` | 在庫操作モーダルを開く |
-| `inventoryManagementSettingsBtn` | 在庫管理設定モーダルを開く |
-| `inventoryOperationSave` | 在庫操作を保存 |
-| `inventoryOperationCancel` | 在庫操作をキャンセル |
-| `inventoryManagementSettingsSave` | 在庫管理設定を保存 |
-| `inventoryManagementSettingsCancel` | 在庫管理設定をキャンセル |
-| `editIndexBtn` | インデックス編集モーダルを開く |
-
-### フォームフィールド ID（`SAFE_INPUT_IDS`）
-
-| ID | 説明 | 入力値 |
-|----|------|--------|
-| `operationType` | 在庫操作タイプ | `0`=入庫 / `1`=出庫 / `2`=棚卸し |
-| `operationQuantity` | 在庫操作数量 | 数値 |
-| `operationComment` | 在庫操作コメント | テキスト |
-| `searchText` | 検索キーワード | テキスト |
-| `safetyStock` | 安全在庫数 | 数値 |
-| `reorderPoint` | 発注点 | 数値 |
-| `maximumLevel` | 最大在庫数 | 数値 |
-| `searchField` | 検索対象フィールド | テキスト |
-| `searchMethod` | 検索方式 | テキスト |
-| `inventoryStatusFilter` | 在庫状況フィルタ | テキスト |
+Environment variables can be specified in a `.env` file or set via OS shell configuration.
 
 ---
 
-## 公開ツール一覧
+## Default Whitelists
 
-| ツール名 | 説明 |
-|---------|------|
-| `process_chat(message, history, page_context, page_title, lang, project_name)` | メインツール。LLM を呼び出してチャット応答を生成し、アクション ID をホワイトリスト検証して返す。 |
-| `search_collections(keyword)` | コレクション検索アクションタグを返す。 |
-| `navigate(path)` | ページ遷移アクションタグを返す。 |
-| `show_admin_panel()` | 管理パネル表示アクションタグを返す。 |
-| `click_button(button_id)` | ホワイトリスト検証済みボタンクリックアクションタグを返す。 |
-| `fill_input(field_id, value)` | ホワイトリスト検証済みフォーム入力アクションタグを返す。 |
+### Button IDs (`SAFE_BUTTON_IDS`)
+
+| ID | Description |
+|----|-------------|
+| `addNewCollectionBtn` | Create new collection |
+| `editProjectBtn` | Open project settings |
+| `adminPanelToggle` | Toggle admin panel |
+| `searchButton` | Execute search |
+| `clearFiltersButton` | Clear filters |
+| `inventoryOperationBtn` | Open inventory operation modal |
+| `inventoryManagementSettingsBtn` | Open inventory management settings modal |
+| `inventoryOperationSave` | Save inventory operation |
+| `inventoryOperationCancel` | Cancel inventory operation |
+| `inventoryManagementSettingsSave` | Save inventory management settings |
+| `inventoryManagementSettingsCancel` | Cancel inventory management settings |
+| `editIndexBtn` | Open index edit modal |
+
+### Form Field IDs (`SAFE_INPUT_IDS`)
+
+| ID | Description | Value |
+|----|-------------|-------|
+| `operationType` | Inventory operation type | `0`=Receive / `1`=Ship / `2`=Count |
+| `operationQuantity` | Inventory operation quantity | Number |
+| `operationComment` | Inventory operation comment | Text |
+| `searchText` | Search keyword | Text |
+| `safetyStock` | Safety stock level | Number |
+| `reorderPoint` | Reorder point | Number |
+| `maximumLevel` | Maximum stock level | Number |
+| `searchField` | Search target field | Text |
+| `searchMethod` | Search method | Text |
+| `inventoryStatusFilter` | Inventory status filter | Text |
 
 ---
 
-## システムプロンプトのカスタマイズ
+## Exposed Tools
 
-`prompts/system_prompt.txt` を直接編集することで、プロンプトを変更できます。  
-ファイルは起動時にキャッシュされるため、変更後はサーバを再起動してください。
-
-プレースホルダー:
-
-| プレースホルダー | 置換内容 |
-|----------------|---------|
-| `{{projectName}}` | CREC Web プロジェクト名 |
-| `{{pageTitle}}` | 現在のページタイトル |
-| `{{context}}` | 現在のページ内容（抜粋） |
+| Tool | Description |
+|------|-------------|
+| `process_chat(message, history, page_context, page_title, lang, project_name)` | Main tool. Calls the LLM to generate a chat response, validates action IDs against the whitelist, and returns the result. |
+| `search_collections(keyword)` | Returns a collection search action tag. |
+| `navigate(path)` | Returns a page navigation action tag. |
+| `show_admin_panel()` | Returns an admin panel display action tag. |
+| `click_button(button_id)` | Returns a whitelist-validated button click action tag. |
+| `fill_input(field_id, value)` | Returns a whitelist-validated form input action tag. |
 
 ---
 
-## CREC Web との接続設定
+## Customizing the System Prompt
 
-CREC Web の `appsettings.json` で以下を設定してください：
+Edit `prompts/system_prompt.txt` directly to modify the prompt.  
+The file is cached on startup, so restart the server after making changes.
+
+Placeholders:
+
+| Placeholder | Replaced With |
+|-------------|---------------|
+| `{{projectName}}` | CREC Web project name |
+| `{{pageTitle}}` | Current page title |
+| `{{context}}` | Current page content (excerpt) |
+
+---
+
+## Connection Settings for CREC Web
+
+Configure the following in CREC Web's `appsettings.json`:
 
 ```json
 {
@@ -160,26 +160,26 @@ CREC Web の `appsettings.json` で以下を設定してください：
 }
 ```
 
-> **注意**: `McpServer:Url` は本サーバの `MCP_HOST:MCP_PORT` と一致させてください。  
-> `LlmBackend` の設定は CREC Web 側には不要ですが、参考のために残しています（LLM の設定は本サーバ側の環境変数で行います）。
+> **Note**: `McpServer:Url` must match this server's `MCP_HOST:MCP_PORT`.  
+> The `LlmBackend` settings are not required on the CREC Web side but are kept for reference (LLM configuration is managed via this server's environment variables).
 
 ---
 
-## トラブルシューティング
+## Troubleshooting
 
-### LLM バックエンドに接続できない
+### Cannot connect to LLM backend
 
-- `LLM_URL` が正しいか確認（末尾スラッシュなし）
-- Ollama の場合: `ollama serve` が起動していること、モデルが `ollama pull <model>` 済みであること
-- LM Studio の場合: "Start Server" が実行済みであること
+- Verify `LLM_URL` is correct (no trailing slash)
+- For Ollama: ensure `ollama serve` is running and the model has been pulled with `ollama pull <model>`
+- For LM Studio: ensure "Start Server" has been executed
 
-### CREC Web から接続できない
+### Cannot connect from CREC Web
 
-- `MCP_PORT` と CREC Web の `McpServer:Url` のポートが一致しているか確認
-- ファイアウォールでポートが許可されているか確認
-- 外部ホストから接続する場合は `MCP_HOST=0.0.0.0` に設定
+- Verify `MCP_PORT` matches the port in CREC Web's `McpServer:Url`
+- Check that the port is allowed through the firewall
+- Set `MCP_HOST=0.0.0.0` when connecting from an external host
 
-### アクションが実行されない
+### Actions are not executed
 
-- ボタン/フィールド ID が `SAFE_BUTTON_IDS` / `SAFE_INPUT_IDS` に含まれているか確認
-- サーバログで `[ERROR]` メッセージを確認
+- Verify the button/field ID is included in `SAFE_BUTTON_IDS` / `SAFE_INPUT_IDS`
+- Check server logs for `[ERROR]` messages

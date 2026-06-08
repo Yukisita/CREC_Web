@@ -245,10 +245,10 @@ def _build_system_prompt(page_title: str, page_context: str, project_name: str) 
     if not template:
         return ""
 
-    context_raw = page_context.strip() or "（コンテンツなし）"
+    context_raw = page_context.strip() or "(no content)"
     # Truncate context to avoid exceeding the model's context window
     if len(context_raw) > MAX_CONTEXT_CHARS:
-        context_raw = context_raw[:MAX_CONTEXT_CHARS] + "\n…（コンテキスト省略）"
+        context_raw = context_raw[:MAX_CONTEXT_CHARS] + "\n…(context truncated)"
         _logger.debug("page_context truncated to %d chars", MAX_CONTEXT_CHARS)
 
     return (
@@ -487,8 +487,8 @@ async def process_chat(
         )
         warnings.append("blocked_deletion")
         final = (
-            "⚠️ コレクションの削除はAI操作では実行できません。\n"
-            "削除する場合は画面上の削除ボタンから手動で行ってください。"
+            "⚠️ Collection deletion cannot be performed via AI.\n"
+            "To delete, please use the delete button on the page manually."
         )
         chat_log.interaction(
             user_message=message,
@@ -507,7 +507,7 @@ async def process_chat(
     # prepend a short fallback sentence so the chat bubble is never blank.
     text_only = _ACTION_RE.sub("", sanitized).strip()
     if not text_only and sanitized.strip():
-        sanitized = "操作を実行します。\n" + sanitized
+        sanitized = "Executing operation.\n" + sanitized
 
     # Guard against action hallucination: small LLMs sometimes claim to have
     # performed a UI operation (e.g. "保存しました") without emitting any
@@ -521,8 +521,8 @@ async def process_chat(
         )
         warnings.append("hallucination_detected")
         sanitized = (
-            "⚠️ 操作を実行しようとしましたが、実際には動作しませんでした。\n"
-            "もう一度お試しいただくか、操作内容をより具体的にお伝えください。"
+            "⚠️ An operation was attempted but did not actually execute.\n"
+            "Please try again or describe the operation more specifically."
         )
 
     chat_log.interaction(
