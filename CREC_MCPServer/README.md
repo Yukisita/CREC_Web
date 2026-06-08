@@ -131,7 +131,7 @@ LLM backend: http://localhost:11434  model: llama3.2
 
 ## システムプロンプトのカスタマイズ
 
-`prompts/system_prompt.{lang}.txt`（`ja` / `en` / `de`）を直接編集することで、再起動なしにプロンプトを変更できます。  
+`prompts/system_prompt.txt` を直接編集することで、プロンプトを変更できます。  
 ファイルは起動時にキャッシュされるため、変更後はサーバを再起動してください。
 
 プレースホルダー:

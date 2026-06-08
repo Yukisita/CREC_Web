@@ -224,7 +224,7 @@ def _load_prompt_template() -> str:
     if _prompt_template is not None:
         return _prompt_template
 
-    path = PROMPTS_DIR / "system_prompt.ja.txt"
+    path = PROMPTS_DIR / "system_prompt.txt"
     if not path.exists():
         _logger.warning("System prompt template not found: %s", path)
         return ""
