@@ -1,0 +1,255 @@
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Globalization;
+using System.IO;
+using System.Net.Sockets;
+
+namespace CREC_Web.Desktop.Services;
+
+internal sealed class WebServerHost : IAsyncDisposable
+{
+    private const int DefaultPort = 5000;
+    private readonly ConcurrentQueue<string> _recentOutput = new();
+    private Process? _process;
+
+    public bool IsRunning => _process is { HasExited: false };
+
+    public async Task<WebServerSession> StartAsync(DesktopLaunchSettings settings, CancellationToken cancellationToken = default)
+    {
+        if (IsRunning)
+        {
+            throw new InvalidOperationException("The web server is already running.");
+        }
+
+        var projectFilePath = Path.GetFullPath(settings.ProjectFilePath);
+        if (!File.Exists(projectFilePath))
+        {
+            throw new FileNotFoundException("The selected .crec project file was not found.", projectFilePath);
+        }
+
+        ClearRecentOutput();
+
+        var webAppDirectory = ResolveWebAppDirectory();
+        var port = FindAvailablePortPair(DefaultPort);
+        var process = new Process
+        {
+            StartInfo = CreateStartInfo(webAppDirectory, projectFilePath, port, settings.PublishToNetwork),
+            EnableRaisingEvents = true
+        };
+
+        process.OutputDataReceived += (_, eventArgs) => AppendOutput(eventArgs.Data);
+        process.ErrorDataReceived += (_, eventArgs) => AppendOutput(eventArgs.Data);
+
+        if (!process.Start())
+        {
+            process.Dispose();
+            throw new InvalidOperationException("Failed to start the CREC Web server process.");
+        }
+
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+        _process = process;
+
+        try
+        {
+            await WaitForServerAsync(process, port, cancellationToken);
+            return new WebServerSession(port, new Uri($"http://localhost:{port}", UriKind.Absolute));
+        }
+        catch
+        {
+            await StopAsync();
+            throw;
+        }
+    }
+
+    public async Task StopAsync()
+    {
+        var process = _process;
+        _process = null;
+
+        if (process is null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (!process.HasExited)
+            {
+                try
+                {
+                    await process.StandardInput.WriteLineAsync("shutdown");
+                    await process.StandardInput.FlushAsync();
+                }
+                catch
+                {
+                    // 標準入力に送れない場合は強制終了のフォールバックを行う
+                }
+
+                if (!await WaitForExitAsync(process, TimeSpan.FromSeconds(5)))
+                {
+                    process.Kill(entireProcessTree: true);
+                    await process.WaitForExitAsync();
+                }
+            }
+        }
+        finally
+        {
+            process.Dispose();
+            ClearRecentOutput();
+        }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        return new ValueTask(StopAsync());
+    }
+
+    private static ProcessStartInfo CreateStartInfo(string webAppDirectory, string projectFilePath, int port, bool publishToNetwork)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            WorkingDirectory = webAppDirectory,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        };
+
+        var executablePath = Path.Combine(webAppDirectory, "CREC_Web.exe");
+        if (File.Exists(executablePath))
+        {
+            startInfo.FileName = executablePath;
+        }
+        else
+        {
+            startInfo.FileName = "dotnet";
+            startInfo.ArgumentList.Add(Path.Combine(webAppDirectory, "CREC_Web.dll"));
+        }
+
+        startInfo.ArgumentList.Add("--non-interactive");
+        startInfo.ArgumentList.Add("--project");
+        startInfo.ArgumentList.Add(projectFilePath);
+        startInfo.ArgumentList.Add("--port");
+        startInfo.ArgumentList.Add(port.ToString(CultureInfo.InvariantCulture));
+        startInfo.ArgumentList.Add(publishToNetwork ? "--public" : "--local-only");
+
+        return startInfo;
+    }
+
+    private static async Task WaitForServerAsync(Process process, int port, CancellationToken cancellationToken)
+    {
+        var timeoutAt = DateTime.UtcNow.AddSeconds(30);
+
+        while (DateTime.UtcNow < timeoutAt)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (process.HasExited)
+            {
+                throw new InvalidOperationException("The CREC Web server exited before startup completed.");
+            }
+
+            if (await IsPortOpenAsync(port, cancellationToken))
+            {
+                return;
+            }
+
+            await Task.Delay(250, cancellationToken);
+        }
+
+        throw new TimeoutException("Timed out while waiting for the CREC Web server to start.");
+    }
+
+    private static async Task<bool> WaitForExitAsync(Process process, TimeSpan timeout)
+    {
+        var exitTask = process.WaitForExitAsync();
+        var completedTask = await Task.WhenAny(exitTask, Task.Delay(timeout));
+        return completedTask == exitTask;
+    }
+
+    private static async Task<bool> IsPortOpenAsync(int port, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var client = new TcpClient();
+            await client.ConnectAsync("127.0.0.1", port, cancellationToken);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static int FindAvailablePortPair(int startPort)
+    {
+        for (var port = startPort; port < 65535; port++)
+        {
+            if (IsPortAvailable(port) && IsPortAvailable(port + 1))
+            {
+                return port;
+            }
+        }
+
+        throw new InvalidOperationException("No available port pair was found for the local web server.");
+    }
+
+    private static bool IsPortAvailable(int port)
+    {
+        if (port < 1 || port > 65535)
+        {
+            return false;
+        }
+
+        try
+        {
+            using var listener = new TcpListener(System.Net.IPAddress.Loopback, port);
+            listener.Start();
+            listener.Stop();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static string ResolveWebAppDirectory()
+    {
+        var webAppDirectory = Path.Combine(AppContext.BaseDirectory, "web");
+        var webAppAssemblyPath = Path.Combine(webAppDirectory, "CREC_Web.dll");
+
+        if (!File.Exists(webAppAssemblyPath))
+        {
+            throw new DirectoryNotFoundException("The packaged CREC Web files were not found. Build the desktop project after the web project so the web output is copied to the desktop app.");
+        }
+
+        return webAppDirectory;
+    }
+
+    private void AppendOutput(string? line)
+    {
+        if (string.IsNullOrWhiteSpace(line))
+        {
+            return;
+        }
+
+        _recentOutput.Enqueue(line);
+        while (_recentOutput.Count > 40 && _recentOutput.TryDequeue(out _))
+        {
+        }
+    }
+
+    private void ClearRecentOutput()
+    {
+        while (_recentOutput.TryDequeue(out _))
+        {
+        }
+    }
+}
+
+internal sealed record DesktopLaunchSettings(string ProjectFilePath, bool PublishToNetwork);
+
+internal sealed record WebServerSession(int Port, Uri FrontendUri);

@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
   "serialNumber": "urn:uuid:4ed6b3be-aef4-4a11-b260-73bce64dafc0",
-  "version": 3,
+  "version": 4,
   "metadata": {
-    "timestamp": "2026-05-20T13:19:27Z",
+    "timestamp": "2026-06-13T12:09:59Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -183,6 +183,27 @@
           "url": "https://github.com/mono/SkiaSharp"
         }
       ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Microsoft.Web.WebView2@1.0.4022.49",
+      "name": "Microsoft.Web.WebView2",
+      "version": "1.0.4022.49",
+      "description": "The WebView2 control enables you to embed web technologies (HTML, CSS, and JavaScript) in your native applications powered by Microsoft Edge (Chromium).",
+      "purl": "pkg:nuget/Microsoft.Web.WebView2@1.0.4022.49",
+      "licenses": [
+        {
+          "license": {
+            "name": "Microsoft WebView2 License"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://aka.ms/webview"
+        }
+      ]
     }
   ],
   "dependencies": [
@@ -194,7 +215,8 @@
         "pkg:npm/bootstrap-icons@1.10.0",
         "pkg:npm/jsqr@1.4.0",
         "pkg:npm/three@0.183.2",
-        "pkg:nuget/SkiaSharp@3.119.2"
+        "pkg:nuget/SkiaSharp@3.119.2",
+        "pkg:nuget/Microsoft.Web.WebView2@1.0.4022.49"
       ]
     }
   ]

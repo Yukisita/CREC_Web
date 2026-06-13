@@ -47,6 +47,12 @@
 
 詳細な使用方法は [Wiki](../../wiki) をご参照ください。
 
+### Windows デスクトップホスト
+
+- `CREC_Web.Desktop` は WPF + WebView2 で既存の Web UI をそのまま表示する Windows 向けホストです。
+- デスクトップアプリ側で `.crec` プロジェクト、Web サーバーの公開/非公開、自動採番ポートを選択し、`CREC_Web` を子プロセスとして起動・停止します。
+- `CREC_Web` は従来の対話起動に加えて、`--project` `--port` `--local-only` `--public` `--non-interactive` 引数で非対話起動できます。
+
 ## ライセンス
 
 本ソフトウェアは [MIT License](LICENSE) のもとで公開されています。  
