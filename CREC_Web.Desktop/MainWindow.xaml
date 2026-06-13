@@ -10,6 +10,7 @@
     <Grid Margin="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -20,35 +21,57 @@
                        Click="BrowseButton_Click"
                        Content="プロジェクトを開く" />
                 <Separator />
+                <TextBlock VerticalAlignment="Center"
+                          FontWeight="SemiBold"
+                          Text="起動設定:" />
                 <CheckBox x:Name="PublishCheckBox"
                          VerticalAlignment="Center"
+                         Margin="8,0,0,0"
+                         Click="PublishCheckBox_Click"
                          Content="Webサーバーとして公開する" />
-                <Separator />
+            </ToolBar>
+        </ToolBarTray>
+
+        <Border Grid.Row="1"
+                Margin="0,0,0,8"
+                Padding="12,8"
+                Background="#FFF5F7FA"
+                BorderBrush="#FFD0D7DE"
+                BorderThickness="1"
+                CornerRadius="4">
+            <WrapPanel>
                 <TextBlock VerticalAlignment="Center"
+                          FontWeight="SemiBold"
+                          Text="状態" />
+                <TextBlock Margin="16,0,0,0"
+                          VerticalAlignment="Center"
                           Text="プロジェクト:" />
                 <TextBlock x:Name="ProjectNameTextBlock"
-                          Margin="8,0,16,0"
+                          Margin="8,0,0,0"
                           VerticalAlignment="Center"
                           FontWeight="Bold"
                           Text="-" />
-                <TextBlock VerticalAlignment="Center"
+                <TextBlock Margin="16,0,0,0"
+                          VerticalAlignment="Center"
                           Text="HTTP ポート:" />
                 <TextBlock x:Name="PortTextBlock"
-                          Margin="8,0,16,0"
+                          Margin="8,0,0,0"
                           VerticalAlignment="Center"
                           FontWeight="Bold"
                           Text="-" />
-                <TextBlock VerticalAlignment="Center"
+                <TextBlock Margin="16,0,0,0"
+                          VerticalAlignment="Center"
                           Text="状態:" />
                 <TextBlock x:Name="StatusTextBlock"
                           Margin="8,0,0,0"
                           VerticalAlignment="Center"
+                          FontWeight="Bold"
                           Text="未起動" />
-            </ToolBar>
-        </ToolBarTray>
+            </WrapPanel>
+        </Border>
 
         <Border x:Name="BrowserHost"
-                Grid.Row="1"
+                Grid.Row="2"
                 BorderBrush="#FFD0D7DE"
                 BorderThickness="1"
                 Visibility="Collapsed">

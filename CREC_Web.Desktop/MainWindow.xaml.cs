@@ -11,9 +11,11 @@ public partial class MainWindow : Window
 {
     private readonly WebServerHost _webServerHost = new();
     private readonly string? _startupProjectPath;
+    private string? _currentProjectPath;
     private bool _browserInitialized;
     private bool _closeRequested;
     private bool _closeConfirmed;
+    private bool _currentPublishToNetwork;
 
     public MainWindow()
     {
@@ -68,6 +70,35 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void PublishCheckBox_Click(object sender, RoutedEventArgs e)
+    {
+        if (_closeRequested || !_webServerHost.IsRunning || string.IsNullOrWhiteSpace(_currentProjectPath))
+        {
+            return;
+        }
+
+        var requestedPublishToNetwork = PublishCheckBox.IsChecked == true;
+        if (requestedPublishToNetwork == _currentPublishToNetwork)
+        {
+            return;
+        }
+
+        var result = MessageBox.Show(
+            this,
+            "公開設定を反映するにはサーバーの再起動が必要です。再起動しますか？",
+            "CREC Web Desktop",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+
+        if (result != MessageBoxResult.Yes)
+        {
+            PublishCheckBox.IsChecked = _currentPublishToNetwork;
+            return;
+        }
+
+        await OpenProjectAsync(_currentProjectPath);
+    }
+
     private async Task OpenProjectAsync(string projectPath)
     {
         OpenProjectButton.IsEnabled = false;
@@ -113,6 +144,8 @@ public partial class MainWindow : Window
             BrowserHost.Visibility = Visibility.Visible;
             PortTextBlock.Text = session.Port.ToString();
             StatusTextBlock.Text = "起動中";
+            _currentProjectPath = fullProjectPath;
+            _currentPublishToNetwork = PublishCheckBox.IsChecked == true;
             Title = $"CREC Web Desktop - {Path.GetFileNameWithoutExtension(fullProjectPath)}";
         }
         catch (Exception ex)
@@ -121,9 +154,7 @@ public partial class MainWindow : Window
             {
                 return;
             }
-
             BrowserHost.Visibility = Visibility.Collapsed;
-            ProjectNameTextBlock.Text = "-";
             PortTextBlock.Text = "-";
             StatusTextBlock.Text = "エラー";
             Title = "CREC Web Desktop";
@@ -166,6 +197,8 @@ public partial class MainWindow : Window
         {
             Browser.Source = new Uri("about:blank");
             BrowserHost.Visibility = Visibility.Collapsed;
+            PortTextBlock.Text = "-";
+            StatusTextBlock.Text = "停止中";
             await _webServerHost.StopAsync();
         }
         catch
