@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Windows;
 using CREC_Web.Desktop.Services;
+using Microsoft.Web.WebView2.Core;
 using Microsoft.Win32;
 
 namespace CREC_Web.Desktop;
@@ -9,6 +10,9 @@ namespace CREC_Web.Desktop;
 public partial class MainWindow : Window
 {
     private readonly WebServerHost _webServerHost = new();
+    private bool _browserInitialized;
+    private bool _closeRequested;
+    private bool _closeConfirmed;
 
     public MainWindow()
     {
@@ -26,8 +30,21 @@ public partial class MainWindow : Window
 
     protected override void OnClosing(CancelEventArgs e)
     {
-        _webServerHost.StopAsync().GetAwaiter().GetResult();
-        base.OnClosing(e);
+        if (_closeConfirmed)
+        {
+            base.OnClosing(e);
+            return;
+        }
+
+        e.Cancel = true;
+        if (_closeRequested)
+        {
+            return;
+        }
+
+        _closeRequested = true;
+        IsEnabled = false;
+        _ = ShutdownAndCloseAsync();
     }
 
     private void BrowseButton_Click(object sender, RoutedEventArgs e)
@@ -72,6 +89,13 @@ public partial class MainWindow : Window
             var session = await _webServerHost.StartAsync(new DesktopLaunchSettings(projectPath, PublishCheckBox.IsChecked == true));
 
             await Browser.EnsureCoreWebView2Async();
+            InitializeBrowser();
+
+            if (_closeRequested)
+            {
+                return;
+            }
+
             Browser.Source = session.FrontendUri;
             PortTextBlock.Text = session.Port.ToString();
             StatusTextBlock.Text = "起動中";
@@ -79,12 +103,55 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
+            if (_closeRequested)
+            {
+                return;
+            }
+
             StatusTextBlock.Text = "エラー";
             MessageBox.Show(this, ex.Message, "CREC Web Desktop", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {
             StartStopButton.IsEnabled = true;
+        }
+    }
+
+    private void InitializeBrowser()
+    {
+        if (_browserInitialized || Browser.CoreWebView2 is null)
+        {
+            return;
+        }
+
+        Browser.CoreWebView2.NewWindowRequested += Browser_NewWindowRequested;
+        _browserInitialized = true;
+    }
+
+    private void Browser_NewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
+    {
+        if (Uri.TryCreate(e.Uri, UriKind.Absolute, out var uri))
+        {
+            Browser.Source = uri;
+        }
+
+        e.Handled = true;
+    }
+
+    private async Task ShutdownAndCloseAsync()
+    {
+        try
+        {
+            Browser.Source = new Uri("about:blank");
+            await _webServerHost.StopAsync();
+        }
+        catch
+        {
+        }
+        finally
+        {
+            _closeConfirmed = true;
+            Close();
         }
     }
 }
