@@ -10,60 +10,48 @@
     <Grid Margin="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Grid Margin="0,0,0,8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
+        <ToolBarTray Margin="0,0,0,8"
+                    IsLocked="True">
+            <ToolBar>
+                <Button x:Name="OpenProjectButton"
+                       Click="BrowseButton_Click"
+                       Content="プロジェクトを開く" />
+                <Separator />
+                <CheckBox x:Name="PublishCheckBox"
+                         VerticalAlignment="Center"
+                         Content="Webサーバーとして公開する" />
+                <Separator />
+                <TextBlock VerticalAlignment="Center"
+                          Text="プロジェクト:" />
+                <TextBlock x:Name="ProjectNameTextBlock"
+                          Margin="8,0,16,0"
+                          VerticalAlignment="Center"
+                          FontWeight="Bold"
+                          Text="-" />
+                <TextBlock VerticalAlignment="Center"
+                          Text="HTTP ポート:" />
+                <TextBlock x:Name="PortTextBlock"
+                          Margin="8,0,16,0"
+                          VerticalAlignment="Center"
+                          FontWeight="Bold"
+                          Text="-" />
+                <TextBlock VerticalAlignment="Center"
+                          Text="状態:" />
+                <TextBlock x:Name="StatusTextBlock"
+                          Margin="8,0,0,0"
+                          VerticalAlignment="Center"
+                          Text="未起動" />
+            </ToolBar>
+        </ToolBarTray>
 
-            <TextBlock Margin="0,0,8,0"
-                       VerticalAlignment="Center"
-                       Text=".crec プロジェクト" />
-            <TextBox x:Name="ProjectPathTextBox"
-                     Grid.Column="1"
-                     MinWidth="420"
-                     Margin="0,0,8,0" />
-            <Button Grid.Column="2"
-                    Width="100"
-                    Click="BrowseButton_Click"
-                    Content="参照..." />
-        </Grid>
-
-        <StackPanel Grid.Row="1"
-                    Margin="0,0,0,8"
-                    Orientation="Horizontal">
-            <CheckBox x:Name="PublishCheckBox"
-                      Margin="0,0,16,0"
-                      VerticalAlignment="Center"
-                      Content="Webサーバーとして公開する" />
-            <Button x:Name="StartStopButton"
-                    Width="120"
-                    Margin="0,0,16,0"
-                    Click="StartStopButton_Click"
-                    Content="サーバー起動" />
-            <TextBlock VerticalAlignment="Center"
-                       Text="HTTP ポート:" />
-            <TextBlock x:Name="PortTextBlock"
-                       Margin="8,0,16,0"
-                       VerticalAlignment="Center"
-                       FontWeight="Bold"
-                       Text="-" />
-            <TextBlock VerticalAlignment="Center"
-                       Text="状態:" />
-            <TextBlock x:Name="StatusTextBlock"
-                       Margin="8,0,0,0"
-                       VerticalAlignment="Center"
-                       Text="停止中" />
-        </StackPanel>
-
-        <Border Grid.Row="2"
+        <Border x:Name="BrowserHost"
+                Grid.Row="1"
                 BorderBrush="#FFD0D7DE"
-                BorderThickness="1">
+                BorderThickness="1"
+                Visibility="Collapsed">
             <wv2:WebView2 x:Name="Browser" />
         </Border>
     </Grid>

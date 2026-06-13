@@ -10,6 +10,7 @@ namespace CREC_Web.Desktop;
 public partial class MainWindow : Window
 {
     private readonly WebServerHost _webServerHost = new();
+    private readonly string? _startupProjectPath;
     private bool _browserInitialized;
     private bool _closeRequested;
     private bool _closeConfirmed;
@@ -18,14 +19,10 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        var startupProjectPath = Array.Find(
+        _startupProjectPath = Array.Find(
             Environment.GetCommandLineArgs(),
             argument => argument.EndsWith(".crec", StringComparison.OrdinalIgnoreCase));
-
-        if (!string.IsNullOrWhiteSpace(startupProjectPath))
-        {
-            ProjectPathTextBox.Text = startupProjectPath;
-        }
+        Loaded += MainWindow_Loaded;
     }
 
     protected override void OnClosing(CancelEventArgs e)
@@ -47,46 +44,62 @@ public partial class MainWindow : Window
         _ = ShutdownAndCloseAsync();
     }
 
-    private void BrowseButton_Click(object sender, RoutedEventArgs e)
+    private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (!string.IsNullOrWhiteSpace(_startupProjectPath))
+        {
+            await OpenProjectAsync(_startupProjectPath);
+        }
+    }
+
+    private async void BrowseButton_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFileDialog
         {
             Filter = "CREC Project (*.crec)|*.crec|All files (*.*)|*.*",
+            Title = "CREC プロジェクトを開く",
             CheckFileExists = true,
             Multiselect = false
         };
 
         if (dialog.ShowDialog(this) == true)
         {
-            ProjectPathTextBox.Text = dialog.FileName;
+            await OpenProjectAsync(dialog.FileName);
         }
     }
 
-    private async void StartStopButton_Click(object sender, RoutedEventArgs e)
+    private async Task OpenProjectAsync(string projectPath)
     {
-        StartStopButton.IsEnabled = false;
+        OpenProjectButton.IsEnabled = false;
+        PublishCheckBox.IsEnabled = false;
 
         try
         {
-            if (_webServerHost.IsRunning)
-            {
-                await _webServerHost.StopAsync();
-                Browser.Source = new Uri("about:blank");
-                PortTextBlock.Text = "-";
-                StatusTextBlock.Text = "停止中";
-                StartStopButton.Content = "サーバー起動";
-                return;
-            }
-
-            var projectPath = ProjectPathTextBox.Text.Trim();
-            if (string.IsNullOrWhiteSpace(projectPath) || !File.Exists(projectPath))
+            if (string.IsNullOrWhiteSpace(projectPath))
             {
                 MessageBox.Show(this, "起動する .crec ファイルを指定してください。", "CREC Web Desktop", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            StatusTextBlock.Text = "起動中";
-            var session = await _webServerHost.StartAsync(new DesktopLaunchSettings(projectPath, PublishCheckBox.IsChecked == true));
+            var fullProjectPath = Path.GetFullPath(projectPath.Trim());
+            if (!File.Exists(fullProjectPath))
+            {
+                MessageBox.Show(this, "起動する .crec ファイルを指定してください。", "CREC Web Desktop", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            BrowserHost.Visibility = Visibility.Collapsed;
+            Browser.Source = new Uri("about:blank");
+            PortTextBlock.Text = "-";
+            ProjectNameTextBlock.Text = Path.GetFileName(fullProjectPath);
+            StatusTextBlock.Text = _webServerHost.IsRunning ? "再起動中" : "起動中";
+
+            if (_webServerHost.IsRunning)
+            {
+                await _webServerHost.StopAsync();
+            }
+
+            var session = await _webServerHost.StartAsync(new DesktopLaunchSettings(fullProjectPath, PublishCheckBox.IsChecked == true));
 
             await Browser.EnsureCoreWebView2Async();
             InitializeBrowser();
@@ -97,9 +110,10 @@ public partial class MainWindow : Window
             }
 
             Browser.Source = session.FrontendUri;
+            BrowserHost.Visibility = Visibility.Visible;
             PortTextBlock.Text = session.Port.ToString();
             StatusTextBlock.Text = "起動中";
-            StartStopButton.Content = "サーバー停止";
+            Title = $"CREC Web Desktop - {Path.GetFileNameWithoutExtension(fullProjectPath)}";
         }
         catch (Exception ex)
         {
@@ -108,12 +122,20 @@ public partial class MainWindow : Window
                 return;
             }
 
+            BrowserHost.Visibility = Visibility.Collapsed;
+            ProjectNameTextBlock.Text = "-";
+            PortTextBlock.Text = "-";
             StatusTextBlock.Text = "エラー";
+            Title = "CREC Web Desktop";
             MessageBox.Show(this, ex.Message, "CREC Web Desktop", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {
-            StartStopButton.IsEnabled = true;
+            if (!_closeRequested)
+            {
+                OpenProjectButton.IsEnabled = true;
+                PublishCheckBox.IsEnabled = true;
+            }
         }
     }
 
@@ -143,6 +165,7 @@ public partial class MainWindow : Window
         try
         {
             Browser.Source = new Uri("about:blank");
+            BrowserHost.Visibility = Visibility.Collapsed;
             await _webServerHost.StopAsync();
         }
         catch
