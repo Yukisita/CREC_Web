@@ -7,6 +7,45 @@
         Height="900"
         MinWidth="960"
         MinHeight="640">
+    <Window.Resources>
+        <Style x:Key="RoundedBlueButtonStyle" TargetType="Button">
+            <Setter Property="MinHeight" Value="32"/>
+            <Setter Property="Padding" Value="12,4"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <!-- 角丸の背景（青色 #0078F2） -->
+                        <Border x:Name="buttonBorder"
+                            Background="#0078F2"
+                            CornerRadius="6"
+                            Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+
+                        <!-- トリガー（状態に応じた色変更） -->
+                        <ControlTemplate.Triggers>
+                            <!-- マウスオーバーで少し暗く -->
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="buttonBorder" Property="Background" Value="#005EC4"/>
+                            </Trigger>
+                            <!-- クリック（押下）でさらに暗く -->
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="buttonBorder" Property="Background" Value="#004B9B"/>
+                            </Trigger>
+                            <!-- ボタンが無効（Disabled）な時のグレーアウト -->
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="buttonBorder" Property="Background" Value="#CCCCCC"/>
+                                <Setter Property="Foreground" Value="#888888"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -18,10 +57,8 @@
             <StackPanel Orientation="Horizontal">
                 <Button x:Name="OpenProjectButton"
                        Click="BrowseButton_Click"
-                       MinHeight="32"
-                       Padding="12,4"
-                       FontWeight="SemiBold"
-                       Content="プロジェクトを開く" />
+                       Content="プロジェクトを開く"
+                       Style="{StaticResource RoundedBlueButtonStyle}" />
                 <CheckBox x:Name="PublishCheckBox"
                          Margin="16,0,0,0"
                          VerticalAlignment="Center"
