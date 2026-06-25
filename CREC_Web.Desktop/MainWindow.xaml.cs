@@ -121,9 +121,6 @@ public partial class MainWindow : Window
 
             BrowserHost.Visibility = Visibility.Collapsed;
             Browser.Source = new Uri("about:blank");
-            PortTextBlock.Text = "-";
-            ProjectNameTextBlock.Text = Path.GetFileName(fullProjectPath);
-            StatusTextBlock.Text = _webServerHost.IsRunning ? "再起動中" : "起動中";
 
             if (_webServerHost.IsRunning)
             {
@@ -142,8 +139,6 @@ public partial class MainWindow : Window
 
             Browser.Source = session.FrontendUri;
             BrowserHost.Visibility = Visibility.Visible;
-            PortTextBlock.Text = session.Port.ToString();
-            StatusTextBlock.Text = "起動中";
             _currentProjectPath = fullProjectPath;
             _currentPublishToNetwork = PublishCheckBox.IsChecked == true;
             Title = $"CREC Web Desktop - {Path.GetFileNameWithoutExtension(fullProjectPath)}";
@@ -155,8 +150,6 @@ public partial class MainWindow : Window
                 return;
             }
             BrowserHost.Visibility = Visibility.Collapsed;
-            PortTextBlock.Text = "-";
-            StatusTextBlock.Text = "エラー";
             Title = "CREC Web Desktop";
             MessageBox.Show(this, ex.Message, "CREC Web Desktop", MessageBoxButton.OK, MessageBoxImage.Error);
         }
@@ -197,8 +190,6 @@ public partial class MainWindow : Window
         {
             Browser.Source = new Uri("about:blank");
             BrowserHost.Visibility = Visibility.Collapsed;
-            PortTextBlock.Text = "-";
-            StatusTextBlock.Text = "停止中";
             await _webServerHost.StopAsync();
         }
         catch
