@@ -6,7 +6,8 @@
         Width="1400"
         Height="900"
         MinWidth="960"
-        MinHeight="640">
+        MinHeight="640"
+        Icon="/CREC.ico">
     <Window.Resources>
         <Style x:Key="RoundedBlueButtonStyle" TargetType="Button">
             <Setter Property="MinHeight" Value="32"/>
