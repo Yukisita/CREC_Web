@@ -86,7 +86,7 @@ public partial class MainWindow : Window
         var result = MessageBox.Show(
             this,
             "公開設定を反映するにはサーバーの再起動が必要です。再起動しますか？",
-            "CREC Web Desktop",
+            "CREC Desktop",
             MessageBoxButton.YesNo,
             MessageBoxImage.Question);
 
@@ -108,14 +108,14 @@ public partial class MainWindow : Window
         {
             if (string.IsNullOrWhiteSpace(projectPath))
             {
-                MessageBox.Show(this, "起動する .crec ファイルを指定してください。", "CREC Web Desktop", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(this, "起動する .crec ファイルを指定してください。", "CREC Desktop", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
             var fullProjectPath = Path.GetFullPath(projectPath.Trim());
             if (!File.Exists(fullProjectPath))
             {
-                MessageBox.Show(this, "起動する .crec ファイルを指定してください。", "CREC Web Desktop", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(this, "起動する .crec ファイルを指定してください。", "CREC Desktop", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -141,7 +141,7 @@ public partial class MainWindow : Window
             BrowserHost.Visibility = Visibility.Visible;
             _currentProjectPath = fullProjectPath;
             _currentPublishToNetwork = PublishCheckBox.IsChecked == true;
-            Title = $"CREC Web Desktop - {Path.GetFileNameWithoutExtension(fullProjectPath)}";
+            Title = $"CREC Desktop - {Path.GetFileNameWithoutExtension(fullProjectPath)}";
         }
         catch (Exception ex)
         {
@@ -150,8 +150,8 @@ public partial class MainWindow : Window
                 return;
             }
             BrowserHost.Visibility = Visibility.Collapsed;
-            Title = "CREC Web Desktop";
-            MessageBox.Show(this, ex.Message, "CREC Web Desktop", MessageBoxButton.OK, MessageBoxImage.Error);
+            Title = "CREC Desktop";
+            MessageBox.Show(this, ex.Message, "CREC Desktop", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {
@@ -199,6 +199,14 @@ public partial class MainWindow : Window
         {
             _closeConfirmed = true;
             Close();
+        }
+    }
+
+    private void BrowserBackButton_Click(object sender, RoutedEventArgs e)
+    {
+        if(Browser.CanGoBack)
+        {
+            Browser.GoBack();
         }
     }
 }

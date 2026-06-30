@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
-        Title="CREC Web Desktop"
+        Title="CREC Desktop"
         Width="1400"
         Height="900"
         MinWidth="960"
@@ -55,17 +55,25 @@
 
         <Border Grid.Row="0"
                 Margin="12,12,12,8">
-            <StackPanel Orientation="Horizontal">
+            <DockPanel LastChildFill="False">
                 <Button x:Name="OpenProjectButton"
-                       Click="BrowseButton_Click"
-                       Content="プロジェクトを開く"
-                       Style="{StaticResource RoundedBlueButtonStyle}" />
+                        Click="BrowseButton_Click"
+                        Content="プロジェクトを開く"
+                        DockPanel.Dock="Left"
+                        Style="{StaticResource RoundedBlueButtonStyle}" />
                 <CheckBox x:Name="PublishCheckBox"
-                         Margin="16,0,0,0"
-                         VerticalAlignment="Center"
-                         Click="PublishCheckBox_Click"
-                         Content="Webサーバーとして公開する" />
-            </StackPanel>
+                          Margin="16,0,0,0"
+                          VerticalAlignment="Center"
+                          Click="PublishCheckBox_Click"
+                          DockPanel.Dock="Left"
+                          Content="Webサーバーとして公開する" />
+                <Button x:Name="BrowserBackButton"
+                        Click="BrowserBackButton_Click"
+                        Content="戻る"
+                        DockPanel.Dock="Right"
+                        IsEnabled="{Binding ElementName=Browser, Path=CanGoBack}"
+                        Style="{StaticResource RoundedBlueButtonStyle}" Width="70" />
+            </DockPanel>
         </Border>
 
         <Border x:Name="BrowserHost"
