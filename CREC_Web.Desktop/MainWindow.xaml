@@ -81,5 +81,18 @@
                 Visibility="Collapsed">
             <wv2:WebView2 x:Name="Browser" />
         </Border>
+
+        <Border x:Name="LoadingHost"
+                Grid.Row="1"
+                Background="White"
+                Visibility="Collapsed">
+            <TextBlock x:Name="LoadingTextBlock"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       FontSize="20"
+                       FontWeight="SemiBold"
+                       Foreground="#374151"
+                       Text="読み込み中..." />
+        </Border>
     </Grid>
 </Window>

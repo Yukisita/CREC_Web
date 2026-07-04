@@ -101,9 +101,6 @@ public partial class MainWindow : Window
 
     private async Task OpenProjectAsync(string projectPath)
     {
-        OpenProjectButton.IsEnabled = false;
-        PublishCheckBox.IsEnabled = false;
-
         try
         {
             if (string.IsNullOrWhiteSpace(projectPath))
@@ -119,8 +116,7 @@ public partial class MainWindow : Window
                 return;
             }
 
-            BrowserHost.Visibility = Visibility.Collapsed;
-            Browser.Source = new Uri("about:blank");
+            SetLoadingState(true, fullProjectPath);
 
             if (_webServerHost.IsRunning)
             {
@@ -139,6 +135,7 @@ public partial class MainWindow : Window
 
             Browser.Source = session.FrontendUri;
             BrowserHost.Visibility = Visibility.Visible;
+            LoadingHost.Visibility = Visibility.Collapsed;
             _currentProjectPath = fullProjectPath;
             _currentPublishToNetwork = PublishCheckBox.IsChecked == true;
             Title = $"CREC Desktop - {Path.GetFileNameWithoutExtension(fullProjectPath)}";
@@ -150,16 +147,13 @@ public partial class MainWindow : Window
                 return;
             }
             BrowserHost.Visibility = Visibility.Collapsed;
+            LoadingHost.Visibility = Visibility.Collapsed;
             Title = "CREC Desktop";
             MessageBox.Show(this, ex.Message, "CREC Desktop", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {
-            if (!_closeRequested)
-            {
-                OpenProjectButton.IsEnabled = true;
-                PublishCheckBox.IsEnabled = true;
-            }
+            SetLoadingState(false);
         }
     }
 
@@ -190,6 +184,7 @@ public partial class MainWindow : Window
         {
             Browser.Source = new Uri("about:blank");
             BrowserHost.Visibility = Visibility.Collapsed;
+            LoadingHost.Visibility = Visibility.Collapsed;
             await _webServerHost.StopAsync();
         }
         catch
@@ -199,6 +194,41 @@ public partial class MainWindow : Window
         {
             _closeConfirmed = true;
             Close();
+        }
+    }
+
+    private void SetLoadingState(bool isLoading, string? projectPath = null)
+    {
+        if (isLoading)
+        {
+            var projectName = string.IsNullOrWhiteSpace(projectPath)
+                ? null
+                : Path.GetFileNameWithoutExtension(projectPath);
+            LoadingTextBlock.Text = string.IsNullOrWhiteSpace(projectName)
+                ? "読み込み中..."
+                : $"{projectName} を読み込み中...";
+            BrowserHost.Visibility = Visibility.Collapsed;
+            LoadingHost.Visibility = Visibility.Visible;
+            Browser.Source = new Uri("about:blank");
+            Title = string.IsNullOrWhiteSpace(projectName)
+                ? "CREC Desktop - 読み込み中..."
+                : $"CREC Desktop - {projectName} を読み込み中...";
+        }
+        else
+        {
+            LoadingTextBlock.Text = "読み込み中...";
+            LoadingHost.Visibility = Visibility.Collapsed;
+            if (!_closeRequested)
+            {
+                OpenProjectButton.IsEnabled = true;
+                PublishCheckBox.IsEnabled = true;
+            }
+        }
+
+        if (!_closeRequested)
+        {
+            OpenProjectButton.IsEnabled = !isLoading;
+            PublishCheckBox.IsEnabled = !isLoading;
         }
     }
 
