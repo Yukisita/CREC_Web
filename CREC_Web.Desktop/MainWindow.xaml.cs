@@ -204,7 +204,7 @@ public partial class MainWindow : Window
 
     private void BrowserBackButton_Click(object sender, RoutedEventArgs e)
     {
-        if(Browser.CanGoBack)
+        if (Browser.CanGoBack && Browser.Source?.AbsolutePath != "/")
         {
             Browser.GoBack();
         }
