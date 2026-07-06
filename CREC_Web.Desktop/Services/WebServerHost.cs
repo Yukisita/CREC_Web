@@ -14,6 +14,7 @@ internal sealed class WebServerHost : IAsyncDisposable
 
     public bool IsRunning => _process is { HasExited: false };
 
+    // デスクトップアプリ用に Web サーバー子プロセスを起動し、接続可能になるまで待機する。
     public async Task<WebServerSession> StartAsync(DesktopLaunchSettings settings, CancellationToken cancellationToken = default)
     {
         if (IsRunning)
@@ -62,6 +63,7 @@ internal sealed class WebServerHost : IAsyncDisposable
         }
     }
 
+    // まず標準入力の shutdown による正常終了を試し、応答しない場合だけ強制終了へ切り替える。
     public async Task StopAsync()
     {
         var process = _process;
@@ -105,6 +107,7 @@ internal sealed class WebServerHost : IAsyncDisposable
         return new ValueTask(StopAsync());
     }
 
+    // Web 単体でも解釈できる CLI 引数へ正規化し、desktop 側の起動要求を子プロセスへ橋渡しする。
     private static ProcessStartInfo CreateStartInfo(string webAppDirectory, string projectFilePath, int port, bool publishToNetwork)
     {
         var startInfo = new ProcessStartInfo
@@ -138,6 +141,7 @@ internal sealed class WebServerHost : IAsyncDisposable
         return startInfo;
     }
 
+    // 起動直後は HTTP 応答確認より軽い TCP 接続確認で、待受開始だけを素早く検出する。
     private static async Task WaitForServerAsync(Process process, int port, CancellationToken cancellationToken)
     {
         var timeoutAt = DateTime.UtcNow.AddSeconds(30);
@@ -183,6 +187,7 @@ internal sealed class WebServerHost : IAsyncDisposable
         }
     }
 
+    // Web 側が HTTP/HTTPS を連番で使うため、desktop 側でも空きポートを 2 個ずつ確保する。
     private static int FindAvailablePortPair(int startPort)
     {
         for (var port = startPort; port < 65535; port++)
@@ -216,6 +221,7 @@ internal sealed class WebServerHost : IAsyncDisposable
         }
     }
 
+    // 配布物に同梱した web 出力だけを起動対象にし、desktop 単体で完結できるようにする。
     private static string ResolveWebAppDirectory()
     {
         var webAppDirectory = Path.Combine(AppContext.BaseDirectory, "web");

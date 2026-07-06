@@ -44,6 +44,7 @@ public partial class MainWindow : Window
 
         _closeRequested = true;
         IsEnabled = false;
+        // WPF の閉じる処理は一度止め、非同期でサーバー停止を終えてから最終的に Close する。
         _ = ShutdownAndCloseAsync();
     }
 
@@ -100,6 +101,7 @@ public partial class MainWindow : Window
         await OpenProjectAsync(_currentProjectPath);
     }
 
+    // プロジェクト切り替え時は既存サーバーを止めてから再起動し、読み込み中表示も同時に切り替える。
     private async Task OpenProjectAsync(string projectPath)
     {
         try
@@ -158,6 +160,7 @@ public partial class MainWindow : Window
         }
     }
 
+    // WebView2 のイベント購読は 1 回だけ行い、同一ウィンドウ内ナビゲーション制御を有効にする。
     private void InitializeBrowser()
     {
         if (_browserInitialized || Browser.CoreWebView2 is null)
@@ -170,6 +173,7 @@ public partial class MainWindow : Window
         _browserInitialized = true;
     }
 
+    // localhost 系以外の遷移は埋め込み WebView に載せず、既定ブラウザへ逃がす。
     private void Browser_NavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
     {
         if (_closeRequested || IsAllowedInAppUri(e.Uri))
@@ -181,6 +185,7 @@ public partial class MainWindow : Window
         OpenInDefaultBrowser(e.Uri);
     }
 
+    // target=_blank / window.open でも同じ許可ルールを適用し、不要な別ウィンドウ生成を防ぐ。
     private void Browser_NewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
     {
         if (IsAllowedInAppUri(e.Uri) && Uri.TryCreate(e.Uri, UriKind.Absolute, out var uri))
@@ -195,6 +200,7 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    // 閉じる操作ではまず WebView を空表示に戻し、裏側でサーバー停止を待ってから終了する。
     private async Task ShutdownAndCloseAsync()
     {
         try
@@ -214,6 +220,7 @@ public partial class MainWindow : Window
         }
     }
 
+    // 別プロジェクト読込時に直前の画面が残らないよう、読み込みオーバーレイと操作可否をまとめて制御する。
     private void SetLoadingState(bool isLoading, string? projectPath = null)
     {
         if (isLoading)
@@ -249,6 +256,7 @@ public partial class MainWindow : Window
         }
     }
 
+    // アプリ内に残すのは自前のローカル UI だけに限定し、外部サイトのセッション共有を避ける。
     private static bool IsAllowedInAppUri(string? uriText)
     {
         if (string.IsNullOrWhiteSpace(uriText))
@@ -266,6 +274,7 @@ public partial class MainWindow : Window
             && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
     }
 
+    // 外部リンクは OS 既定ブラウザへ委譲し、WebView2 側には http/https のみ渡す。
     private static void OpenInDefaultBrowser(string? uriText)
     {
         if (!Uri.TryCreate(uriText, UriKind.Absolute, out var uri))

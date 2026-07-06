@@ -172,6 +172,7 @@ else
 
 app.Run();
 
+// 対話起動・非対話起動の両方に対応しつつ、最終的に使用する .crec の場所を決定する。
 static string ResolveProjectFilePath(StartupOptions startupOptions)
 {
     if (!string.IsNullOrWhiteSpace(startupOptions.ProjectPath))
@@ -197,6 +198,7 @@ static string ResolveProjectFilePath(StartupOptions startupOptions)
     return inputPath ?? string.Empty;
 }
 
+// デスクトップホスト時は自動確保を優先し、従来のコンソール起動時は対話入力も許可する。
 static int ResolvePort(StartupOptions startupOptions)
 {
     var configuredPort = startupOptions.Port ?? TryGetEnvironmentPort();
@@ -256,6 +258,7 @@ static int ResolvePort(StartupOptions startupOptions)
     }
 }
 
+// バインド先は CLI 引数を最優先にし、未指定時のみ環境変数や既定値へフォールバックする。
 static string ResolveBindHost(StartupOptions startupOptions)
 {
     if (!string.IsNullOrWhiteSpace(startupOptions.BindHost))
@@ -295,6 +298,7 @@ static int? TryGetEnvironmentPort()
     return null;
 }
 
+// HTTP/HTTPS を連番ポートで公開する前提のため、空きポートは 2 個まとめて確保する。
 static int FindAvailablePortPair(int startPort)
 {
     for (var port = Math.Max(1, startPort); port < 65535; port++)
@@ -352,6 +356,7 @@ static bool IsLoopbackHost(string host)
     return IPAddress.TryParse(host, out var address) && IPAddress.IsLoopback(address);
 }
 
+// デスクトップホストから標準入力経由で "shutdown" が送られたときだけ停止を受け付ける。
 static void MonitorShutdownCommands(IHostApplicationLifetime lifetime)
 {
     try
@@ -386,6 +391,7 @@ file sealed class StartupOptions
     public bool NonInteractive { get; init; }
     public bool AutoPort { get; init; }
 
+    // Web 単体起動とデスクトップホスト起動の両方で同じ起動オプションを解釈する。
     public static StartupOptions Parse(string[] args)
     {
         string? projectPath = null;
