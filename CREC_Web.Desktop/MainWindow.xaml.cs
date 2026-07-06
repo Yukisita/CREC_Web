@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using CREC_Web.Desktop.Services;
@@ -164,15 +165,31 @@ public partial class MainWindow : Window
             return;
         }
 
+        Browser.CoreWebView2.NavigationStarting += Browser_NavigationStarting;
         Browser.CoreWebView2.NewWindowRequested += Browser_NewWindowRequested;
         _browserInitialized = true;
     }
 
+    private void Browser_NavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
+    {
+        if (_closeRequested || IsAllowedInAppUri(e.Uri))
+        {
+            return;
+        }
+
+        e.Cancel = true;
+        OpenInDefaultBrowser(e.Uri);
+    }
+
     private void Browser_NewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
     {
-        if (Uri.TryCreate(e.Uri, UriKind.Absolute, out var uri))
+        if (IsAllowedInAppUri(e.Uri) && Uri.TryCreate(e.Uri, UriKind.Absolute, out var uri))
         {
             Browser.Source = uri;
+        }
+        else
+        {
+            OpenInDefaultBrowser(e.Uri);
         }
 
         e.Handled = true;
@@ -229,6 +246,48 @@ public partial class MainWindow : Window
         {
             OpenProjectButton.IsEnabled = !isLoading;
             PublishCheckBox.IsEnabled = !isLoading;
+        }
+    }
+
+    private static bool IsAllowedInAppUri(string? uriText)
+    {
+        if (string.IsNullOrWhiteSpace(uriText))
+        {
+            return false;
+        }
+
+        if (string.Equals(uriText, "about:blank", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return Uri.TryCreate(uriText, UriKind.Absolute, out var uri)
+            && uri.IsLoopback
+            && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+    }
+
+    private static void OpenInDefaultBrowser(string? uriText)
+    {
+        if (!Uri.TryCreate(uriText, UriKind.Absolute, out var uri))
+        {
+            return;
+        }
+
+        if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+        {
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = uri.AbsoluteUri,
+                UseShellExecute = true
+            });
+        }
+        catch
+        {
         }
     }
 
