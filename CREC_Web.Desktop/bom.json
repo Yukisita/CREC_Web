@@ -14,8 +14,8 @@
     ],
     "component": {
       "type": "application",
-      "bom-ref": "CREC_Web@0.0.0",
-      "name": "CREC_Web",
+      "bom-ref": "CREC_Web.Desktop@0.0.0",
+      "name": "CREC_Web.Desktop",
       "version": "0.0.0"
     }
   },
@@ -208,7 +208,7 @@
   ],
   "dependencies": [
     {
-      "ref": "CREC_Web@0.0.0",
+      "ref": "CREC_Web.Desktop@0.0.0",
       "dependsOn": [
         "pkg:nuget/Microsoft.AspNetCore.App@8.0",
         "pkg:npm/bootstrap@5.3.0",

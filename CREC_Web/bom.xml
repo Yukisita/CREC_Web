@@ -1,5 +1,5 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<bom xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" serialNumber="urn:uuid:4ed6b3be-aef4-4a11-b260-73bce64dafc0" version="4" xmlns="http://cyclonedx.org/schema/bom/1.6">
+<?xml version='1.0' encoding='utf-8'?>
+<bom xmlns="http://cyclonedx.org/schema/bom/1.6" serialNumber="urn:uuid:4ed6b3be-aef4-4a11-b260-73bce64dafc0" version="4">
   <metadata>
     <timestamp>2026-06-13T12:09:59Z</timestamp>
     <tools>
@@ -140,22 +140,6 @@
         </reference>
       </externalReferences>
     </component>
-    <component type="library" bom-ref="pkg:nuget/Microsoft.Web.WebView2@1.0.4022.49">
-      <name>Microsoft.Web.WebView2</name>
-      <version>1.0.4022.49</version>
-      <description>The WebView2 control enables you to embed web technologies (HTML, CSS, and JavaScript) in your native applications powered by Microsoft Edge (Chromium).</description>
-      <purl>pkg:nuget/Microsoft.Web.WebView2@1.0.4022.49</purl>
-      <licenses>
-        <license>
-          <name>Microsoft WebView2 License</name>
-        </license>
-      </licenses>
-      <externalReferences>
-        <reference type="website">
-          <url>https://aka.ms/webview</url>
-        </reference>
-      </externalReferences>
-    </component>
   </components>
   <dependencies>
     <dependency ref="CREC_Web@0.0.0">
@@ -165,7 +149,6 @@
       <dependency ref="pkg:npm/jsqr@1.4.0" />
       <dependency ref="pkg:npm/three@0.183.2" />
       <dependency ref="pkg:nuget/SkiaSharp@3.119.2" />
-      <dependency ref="pkg:nuget/Microsoft.Web.WebView2@1.0.4022.49" />
     </dependency>
   </dependencies>
 </bom>
