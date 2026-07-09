@@ -188,6 +188,14 @@ public partial class MainWindow : Window
     // target=_blank / window.open でも同じ許可ルールを適用し、不要な別ウィンドウ生成を防ぐ。
     private void Browser_NewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
     {
+        // about:blank はブラウザ版がポップアップ確保に使う中継ページなので、
+        // desktop 版で現在のビューへ遷移させると元ページの JS 実行が中断されてしまう。
+        if (string.Equals(e.Uri, "about:blank", StringComparison.OrdinalIgnoreCase))
+        {
+            e.Handled = true;
+            return;
+        }
+
         if (IsAllowedInAppUri(e.Uri) && Uri.TryCreate(e.Uri, UriKind.Absolute, out var uri))
         {
             Browser.Source = uri;

@@ -793,11 +793,8 @@ async function addNewCollection() {
     const btn = document.getElementById('addNewCollectionBtn');
     if (btn) btn.disabled = true;
 
-    // WebView2 では _blank を同じビューへ吸収するため、about:blank を先に開くと
-    // 現在の画面遷移と競合して POST 中の fetch が中断される。
-    const isDesktopWebView = !!window.chrome?.webview;
-    // 通常ブラウザではポップアップブロック回避のため、先にウィンドウを開いておく
-    const newWindow = isDesktopWebView ? null : window.open('about:blank', '_blank');
+    // ポップアップブロック回避のため、先にウィンドウを開いておく
+    const newWindow = window.open('about:blank', '_blank');
 
     try {
         const response = await fetch('/api/collections', {
