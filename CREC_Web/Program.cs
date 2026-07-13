@@ -172,7 +172,7 @@ else
 
 app.Run();
 
-// 対話起動・非対話起動の両方に対応しつつ、最終的に使用する .crec の場所を決定する。
+// .crec は desktop / server の両方で同じ必須入力とし、未指定時だけ対話入力で補完する。
 static string ResolveProjectFilePath(StartupOptions startupOptions)
 {
     if (!string.IsNullOrWhiteSpace(startupOptions.ProjectPath))
@@ -180,52 +180,33 @@ static string ResolveProjectFilePath(StartupOptions startupOptions)
         return startupOptions.ProjectPath;
     }
 
-    var environmentPath = Environment.GetEnvironmentVariable("CREC_PROJECT_PATH");
-    if (!string.IsNullOrWhiteSpace(environmentPath))
+    if (Console.IsInputRedirected)
     {
-        return environmentPath.Trim();
-    }
-
-    if (startupOptions.NonInteractive)
-    {
-        Console.WriteLine("No .crec file specified for non-interactive startup.");
-        return string.Empty;
+        throw new InvalidOperationException("No .crec file specified. Please set the project path before startup.");
     }
 
     // CRECファイルがコマンドライン引数に指定されていない場合、手動でのパス入力を待機
-    Console.WriteLine("No .crec file specified. Please enter the project data folder path:");
+    Console.WriteLine("No .crec file specified. Please enter the .crec file path:");
     var inputPath = Console.ReadLine()?.Trim();
     return inputPath ?? string.Empty;
 }
 
-// デスクトップホスト時は自動確保を優先し、従来のコンソール起動時は対話入力も許可する。
+// 起動ポートは desktop / server の両方で同じ扱いにし、未指定時だけ対話入力で決定する。
 static int ResolvePort(StartupOptions startupOptions)
 {
-    var configuredPort = startupOptions.Port ?? TryGetEnvironmentPort();
-    var autoPortRequested = startupOptions.AutoPort || configuredPort is null && startupOptions.NonInteractive;
-
-    if (startupOptions.NonInteractive)
+    if (startupOptions.Port is int configuredPort)
     {
-        var startPort = configuredPort ?? 5000;
-        if (autoPortRequested || !ArePortsAvailable(startPort))
+        if (ArePortsAvailable(configuredPort))
         {
-            return FindAvailablePortPair(startPort);
+            return configuredPort;
         }
 
-        return startPort;
+        throw new InvalidOperationException($"Port {configuredPort} is already in use. Please specify a different port.");
     }
 
-    if (configuredPort is int fixedPort)
+    if (Console.IsInputRedirected)
     {
-        if (autoPortRequested)
-        {
-            return FindAvailablePortPair(fixedPort);
-        }
-
-        if (ArePortsAvailable(fixedPort))
-        {
-            return fixedPort;
-        }
+        throw new InvalidOperationException("No port specified. Please set the startup port before launch.");
     }
 
     while (true)
@@ -258,7 +239,7 @@ static int ResolvePort(StartupOptions startupOptions)
     }
 }
 
-// バインド先は CLI 引数を最優先にし、未指定時のみ環境変数や既定値へフォールバックする。
+// 公開範囲も desktop / server で同じ明示設定にそろえ、未指定時だけ対話入力で選択する。
 static string ResolveBindHost(StartupOptions startupOptions)
 {
     if (!string.IsNullOrWhiteSpace(startupOptions.BindHost))
@@ -266,50 +247,31 @@ static string ResolveBindHost(StartupOptions startupOptions)
         return startupOptions.BindHost;
     }
 
-    var environmentBindHost = Environment.GetEnvironmentVariable("CREC_BIND_HOST");
-    if (!string.IsNullOrWhiteSpace(environmentBindHost))
+    if (Console.IsInputRedirected)
     {
-        return environmentBindHost.Trim();
+        throw new InvalidOperationException("No bind host specified. Please set --local-only, --public, or --bind-host before launch.");
     }
 
-    return "0.0.0.0";
-}
-
-static int? TryGetEnvironmentPort()
-{
-    var environmentPort = Environment.GetEnvironmentVariable("CREC_PORT");
-    if (string.IsNullOrWhiteSpace(environmentPort))
+    while (true)
     {
-        return null;
-    }
+        Console.WriteLine("Please choose the startup scope:");
+        Console.WriteLine("  1: Local only (127.0.0.1)");
+        Console.WriteLine("  2: Web server as public (0.0.0.0)");
+        Console.Write("Enter 1 or 2: ");
+        var input = Console.ReadLine()?.Trim();
 
-    environmentPort = environmentPort.Trim();
-    if (string.Equals(environmentPort, "auto", StringComparison.OrdinalIgnoreCase))
-    {
-        return null;
-    }
-
-    if (int.TryParse(environmentPort, out var parsedPort))
-    {
-        return parsedPort;
-    }
-
-    Console.WriteLine($"Invalid CREC_PORT value: {environmentPort}");
-    return null;
-}
-
-// HTTP/HTTPS を連番ポートで公開する前提のため、空きポートは 2 個まとめて確保する。
-static int FindAvailablePortPair(int startPort)
-{
-    for (var port = Math.Max(1, startPort); port < 65535; port++)
-    {
-        if (ArePortsAvailable(port))
+        if (input == "1")
         {
-            return port;
+            return "127.0.0.1";
         }
-    }
 
-    throw new InvalidOperationException("No available port pair was found for HTTP/HTTPS startup.");
+        if (input == "2")
+        {
+            return "0.0.0.0";
+        }
+
+        Console.WriteLine("Invalid input. Please enter 1 or 2.");
+    }
 }
 
 static bool ArePortsAvailable(int port)
@@ -389,7 +351,6 @@ file sealed class StartupOptions
     public int? Port { get; init; }
     public string? BindHost { get; init; }
     public bool NonInteractive { get; init; }
-    public bool AutoPort { get; init; }
 
     // Web 単体起動とデスクトップホスト起動の両方で同じ起動オプションを解釈する。
     public static StartupOptions Parse(string[] args)
@@ -398,7 +359,6 @@ file sealed class StartupOptions
         int? port = null;
         string? bindHost = null;
         var nonInteractive = false;
-        var autoPort = false;
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -417,9 +377,6 @@ file sealed class StartupOptions
                     break;
                 case "--non-interactive":
                     nonInteractive = true;
-                    break;
-                case "--auto-port":
-                    autoPort = true;
                     break;
                 case "--local-only":
                     bindHost = "127.0.0.1";
@@ -453,8 +410,7 @@ file sealed class StartupOptions
             ProjectPath = projectPath,
             Port = port,
             BindHost = string.IsNullOrWhiteSpace(bindHost) ? null : bindHost.Trim(),
-            NonInteractive = nonInteractive,
-            AutoPort = autoPort
+            NonInteractive = nonInteractive
         };
     }
 

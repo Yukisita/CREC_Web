@@ -61,6 +61,18 @@
                         Content="プロジェクトを開く"
                         DockPanel.Dock="Left"
                         Style="{StaticResource RoundedBlueButtonStyle}" />
+                <StackPanel Margin="16,0,0,0"
+                            VerticalAlignment="Center"
+                            Orientation="Horizontal"
+                            DockPanel.Dock="Left">
+                    <TextBlock VerticalAlignment="Center"
+                               Text="ポート:" />
+                    <TextBox x:Name="PortTextBox"
+                             Width="72"
+                             Margin="8,0,0,0"
+                             VerticalContentAlignment="Center"
+                             Text="5000" />
+                </StackPanel>
                 <CheckBox x:Name="PublishCheckBox"
                           Margin="16,0,0,0"
                           VerticalAlignment="Center"

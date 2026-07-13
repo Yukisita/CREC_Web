@@ -8,7 +8,6 @@ namespace CREC_Web.Desktop.Services;
 
 internal sealed class WebServerHost : IAsyncDisposable
 {
-    private const int DefaultPort = 5000;
     private readonly ConcurrentQueue<string> _recentOutput = new();
     private Process? _process;
 
@@ -31,7 +30,7 @@ internal sealed class WebServerHost : IAsyncDisposable
         ClearRecentOutput();
 
         var webAppDirectory = ResolveWebAppDirectory();
-        var port = FindAvailablePortPair(DefaultPort);
+        var port = settings.Port;
         var process = new Process
         {
             StartInfo = CreateStartInfo(webAppDirectory, projectFilePath, port, settings.PublishToNetwork),
@@ -187,40 +186,6 @@ internal sealed class WebServerHost : IAsyncDisposable
         }
     }
 
-    // Web 側が HTTP/HTTPS を連番で使うため、desktop 側でも空きポートを 2 個ずつ確保する。
-    private static int FindAvailablePortPair(int startPort)
-    {
-        for (var port = startPort; port < 65535; port++)
-        {
-            if (IsPortAvailable(port) && IsPortAvailable(port + 1))
-            {
-                return port;
-            }
-        }
-
-        throw new InvalidOperationException("No available port pair was found for the local web server.");
-    }
-
-    private static bool IsPortAvailable(int port)
-    {
-        if (port < 1 || port > 65535)
-        {
-            return false;
-        }
-
-        try
-        {
-            using var listener = new TcpListener(System.Net.IPAddress.Loopback, port);
-            listener.Start();
-            listener.Stop();
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
     // 配布物に同梱した web 出力だけを起動対象にし、desktop 単体で完結できるようにする。
     private static string ResolveWebAppDirectory()
     {
@@ -256,6 +221,6 @@ internal sealed class WebServerHost : IAsyncDisposable
     }
 }
 
-internal sealed record DesktopLaunchSettings(string ProjectFilePath, bool PublishToNetwork);
+internal sealed record DesktopLaunchSettings(string ProjectFilePath, int Port, bool PublishToNetwork);
 
 internal sealed record WebServerSession(int Port, Uri FrontendUri);

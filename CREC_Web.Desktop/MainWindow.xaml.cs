@@ -119,6 +119,11 @@ public partial class MainWindow : Window
                 return;
             }
 
+            if (!TryGetConfiguredPort(out var port))
+            {
+                return;
+            }
+
             SetLoadingState(true, fullProjectPath);
 
             if (_webServerHost.IsRunning)
@@ -126,7 +131,7 @@ public partial class MainWindow : Window
                 await _webServerHost.StopAsync();
             }
 
-            var session = await _webServerHost.StartAsync(new DesktopLaunchSettings(fullProjectPath, PublishCheckBox.IsChecked == true));
+            var session = await _webServerHost.StartAsync(new DesktopLaunchSettings(fullProjectPath, port, PublishCheckBox.IsChecked == true));
 
             await Browser.EnsureCoreWebView2Async();
             InitializeBrowser();
@@ -253,6 +258,7 @@ public partial class MainWindow : Window
             if (!_closeRequested)
             {
                 OpenProjectButton.IsEnabled = true;
+                PortTextBox.IsEnabled = true;
                 PublishCheckBox.IsEnabled = true;
             }
         }
@@ -260,8 +266,25 @@ public partial class MainWindow : Window
         if (!_closeRequested)
         {
             OpenProjectButton.IsEnabled = !isLoading;
+            PortTextBox.IsEnabled = !isLoading;
             PublishCheckBox.IsEnabled = !isLoading;
         }
+    }
+
+    // desktop 側でも Web 単体と同じく固定ポートを明示入力にそろえ、暗黙の自動採番をなくす。
+    private bool TryGetConfiguredPort(out int port)
+    {
+        port = 0;
+        var portText = PortTextBox.Text?.Trim();
+        if (!int.TryParse(portText, out port) || port < 1 || port > 65534)
+        {
+            MessageBox.Show(this, "ポート番号は 1 から 65534 の範囲で入力してください。", "CREC Desktop", MessageBoxButton.OK, MessageBoxImage.Warning);
+            PortTextBox.Focus();
+            PortTextBox.SelectAll();
+            return false;
+        }
+
+        return true;
     }
 
     // アプリ内に残すのは自前のローカル UI だけに限定し、外部サイトのセッション共有を避ける。
