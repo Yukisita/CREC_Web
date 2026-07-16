@@ -10,14 +10,103 @@ using Microsoft.Extensions.FileProviders;
 
 Console.WriteLine("Starting CREC Web Server...");
 
-var startupOptions = StartupOptions.Parse(args);
+string? startupProjectPath = null;
+int? startupPort = null;
+string? startupBindHost = null;
+var nonInteractive = false;
+
+for (var i = 0; i < args.Length; i++)
+{
+    var argument = args[i];
+
+    switch (argument)
+    {
+        case "--project":
+            if (i + 1 >= args.Length)
+            {
+                throw new ArgumentException("Missing value for --project.");
+            }
+
+            startupProjectPath = args[++i];
+            break;
+        case "--port":
+            if (i + 1 >= args.Length)
+            {
+                throw new ArgumentException("Missing value for --port.");
+            }
+
+            if (int.TryParse(args[++i], out var parsedPort))
+            {
+                startupPort = parsedPort;
+            }
+            else
+            {
+                Console.WriteLine($"Invalid --port value: {args[i]}");
+            }
+            break;
+        case "--bind-host":
+            if (i + 1 >= args.Length)
+            {
+                throw new ArgumentException("Missing value for --bind-host.");
+            }
+
+            startupBindHost = args[++i];
+            break;
+        case "--non-interactive":
+            nonInteractive = true;
+            break;
+        case "--local-only":
+            startupBindHost = "127.0.0.1";
+            break;
+        case "--public":
+            startupBindHost = "0.0.0.0";
+            break;
+        default:
+            if (argument.StartsWith("--project=", StringComparison.OrdinalIgnoreCase))
+            {
+                startupProjectPath = argument["--project=".Length..];
+            }
+            else if (argument.StartsWith("--port=", StringComparison.OrdinalIgnoreCase))
+            {
+                var portText = argument["--port=".Length..];
+                if (int.TryParse(portText, out var inlineParsedPort))
+                {
+                    startupPort = inlineParsedPort;
+                }
+                else
+                {
+                    Console.WriteLine($"Invalid --port value: {portText}");
+                }
+            }
+            else if (argument.StartsWith("--bind-host=", StringComparison.OrdinalIgnoreCase))
+            {
+                startupBindHost = argument["--bind-host=".Length..];
+            }
+            else if (startupProjectPath is null && argument.EndsWith(".crec", StringComparison.OrdinalIgnoreCase))
+            {
+                startupProjectPath = argument;
+            }
+            break;
+    }
+}
 
 // Webアプリケーションビルダーの作成
 var builder = WebApplication.CreateBuilder(args);
 var projectSettingsService = new ProjectSettingsService(builder.Configuration);
 
 // CRECのプロジェクトファイルのパスを取得
-var crecFilePath = ResolveProjectFilePath(startupOptions);
+var crecFilePath = startupProjectPath?.Trim();
+if (string.IsNullOrWhiteSpace(crecFilePath))
+{
+    if (Console.IsInputRedirected)
+    {
+        throw new InvalidOperationException("No .crec file specified. Please set the project path before startup.");
+    }
+
+    Console.WriteLine("No .crec file specified. Please enter the .crec file path:");
+    crecFilePath = Console.ReadLine()?.Trim() ?? string.Empty;
+}
+
 ProjectSettings? projectSettings = null;
 
 // CRECのプロジェクトファイルを読み込み、プロジェクト設定を取得
@@ -59,8 +148,88 @@ builder.Services.AddCors(options =>
 });
 
 // URL設定 (HTTPSはカメラアクセスに必要)
-var port = ResolvePort(startupOptions);
-var bindHost = ResolveBindHost(startupOptions);
+int port;
+if (startupPort is int configuredPort)
+{
+    if (ArePortsAvailable(configuredPort))
+    {
+        port = configuredPort;
+    }
+    else
+    {
+        throw new InvalidOperationException($"Port {configuredPort} is already in use. Please specify a different port.");
+    }
+}
+else if (Console.IsInputRedirected)
+{
+    throw new InvalidOperationException("No port specified. Please set the startup port before launch.");
+}
+else
+{
+    while (true)
+    {
+        Console.Write("Please enter the project port number (1-65534): ");
+        var inputPort = Console.ReadLine();
+        port = 5000;
+
+        if (!string.IsNullOrWhiteSpace(inputPort))
+        {
+            inputPort = inputPort.Trim();
+            if (int.TryParse(inputPort, out var parsedPort))
+            {
+                port = parsedPort;
+            }
+            else
+            {
+                Console.WriteLine("Invalid port input. Use default port.");
+            }
+        }
+        else
+        {
+            Console.WriteLine("No port input. Use default port.");
+        }
+
+        if (ArePortsAvailable(port))
+        {
+            break;
+        }
+    }
+}
+
+string bindHost;
+if (!string.IsNullOrWhiteSpace(startupBindHost))
+{
+    bindHost = startupBindHost.Trim();
+}
+else if (Console.IsInputRedirected)
+{
+    throw new InvalidOperationException("No bind host specified. Please set --local-only, --public, or --bind-host before launch.");
+}
+else
+{
+    while (true)
+    {
+        Console.WriteLine("Please choose the startup scope:");
+        Console.WriteLine("  1: Local only (127.0.0.1)");
+        Console.WriteLine("  2: Web server as public (0.0.0.0)");
+        Console.Write("Enter 1 or 2: ");
+        var input = Console.ReadLine()?.Trim();
+
+        if (input == "1")
+        {
+            bindHost = "127.0.0.1";
+            break;
+        }
+
+        if (input == "2")
+        {
+            bindHost = "0.0.0.0";
+            break;
+        }
+
+        Console.WriteLine("Invalid input. Please enter 1 or 2.");
+    }
+}
 
 Console.WriteLine($"Using ports: HTTP={port}, HTTPS={port + 1}");
 builder.WebHost.UseUrls($"http://{bindHost}:{port}", $"https://{bindHost}:{port + 1}");
@@ -113,7 +282,7 @@ logger.LogInformation("API documentation available at: https://localhost:{Port}/
 var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
 var isShuttingDown = 0; // シャットダウン処理の重複実行を防ぐフラグ (0=実行中でない, 1=実行中)
 
-if (startupOptions.NonInteractive && Console.IsInputRedirected)
+if (nonInteractive && Console.IsInputRedirected)
 {
     logger.LogInformation("Waiting for shutdown command on standard input.");
     _ = Task.Run(() => MonitorShutdownCommands(lifetime));
@@ -171,108 +340,6 @@ else
 }
 
 app.Run();
-
-// .crec は desktop / server の両方で同じ必須入力とし、未指定時だけ対話入力で補完する。
-static string ResolveProjectFilePath(StartupOptions startupOptions)
-{
-    if (!string.IsNullOrWhiteSpace(startupOptions.ProjectPath))
-    {
-        return startupOptions.ProjectPath;
-    }
-
-    if (Console.IsInputRedirected)
-    {
-        throw new InvalidOperationException("No .crec file specified. Please set the project path before startup.");
-    }
-
-    // CRECファイルがコマンドライン引数に指定されていない場合、手動でのパス入力を待機
-    Console.WriteLine("No .crec file specified. Please enter the .crec file path:");
-    var inputPath = Console.ReadLine()?.Trim();
-    return inputPath ?? string.Empty;
-}
-
-// 起動ポートは desktop / server の両方で同じ扱いにし、未指定時だけ対話入力で決定する。
-static int ResolvePort(StartupOptions startupOptions)
-{
-    if (startupOptions.Port is int configuredPort)
-    {
-        if (ArePortsAvailable(configuredPort))
-        {
-            return configuredPort;
-        }
-
-        throw new InvalidOperationException($"Port {configuredPort} is already in use. Please specify a different port.");
-    }
-
-    if (Console.IsInputRedirected)
-    {
-        throw new InvalidOperationException("No port specified. Please set the startup port before launch.");
-    }
-
-    while (true)
-    {
-        Console.Write("Please enter the project port number (1-65534): ");
-        var inputPort = Console.ReadLine();
-        var port = 5000;
-
-        if (!string.IsNullOrWhiteSpace(inputPort))
-        {
-            inputPort = inputPort.Trim();
-            if (int.TryParse(inputPort, out var parsedPort))
-            {
-                port = parsedPort;
-            }
-            else
-            {
-                Console.WriteLine("Invalid port input. Use default port.");
-            }
-        }
-        else
-        {
-            Console.WriteLine("No port input. Use default port.");
-        }
-
-        if (ArePortsAvailable(port))
-        {
-            return port;
-        }
-    }
-}
-
-// 公開範囲も desktop / server で同じ明示設定にそろえ、未指定時だけ対話入力で選択する。
-static string ResolveBindHost(StartupOptions startupOptions)
-{
-    if (!string.IsNullOrWhiteSpace(startupOptions.BindHost))
-    {
-        return startupOptions.BindHost;
-    }
-
-    if (Console.IsInputRedirected)
-    {
-        throw new InvalidOperationException("No bind host specified. Please set --local-only, --public, or --bind-host before launch.");
-    }
-
-    while (true)
-    {
-        Console.WriteLine("Please choose the startup scope:");
-        Console.WriteLine("  1: Local only (127.0.0.1)");
-        Console.WriteLine("  2: Web server as public (0.0.0.0)");
-        Console.Write("Enter 1 or 2: ");
-        var input = Console.ReadLine()?.Trim();
-
-        if (input == "1")
-        {
-            return "127.0.0.1";
-        }
-
-        if (input == "2")
-        {
-            return "0.0.0.0";
-        }
-
-        Console.WriteLine("Invalid input. Please enter 1 or 2.");
-    }
-}
 
 static bool ArePortsAvailable(int port)
 {
@@ -342,102 +409,5 @@ static void MonitorShutdownCommands(IHostApplicationLifetime lifetime)
     catch (Exception ex)
     {
         Console.WriteLine($"Error in shutdown command monitor: {ex.Message}");
-    }
-}
-
-file sealed class StartupOptions
-{
-    public string? ProjectPath { get; init; }
-    public int? Port { get; init; }
-    public string? BindHost { get; init; }
-    public bool NonInteractive { get; init; }
-
-    // Web 単体起動とデスクトップホスト起動の両方で同じ起動オプションを解釈する。
-    public static StartupOptions Parse(string[] args)
-    {
-        string? projectPath = null;
-        int? port = null;
-        string? bindHost = null;
-        var nonInteractive = false;
-
-        for (var i = 0; i < args.Length; i++)
-        {
-            var argument = args[i];
-
-            switch (argument)
-            {
-                case "--project":
-                    projectPath = GetValue(args, ref i, argument);
-                    break;
-                case "--port":
-                    port = ParsePort(GetValue(args, ref i, argument), argument);
-                    break;
-                case "--bind-host":
-                    bindHost = GetValue(args, ref i, argument);
-                    break;
-                case "--non-interactive":
-                    nonInteractive = true;
-                    break;
-                case "--local-only":
-                    bindHost = "127.0.0.1";
-                    break;
-                case "--public":
-                    bindHost = "0.0.0.0";
-                    break;
-                default:
-                    if (argument.StartsWith("--project=", StringComparison.OrdinalIgnoreCase))
-                    {
-                        projectPath = argument["--project=".Length..];
-                    }
-                    else if (argument.StartsWith("--port=", StringComparison.OrdinalIgnoreCase))
-                    {
-                        port = ParsePort(argument["--port=".Length..], "--port");
-                    }
-                    else if (argument.StartsWith("--bind-host=", StringComparison.OrdinalIgnoreCase))
-                    {
-                        bindHost = argument["--bind-host=".Length..];
-                    }
-                    else if (projectPath is null && argument.EndsWith(".crec", StringComparison.OrdinalIgnoreCase))
-                    {
-                        projectPath = argument;
-                    }
-                    break;
-            }
-        }
-
-        return new StartupOptions
-        {
-            ProjectPath = projectPath,
-            Port = port,
-            BindHost = string.IsNullOrWhiteSpace(bindHost) ? null : bindHost.Trim(),
-            NonInteractive = nonInteractive
-        };
-    }
-
-    private static string GetValue(string[] args, ref int index, string argumentName)
-    {
-        if (index + 1 >= args.Length)
-        {
-            throw new ArgumentException($"Missing value for {argumentName}.");
-        }
-
-        index++;
-        return args[index];
-    }
-
-    private static int? ParsePort(string? value, string source)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return null;
-        }
-
-        if (int.TryParse(value, out var parsedPort))
-        {
-            return parsedPort;
-        }
-
-        Console.WriteLine($"Invalid {source} value: {value}");
-        return null;
     }
 }
