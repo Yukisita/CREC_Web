@@ -268,7 +268,11 @@ public partial class MainWindow : Window
         }
     }
 
-    // 別プロジェクト読込時に直前の画面が残らないよう、読み込みオーバーレイと操作可否をまとめて制御する。
+    /// <summary>
+    /// 読み込み中の状態を設定するメソッド
+    /// </summary>
+    /// <param name="isLoading"></param>
+    /// <param name="projectPath"></param>
     private void SetLoadingState(bool isLoading, string? projectPath = null)
     {
         if (isLoading)
