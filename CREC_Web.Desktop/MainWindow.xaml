@@ -79,12 +79,22 @@
                           Click="PublishCheckBox_Click"
                           DockPanel.Dock="Left"
                           Content="Webサーバーとして公開する" />
-                <Button x:Name="BrowserBackButton"
-                        Click="BrowserBackButton_Click"
-                        Content="戻る"
-                        DockPanel.Dock="Right"
-                        IsEnabled="{Binding ElementName=Browser, Path=CanGoBack}"
-                        Style="{StaticResource RoundedBlueButtonStyle}" Width="70" />
+                <StackPanel Orientation="Horizontal"
+                            DockPanel.Dock="Right">
+                    <Button x:Name="BrowserForwardButton"
+                            Width="70"
+                            Margin="0,0,8,0"
+                            Click="BrowserForwardButton_Click"
+                            Content="進む"
+                            IsEnabled="{Binding ElementName=Browser, Path=CanGoForward}"
+                            Style="{StaticResource RoundedBlueButtonStyle}" />
+                    <Button x:Name="BrowserBackButton"
+                            Width="70"
+                            Click="BrowserBackButton_Click"
+                            Content="戻る"
+                            IsEnabled="{Binding ElementName=Browser, Path=CanGoBack}"
+                            Style="{StaticResource RoundedBlueButtonStyle}" />
+                </StackPanel>
             </DockPanel>
         </Border>
 

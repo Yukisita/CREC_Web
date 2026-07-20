@@ -299,13 +299,13 @@ public partial class MainWindow : Window
                 : $"{projectName} を読み込み中...";
             BrowserHost.Visibility = Visibility.Collapsed;
             LoadingHost.Visibility = Visibility.Visible;
-            Browser.Source = new Uri("about:blank");
             Title = string.IsNullOrWhiteSpace(projectName)
                 ? "CREC Desktop - 読み込み中..."
                 : $"CREC Desktop - {projectName} を読み込み中...";
         }
         else
         {
+            LoadingTextBlock.Text = "読み込み中...";
             LoadingHost.Visibility = Visibility.Collapsed;
             if (!_closeRequested)
             {
@@ -409,9 +409,22 @@ public partial class MainWindow : Window
     /// <param name="e"></param>
     private void BrowserBackButton_Click(object sender, RoutedEventArgs e)
     {
-        if (Browser.CanGoBack && Browser.Source?.AbsolutePath != "/")
+        if (Browser.CanGoBack)
         {
             Browser.GoBack();
+        }
+    }
+
+    /// <summary>
+    /// ブラウザの進むボタンがクリックされたときに呼び出されるイベントハンドラ
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    private void BrowserForwardButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (Browser.CanGoForward)
+        {
+            Browser.GoForward();
         }
     }
 }
