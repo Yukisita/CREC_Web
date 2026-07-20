@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -8,7 +7,6 @@ namespace CREC_Web.Desktop.Services;
 
 internal sealed class WebServerHost : IAsyncDisposable
 {
-    private readonly ConcurrentQueue<string> _recentOutput = new();
     private Process? _process;
 
     public bool IsRunning => _process is { HasExited: false };
@@ -27,8 +25,6 @@ internal sealed class WebServerHost : IAsyncDisposable
             throw new FileNotFoundException("The selected .crec project file was not found.", projectFilePath);
         }
 
-        ClearRecentOutput();
-
         var webAppDirectory = ResolveWebAppDirectory();
         var port = settings.Port;
         var process = new Process
@@ -37,17 +33,12 @@ internal sealed class WebServerHost : IAsyncDisposable
             EnableRaisingEvents = true
         };
 
-        process.OutputDataReceived += (_, eventArgs) => AppendOutput(eventArgs.Data);
-        process.ErrorDataReceived += (_, eventArgs) => AppendOutput(eventArgs.Data);
-
         if (!process.Start())
         {
             process.Dispose();
             throw new InvalidOperationException("Failed to start the CREC Web server process.");
         }
 
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
         _process = process;
 
         try
@@ -97,7 +88,6 @@ internal sealed class WebServerHost : IAsyncDisposable
         finally
         {
             process.Dispose();
-            ClearRecentOutput();
         }
     }
 
@@ -114,9 +104,7 @@ internal sealed class WebServerHost : IAsyncDisposable
             WorkingDirectory = webAppDirectory,
             UseShellExecute = false,
             CreateNoWindow = true,
-            RedirectStandardInput = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true
+            RedirectStandardInput = true
         };
 
         var executablePath = Path.Combine(webAppDirectory, "CREC_Web.exe");
@@ -198,26 +186,6 @@ internal sealed class WebServerHost : IAsyncDisposable
         }
 
         return webAppDirectory;
-    }
-
-    private void AppendOutput(string? line)
-    {
-        if (string.IsNullOrWhiteSpace(line))
-        {
-            return;
-        }
-
-        _recentOutput.Enqueue(line);
-        while (_recentOutput.Count > 40 && _recentOutput.TryDequeue(out _))
-        {
-        }
-    }
-
-    private void ClearRecentOutput()
-    {
-        while (_recentOutput.TryDequeue(out _))
-        {
-        }
     }
 }
 
