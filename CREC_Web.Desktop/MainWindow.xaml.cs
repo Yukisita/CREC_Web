@@ -306,7 +306,11 @@ public partial class MainWindow : Window
         }
     }
 
-    // desktop 側でも Web 単体と同じく固定ポートを明示入力にそろえ、暗黙の自動採番をなくす。
+    /// <summary>
+    /// ユーザーが入力したポート番号を取得し、1 から 65534 の範囲内であるかを検証するメソッド
+    /// </summary>
+    /// <param name="port">取得したポート番号</param>
+    /// <returns>ポート番号が有効な範囲内であるかどうか</returns>
     private bool TryGetConfiguredPort(out int port)
     {
         port = 0;
@@ -322,7 +326,13 @@ public partial class MainWindow : Window
         return true;
     }
 
-    // URL の許可判定と遷移先の振り分けを 1 箇所に集約する。
+    /// <summary>
+    /// 指定された URI を解析し、ブラウザの遷移モードを決定するメソッド
+    /// </summary>
+    /// <param name="uriText">解析対象の URI 文字列</param>
+    /// <param name="ignoreAboutBlankPopup">"about:blank" のポップアップを無視するかどうか</param>
+    /// <param name="targetUri">解析結果の URI</param>
+    /// <returns>ブラウザの遷移モード</returns>
     private static BrowserNavigationMode ResolveBrowserNavigation(string? uriText, bool ignoreAboutBlankPopup, out Uri? targetUri)
     {
         targetUri = null;
@@ -356,7 +366,10 @@ public partial class MainWindow : Window
         return BrowserNavigationMode.Ignore;
     }
 
-    // 外部リンクは OS 既定ブラウザへ委譲し、WebView2 側には http/https のみ渡す。
+    /// <summary>
+    /// 指定された URI を OS 既定のブラウザで開くメソッド
+    /// </summary>
+    /// <param name="uri"></param>
     private static void OpenInDefaultBrowser(Uri uri)
     {
         try
