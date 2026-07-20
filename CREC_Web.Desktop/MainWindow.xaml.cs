@@ -10,14 +10,17 @@ namespace CREC_Web.Desktop;
 
 public partial class MainWindow : Window
 {
-    private readonly WebServerHost _webServerHost = new();
-    private readonly string? _startupProjectPath;
-    private string? _currentProjectPath;
-    private bool _browserInitialized;
-    private bool _closeRequested;
-    private bool _closeConfirmed;
-    private bool _currentPublishToNetwork;
+    private readonly WebServerHost _webServerHost = new();// WebServerHost のインスタンスを作成
+    private readonly string? _startupProjectPath;// コマンドライン引数から取得した起動時の .crec ファイルパス
+    private string? _currentProjectPath;// 現在開いているプロジェクトのパス
+    private bool _browserInitialized;// WebView2 の初期化が完了したかどうかを示すフラグ
+    private bool _closeRequested;// ウィンドウの閉じる操作が要求されたかどうかを示すフラグ
+    private bool _closeConfirmed;// ウィンドウの閉じる操作が確認されたかどうかを示すフラグ
+    private bool _currentPublishToNetwork;// 現在の公開設定がネットワーク公開かどうかを示すフラグ
 
+    /// <summary>
+    /// MainWindow クラスのコンストラクタ
+    /// </summary>
     public MainWindow()
     {
         InitializeComponent();
@@ -28,6 +31,10 @@ public partial class MainWindow : Window
         Loaded += MainWindow_Loaded;
     }
 
+    /// <summary>
+    /// ウィンドウの閉じる操作が要求されたときに呼び出されるイベントハンドラ
+    /// </summary>
+    /// <param name="e"></param>
     protected override void OnClosing(CancelEventArgs e)
     {
         if (_closeConfirmed)
@@ -44,10 +51,15 @@ public partial class MainWindow : Window
 
         _closeRequested = true;
         IsEnabled = false;
-        // WPF の閉じる処理は一度止め、非同期でサーバー停止を終えてから最終的に Close する。
+        // WPF の閉じる処理は一度止め、非同期でサーバー停止を終えてから最終的にCloseする
         _ = ShutdownAndCloseAsync();
     }
 
+    /// <summary>
+    /// ウィンドウが読み込まれたときに呼び出されるイベントハンドラ
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
         if (!string.IsNullOrWhiteSpace(_startupProjectPath))
@@ -56,6 +68,11 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// 「プロジェクトを開く」ボタンがクリックされたときに呼び出されるイベントハンドラ
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private async void BrowseButton_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFileDialog
@@ -72,6 +89,11 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// ネットワーク公開設定のチェックボックスがクリックされたときに呼び出されるイベントハンドラ
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private async void PublishCheckBox_Click(object sender, RoutedEventArgs e)
     {
         if (_closeRequested || !_webServerHost.IsRunning || string.IsNullOrWhiteSpace(_currentProjectPath))
@@ -101,7 +123,11 @@ public partial class MainWindow : Window
         await OpenProjectAsync(_currentProjectPath);
     }
 
-    // プロジェクト切り替え時は既存サーバーを止めてから再起動し、読み込み中表示も同時に切り替える。
+    /// <summary>
+    /// 指定されたプロジェクトファイルを開き、Web サーバーを起動して WebView2 に表示する非同期メソッド
+    /// </summary>
+    /// <param name="projectPath"></param>
+    /// <returns></returns>
     private async Task OpenProjectAsync(string projectPath)
     {
         try
@@ -126,6 +152,7 @@ public partial class MainWindow : Window
 
             SetLoadingState(true, fullProjectPath);
 
+            // プロジェクト切り替え時は既存サーバーを止めてから再起動し、読み込み中表示も同時に切り替える
             if (_webServerHost.IsRunning)
             {
                 await _webServerHost.StopAsync();
@@ -165,7 +192,9 @@ public partial class MainWindow : Window
         }
     }
 
-    // WebView2 のイベント購読は 1 回だけ行い、同一ウィンドウ内ナビゲーション制御を有効にする。
+    /// <summary>
+    /// WebView2 の初期化を行い、ナビゲーションイベントのハンドラを登録するメソッド
+    /// </summary>
     private void InitializeBrowser()
     {
         if (_browserInitialized || Browser.CoreWebView2 is null)
@@ -179,6 +208,12 @@ public partial class MainWindow : Window
     }
 
     // localhost 系以外の遷移は埋め込み WebView に載せず、既定ブラウザへ逃がす。
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private void Browser_NavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
     {
         if (_closeRequested || IsAllowedInAppUri(e.Uri))
@@ -331,6 +366,11 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// ブラウザの戻るボタンがクリックされたときに呼び出されるイベントハンドラ
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private void BrowserBackButton_Click(object sender, RoutedEventArgs e)
     {
         if (Browser.CanGoBack && Browser.Source?.AbsolutePath != "/")
