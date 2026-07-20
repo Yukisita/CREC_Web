@@ -104,7 +104,14 @@ internal sealed class WebServerHost : IAsyncDisposable
         return new ValueTask(StopAsync());
     }
 
-    // Web 単体でも解釈できる CLI 引数へ正規化し、desktop 側の起動要求を子プロセスへ橋渡しする。
+    /// <summary>
+    /// Web サーバー子プロセスの起動情報を作成する
+    /// </summary>
+    /// <param name="webAppDirectory">Web アプリケーションのディレクトリ</param>
+    /// <param name="projectFilePath">プロジェクトファイルのパス</param>
+    /// <param name="port">使用するポート番号</param>
+    /// <param name="publishToNetwork">ネットワーク公開フラグ</param>
+    /// <returns>プロセスの起動情報</returns>
     private static ProcessStartInfo CreateStartInfo(string webAppDirectory, string projectFilePath, int port, bool publishToNetwork)
     {
         var startInfo = new ProcessStartInfo
@@ -136,29 +143,37 @@ internal sealed class WebServerHost : IAsyncDisposable
         return startInfo;
     }
 
-    // 起動直後は HTTP 応答確認より軽い TCP 接続確認で、待受開始だけを素早く検出する。
+    /// <summary>
+    /// Web サーバー子プロセスが指定したポートで接続可能になるまで待機する
+    /// </summary>
+    /// <param name="process">Web サーバー子プロセス</param>
+    /// <param name="port">接続確認を行うポート番号</param>
+    /// <param name="cancellationToken">キャンセルトークン</param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="TimeoutException"></exception>
     private static async Task WaitForServerAsync(Process process, int port, CancellationToken cancellationToken)
     {
-        var timeoutAt = DateTime.UtcNow.AddSeconds(30);
+        var timeoutAt = DateTime.UtcNow.AddSeconds(30);// 30 秒以内に接続可能にならなければタイムアウトとする
 
         while (DateTime.UtcNow < timeoutAt)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (process.HasExited)
+            if (process.HasExited)// プロセスが終了している場合は接続確認を行わずに例外をスローする
             {
                 throw new InvalidOperationException("The CREC Web server exited before startup completed.");
             }
 
-            if (await IsPortOpenAsync(port, cancellationToken))
+            if (await IsPortOpenAsync(port, cancellationToken))// 指定したポートで接続可能になった場合は待機を終了する
             {
                 return;
             }
 
-            await Task.Delay(250, cancellationToken);
+            await Task.Delay(250, cancellationToken);// 250 ミリ秒ごとに接続確認を行う
         }
 
-        throw new TimeoutException("Timed out while waiting for the CREC Web server to start.");
+        throw new TimeoutException("Timed out while waiting for the CREC Web server to start.");// タイムアウトとして例外をスローする
     }
 
     private static async Task<bool> WaitForExitAsync(Process process, TimeSpan timeout)
