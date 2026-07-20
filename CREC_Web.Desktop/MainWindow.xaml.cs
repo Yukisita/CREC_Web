@@ -292,7 +292,6 @@ public partial class MainWindow : Window
         }
         else
         {
-            LoadingTextBlock.Text = "読み込み中...";
             LoadingHost.Visibility = Visibility.Collapsed;
             if (!_closeRequested)
             {
