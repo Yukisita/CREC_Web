@@ -226,6 +226,17 @@ internal sealed class WebServerHost
     }
 }
 
+/// <summary>
+/// デスクトップアプリから Web サーバーを起動する際の設定値を保持するレコード
+/// </summary>
+/// <param name="ProjectFilePath">プロジェクトファイルのパス</param>
+/// <param name="Port">使用するポート番号</param>
+/// <param name="PublishToNetwork">ネットワークに公開するかどうか</param>
 internal sealed record DesktopLaunchSettings(string ProjectFilePath, int Port, bool PublishToNetwork);
 
+/// <summary>
+/// デスクトップアプリから Web サーバーを起動した際のセッション情報を保持するレコード
+/// </summary>
+/// <param name="Port">使用するポート番号</param>
+/// <param name="FrontendUri">フロントエンドの URI</param>
 internal sealed record WebServerSession(int Port, Uri FrontendUri);
