@@ -10,6 +10,13 @@ namespace CREC_Web.Desktop;
 
 public partial class MainWindow : Window
 {
+    private enum BrowserNavigationMode
+    {
+        Ignore,
+        InApp,
+        External
+    }
+
     private readonly WebServerHost _webServerHost = new();// WebServerHost のインスタンスを作成
     private readonly string? _startupProjectPath;// コマンドライン引数から取得した起動時の .crec ファイルパス
     private string? _currentProjectPath;// 現在開いているプロジェクトのパス
@@ -207,42 +214,35 @@ public partial class MainWindow : Window
         _browserInitialized = true;
     }
 
-    // localhost 系以外の遷移は埋め込み WebView に載せず、既定ブラウザへ逃がす。
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
+    // URL の分類は ResolveBrowserNavigation に集約し、通常遷移側は「外部へ逃がす必要があるか」だけを見る。
     private void Browser_NavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
     {
-        if (_closeRequested || IsAllowedInAppUri(e.Uri))
+        if (_closeRequested)
+        {
+            return;
+        }
+
+        if (ResolveBrowserNavigation(e.Uri, ignoreAboutBlankPopup: false, out var targetUri) != BrowserNavigationMode.External
+            || targetUri is null)
         {
             return;
         }
 
         e.Cancel = true;
-        OpenInDefaultBrowser(e.Uri);
+        OpenInDefaultBrowser(targetUri);
     }
 
-    // target=_blank / window.open でも同じ許可ルールを適用し、不要な別ウィンドウ生成を防ぐ。
+    // target=_blank / window.open も同じ分類ロジックに寄せ、popup 特有の about:blank だけ無視する。
     private void Browser_NewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
     {
-        // about:blank はブラウザ版がポップアップ確保に使う中継ページなので、
-        // desktop 版で現在のビューへ遷移させると元ページの JS 実行が中断されてしまう。
-        if (string.Equals(e.Uri, "about:blank", StringComparison.OrdinalIgnoreCase))
+        switch (ResolveBrowserNavigation(e.Uri, ignoreAboutBlankPopup: true, out var targetUri))
         {
-            e.Handled = true;
-            return;
-        }
-
-        if (IsAllowedInAppUri(e.Uri) && Uri.TryCreate(e.Uri, UriKind.Absolute, out var uri))
-        {
-            Browser.Source = uri;
-        }
-        else
-        {
-            OpenInDefaultBrowser(e.Uri);
+            case BrowserNavigationMode.InApp when targetUri is not null:
+                Browser.Source = targetUri;
+                break;
+            case BrowserNavigationMode.External when targetUri is not null:
+                OpenInDefaultBrowser(targetUri);
+                break;
         }
 
         e.Handled = true;
@@ -322,37 +322,43 @@ public partial class MainWindow : Window
         return true;
     }
 
-    // アプリ内に残すのは自前のローカル UI だけに限定し、外部サイトのセッション共有を避ける。
-    private static bool IsAllowedInAppUri(string? uriText)
+    // URL の許可判定と遷移先の振り分けを 1 箇所に集約する。
+    private static BrowserNavigationMode ResolveBrowserNavigation(string? uriText, bool ignoreAboutBlankPopup, out Uri? targetUri)
     {
+        targetUri = null;
+
         if (string.IsNullOrWhiteSpace(uriText))
         {
-            return false;
+            return BrowserNavigationMode.Ignore;
         }
 
         if (string.Equals(uriText, "about:blank", StringComparison.OrdinalIgnoreCase))
         {
-            return true;
+            return ignoreAboutBlankPopup ? BrowserNavigationMode.Ignore : BrowserNavigationMode.InApp;
         }
 
-        return Uri.TryCreate(uriText, UriKind.Absolute, out var uri)
-            && uri.IsLoopback
-            && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+        if (!Uri.TryCreate(uriText, UriKind.Absolute, out targetUri))
+        {
+            return BrowserNavigationMode.Ignore;
+        }
+
+        if (targetUri.IsLoopback && (targetUri.Scheme == Uri.UriSchemeHttp || targetUri.Scheme == Uri.UriSchemeHttps))
+        {
+            return BrowserNavigationMode.InApp;
+        }
+
+        if (targetUri.Scheme == Uri.UriSchemeHttp || targetUri.Scheme == Uri.UriSchemeHttps)
+        {
+            return BrowserNavigationMode.External;
+        }
+
+        targetUri = null;
+        return BrowserNavigationMode.Ignore;
     }
 
     // 外部リンクは OS 既定ブラウザへ委譲し、WebView2 側には http/https のみ渡す。
-    private static void OpenInDefaultBrowser(string? uriText)
+    private static void OpenInDefaultBrowser(Uri uri)
     {
-        if (!Uri.TryCreate(uriText, UriKind.Absolute, out var uri))
-        {
-            return;
-        }
-
-        if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
-        {
-            return;
-        }
-
         try
         {
             Process.Start(new ProcessStartInfo
