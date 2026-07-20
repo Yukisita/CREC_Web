@@ -10,11 +10,14 @@ namespace CREC_Web.Desktop;
 
 public partial class MainWindow : Window
 {
+    /// <summary>
+    /// ブラウザの遷移モードを表す列挙型
+    /// </summary>
     private enum BrowserNavigationMode
     {
-        Ignore,
-        InApp,
-        External
+        Ignore,// ナビゲーションを無視する
+        InApp,// アプリ内でナビゲーションする
+        External// 外部ブラウザでナビゲーションする
     }
 
     private readonly WebServerHost _webServerHost = new();// WebServerHost のインスタンスを作成
@@ -214,7 +217,11 @@ public partial class MainWindow : Window
         _browserInitialized = true;
     }
 
-    // URL の分類は ResolveBrowserNavigation に集約し、通常遷移側は「外部へ逃がす必要があるか」だけを見る。
+    /// <summary>
+    /// WebView2 でナビゲーションが開始されたときに呼び出されるイベントハンドラ
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private void Browser_NavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
     {
         if (_closeRequested)
@@ -232,7 +239,11 @@ public partial class MainWindow : Window
         OpenInDefaultBrowser(targetUri);
     }
 
-    // target=_blank / window.open も同じ分類ロジックに寄せ、popup 特有の about:blank だけ無視する。
+    /// <summary>
+    /// WebView2 で新しいウィンドウが要求されたときに呼び出されるイベントハンドラ
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private void Browser_NewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
     {
         switch (ResolveBrowserNavigation(e.Uri, ignoreAboutBlankPopup: true, out var targetUri))
@@ -248,7 +259,10 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
-    // 閉じる操作ではまず WebView を空表示に戻し、裏側でサーバー停止を待ってから終了する。
+    /// <summary>
+    /// Web サーバーを停止し、ウィンドウを閉じる非同期メソッド
+    /// </summary>
+    /// <returns></returns>
     private async Task ShutdownAndCloseAsync()
     {
         try
