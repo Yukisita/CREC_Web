@@ -5,7 +5,7 @@ using System.Net.Sockets;
 
 namespace CREC_Web.Desktop.Services;
 
-internal sealed class WebServerHost : IAsyncDisposable
+internal sealed class WebServerHost
 {
     private Process? _process;// Web サーバー子プロセスの参照
     public bool IsRunning => _process is { HasExited: false };// サーバの起動状態を確認するためのプロパティ
@@ -97,11 +97,6 @@ internal sealed class WebServerHost : IAsyncDisposable
         {
             process.Dispose();
         }
-    }
-
-    public ValueTask DisposeAsync()
-    {
-        return new ValueTask(StopAsync());
     }
 
     /// <summary>
