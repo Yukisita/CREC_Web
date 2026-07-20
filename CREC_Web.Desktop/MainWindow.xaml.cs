@@ -409,22 +409,9 @@ public partial class MainWindow : Window
     /// <param name="e"></param>
     private void BrowserBackButton_Click(object sender, RoutedEventArgs e)
     {
-        if (Browser.CanGoBack)
+        if (Browser.CanGoBack && Browser.Source?.AbsolutePath != "/")
         {
             Browser.GoBack();
-        }
-    }
-
-    /// <summary>
-    /// ブラウザの進むボタンがクリックされたときに呼び出されるイベントハンドラ
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
-    private void BrowserForwardButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (Browser.CanGoForward)
-        {
-            Browser.GoForward();
         }
     }
 }
