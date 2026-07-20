@@ -61,7 +61,10 @@ internal sealed class WebServerHost
         }
     }
 
-    // まず標準入力の shutdown による正常終了を試し、応答しない場合だけ強制終了へ切り替える。
+    /// <summary>
+    /// Web サーバー子プロセスを停止する
+    /// </summary>
+    /// <returns></returns>
     public async Task StopAsync()
     {
         var process = _process;
@@ -171,6 +174,12 @@ internal sealed class WebServerHost
         throw new TimeoutException("Timed out while waiting for the CREC Web server to start.");// タイムアウトとして例外をスローする
     }
 
+    /// <summary>
+    /// Web サーバー子プロセスが終了するまで待機する
+    /// </summary>
+    /// <param name="process">Web サーバー子プロセス</param>
+    /// <param name="timeout">待機するタイムアウト時間(ミリ秒)</param>
+    /// <returns>プロセスが指定したタイムアウト内に終了した場合は true、それ以外の場合は false</returns>
     private static async Task<bool> WaitForExitAsync(Process process, TimeSpan timeout)
     {
         var exitTask = process.WaitForExitAsync();
@@ -178,6 +187,12 @@ internal sealed class WebServerHost
         return completedTask == exitTask;
     }
 
+    /// <summary>
+    /// 指定したポートが開いているかどうかをTCPで確認する
+    /// </summary>
+    /// <param name="port">確認するポート番号</param>
+    /// <param name="cancellationToken">キャンセルトークン</param>
+    /// <returns>ポートが開いている場合は true、それ以外の場合は false</returns>
     private static async Task<bool> IsPortOpenAsync(int port, CancellationToken cancellationToken)
     {
         try
@@ -192,7 +207,11 @@ internal sealed class WebServerHost
         }
     }
 
-    // 配布物に同梱した web 出力だけを起動対象にし、desktop 単体で完結できるようにする。
+    /// <summary>
+    /// Web アプリケーションのディレクトリを解決する
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="DirectoryNotFoundException"></exception>
     private static string ResolveWebAppDirectory()
     {
         var webAppDirectory = Path.Combine(AppContext.BaseDirectory, "web");
