@@ -61,32 +61,6 @@ for (var i = 0; i < args.Length; i++)
         case "--public":
             startupBindHost = "0.0.0.0";
             break;
-        default:
-            if (argument.StartsWith("--project=", StringComparison.OrdinalIgnoreCase))
-            {
-                startupProjectPath = argument["--project=".Length..];
-            }
-            else if (argument.StartsWith("--port=", StringComparison.OrdinalIgnoreCase))
-            {
-                var portText = argument["--port=".Length..];
-                if (int.TryParse(portText, out var inlineParsedPort))
-                {
-                    startupPort = inlineParsedPort;
-                }
-                else
-                {
-                    Console.WriteLine($"Invalid --port value: {portText}");
-                }
-            }
-            else if (argument.StartsWith("--bind-host=", StringComparison.OrdinalIgnoreCase))
-            {
-                startupBindHost = argument["--bind-host=".Length..];
-            }
-            else if (startupProjectPath is null && argument.EndsWith(".crec", StringComparison.OrdinalIgnoreCase))
-            {
-                startupProjectPath = argument;
-            }
-            break;
     }
 }
 
