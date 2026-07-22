@@ -4,30 +4,83 @@ Copyright (c) [2025 - 2026] [S.Yukisita]
 This software is released under the MIT License.
 */
 
+using System.Net;
 using CREC_Web.Services;
 using Microsoft.Extensions.FileProviders;
 
 Console.WriteLine("Starting CREC Web Server...");
+
+// コマンドライン引数
+string? startupProjectPath = null;// CRECのプロジェクトファイルのパス
+int? startupPort = null;// 起動ポート番号
+string? startupBindHost = null;// バインドホスト (例: "127.0.0.1" または "0.0.0.0")
+var nonInteractive = false;// 非対話モード (標準入力からのシャットダウンコマンドを受け付ける)
+
+// コマンドライン引数の解析
+for (var i = 0; i < args.Length; i++)
+{
+    var argument = args[i];
+
+    switch (argument)
+    {
+        case "--project":// CRECのプロジェクトファイルのパスを指定
+            if (i + 1 >= args.Length)
+            {
+                throw new ArgumentException("Missing value for --project.");
+            }
+            startupProjectPath = args[++i];
+            break;
+        case "--port":// 起動ポート番号を指定
+            if (i + 1 >= args.Length)
+            {
+                throw new ArgumentException("Missing value for --port.");
+            }
+            if (int.TryParse(args[++i], out var parsedPort))
+            {
+                startupPort = parsedPort;
+            }
+            else
+            {
+                Console.WriteLine($"Invalid --port value: {args[i]}");
+            }
+            break;
+        case "--bind-host":// バインドホストを指定
+            if (i + 1 >= args.Length)
+            {
+                throw new ArgumentException("Missing value for --bind-host.");
+            }
+            startupBindHost = args[++i];
+            break;
+        case "--non-interactive":// 非対話モードを有効化
+            nonInteractive = true;
+            break;
+        case "--local-only":// ローカルホストのみで起動
+            startupBindHost = "127.0.0.1";
+            break;
+        case "--public":// 公開用に起動
+            startupBindHost = "0.0.0.0";
+            break;
+    }
+}
 
 // Webアプリケーションビルダーの作成
 var builder = WebApplication.CreateBuilder(args);
 var projectSettingsService = new ProjectSettingsService(builder.Configuration);
 
 // CRECのプロジェクトファイルのパスを取得
-var crecFilePath = string.Empty;
+var crecFilePath = startupProjectPath?.Trim();
+if (string.IsNullOrWhiteSpace(crecFilePath))// コマンドライン引数で指定されていない場合は、標準入力から取得
+{
+    if (Console.IsInputRedirected)// 標準入力がリダイレクトされている場合は、ユーザーに入力を促すことができないため、例外をスロー
+    {
+        throw new InvalidOperationException("No .crec file specified. Please set the project path before startup.");
+    }
+
+    Console.WriteLine("No .crec file specified. Please enter the .crec file path:");
+    crecFilePath = Console.ReadLine()?.Trim() ?? string.Empty;
+}
+
 ProjectSettings? projectSettings = null;
-if (args.Length > 0 && args[0].EndsWith(".crec", StringComparison.OrdinalIgnoreCase))
-{
-    // コマンドライン引数からプロジェクトファイルのパスを取得
-    crecFilePath = args[0];
-}
-else
-{
-    // CRECファイルがコマンドライン引数に指定されていない場合、手動でのパス入力を待機
-    Console.WriteLine("No .crec file specified. Please enter the project data folder path:");
-    var inputPath = Console.ReadLine()?.Trim();
-    crecFilePath = inputPath ?? string.Empty;
-}
 
 // CRECのプロジェクトファイルを読み込み、プロジェクト設定を取得
 Console.WriteLine($"Loading project settings from: {crecFilePath}");
@@ -68,41 +121,92 @@ builder.Services.AddCors(options =>
 });
 
 // URL設定 (HTTPSはカメラアクセスに必要)
-bool isPortAvailable = false;
-int port = 5000;
-while (!isPortAvailable)
+int port;
+if (startupPort is int configuredPort)// コマンドライン引数で指定されたポート番号がある場合はパターンマッチング後にそれを使用
 {
-    // port番号をコマンドラインに入力
-    Console.Write("Please enter the project port number (1-65534): ");
-    var inputPort = Console.ReadLine();
-    if (!string.IsNullOrWhiteSpace(inputPort))
+    if (ArePortsAvailable(configuredPort))
     {
-        inputPort = inputPort.Trim();
-        if (int.TryParse(inputPort, out int parsedPort))
-        {
-            port = parsedPort;
-        }
-        else
-        {
-            Console.WriteLine($"Invalid port input. Use default port.");
-            port = 5000; // デフォルトポートを指定
-        }
+        port = configuredPort;
     }
     else
     {
-        Console.WriteLine($"No port input. Use default port.");
-        port = 5000; // デフォルトポートを指定
-    }
-
-    // ポート番号の規則をコンソール表示（HTTPSは入力値、HTTPは入力値+1）
-    Console.WriteLine($"Using ports: HTTP={port}, HTTPS={port + 1}");
-    // ポートが利用可能か確認
-    if (IsPortAvailable(port) && IsPortAvailable(port + 1))
-    {
-        isPortAvailable = true;
+        throw new InvalidOperationException($"Port {configuredPort} is already in use. Please specify a different port.");
     }
 }
-builder.WebHost.UseUrls($"http://0.0.0.0:{port}", $"https://0.0.0.0:{port + 1}");
+else if (Console.IsInputRedirected)// 標準入力がリダイレクトされている場合は、ユーザーに入力を促すことができないため、例外をスロー
+{
+    throw new InvalidOperationException("No port specified. Please set the startup port before launch.");
+}
+else// ユーザーにポート番号の入力を促す
+{
+    while (true)
+    {
+        Console.Write("Please enter the project port number (1-65534): ");
+        var inputPort = Console.ReadLine();
+        port = 5000;
+
+        if (!string.IsNullOrWhiteSpace(inputPort))
+        {
+            inputPort = inputPort.Trim();
+            if (int.TryParse(inputPort, out var parsedPort))
+            {
+                port = parsedPort;
+            }
+            else
+            {
+                Console.WriteLine("Invalid port input. Use default port.");
+            }
+        }
+        else
+        {
+            Console.WriteLine("No port input. Use default port.");
+        }
+
+        if (ArePortsAvailable(port))
+        {
+            break;
+        }
+    }
+}
+
+// バインドホストの設定
+string bindHost;
+if (!string.IsNullOrWhiteSpace(startupBindHost))// コマンドライン引数で指定されたバインドホストがある場合はそれを使用
+{
+    bindHost = startupBindHost.Trim();
+}
+else if (Console.IsInputRedirected)// 標準入力がリダイレクトされている場合は、ユーザーに入力を促すことができないため、例外をスロー
+{
+    throw new InvalidOperationException("No bind host specified. Please set --local-only, --public, or --bind-host before launch.");
+}
+else// ユーザーにバインドホストの入力を促す
+{
+    while (true)
+    {
+        Console.WriteLine("Please choose the startup scope:");
+        Console.WriteLine("  1: Local only (127.0.0.1)");
+        Console.WriteLine("  2: Web server as public (0.0.0.0)");
+        Console.Write("Enter 1 or 2: ");
+        var input = Console.ReadLine()?.Trim();
+
+        if (input == "1")
+        {
+            bindHost = "127.0.0.1";
+            break;
+        }
+
+        if (input == "2")
+        {
+            bindHost = "0.0.0.0";
+            break;
+        }
+
+        Console.WriteLine("Invalid input. Please enter 1 or 2.");
+    }
+}
+
+Console.WriteLine($"Using ports: HTTP={port}, HTTPS={port + 1}");
+builder.WebHost.UseUrls($"http://{bindHost}:{port}", $"https://{bindHost}:{port + 1}");
 
 var app = builder.Build();
 
@@ -138,65 +242,84 @@ else
 logger.LogInformation("Executable directory: {ExecutablePath}", executablePath);
 logger.LogInformation("Web root path: {WebRootPath}", webRootPath);
 logger.LogInformation("wwwroot exists: {WebRootExists}", Directory.Exists(webRootPath));
+logger.LogInformation("Bind host: {BindHost}", bindHost);
 logger.LogInformation("Web interface will be available at:");
 logger.LogInformation("  - http://localhost:{Port} (HTTP)", port);
 logger.LogInformation("  - https://localhost:{Port} (HTTPS)", port + 1);
-logger.LogInformation("  - https://[your-ip]:{Port}", port + 1);
+if (!IsLoopbackHost(bindHost))
+{
+    logger.LogInformation("  - https://[your-ip]:{Port}", port + 1);
+}
 logger.LogInformation("API documentation available at: https://localhost:{Port}/swagger", port + 1);
-logger.LogInformation("Press Ctrl+Q to initiate server shutdown.");
 
-// Ctrl+Q シャットダウンハンドラの設定
+// シャットダウンハンドラの設定
 var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
 var isShuttingDown = 0; // シャットダウン処理の重複実行を防ぐフラグ (0=実行中でない, 1=実行中)
 
-// Ctrl+Qの入力を監視するバックグラウンドタスク
-var monitorTask = Task.Run(() =>
+if (nonInteractive && Console.IsInputRedirected)
 {
-    try
+    logger.LogInformation("Waiting for shutdown command on standard input.");
+    _ = Task.Run(() => MonitorShutdownCommands(lifetime));
+}
+else
+{
+    logger.LogInformation("Press Ctrl+Q to initiate server shutdown.");
+
+    // Ctrl+Qの入力を監視するバックグラウンドタスク
+    _ = Task.Run(() =>
     {
-        while (!lifetime.ApplicationStopping.IsCancellationRequested)
+        try
         {
-            // Console.KeyAvailable を使用してブロッキングを回避
-            if (Console.KeyAvailable)
+            while (!lifetime.ApplicationStopping.IsCancellationRequested)
             {
-                var keyInfo = Console.ReadKey(intercept: true);
-
-                // Ctrl+Q (Q key with Control modifier)
-                if (keyInfo.Key == ConsoleKey.Q && keyInfo.Modifiers.HasFlag(ConsoleModifiers.Control))
+                // Console.KeyAvailable を使用してブロッキングを回避
+                if (Console.KeyAvailable)
                 {
-                    // Interlocked.CompareExchange でスレッドセーフな比較と交換
-                    if (Interlocked.CompareExchange(ref isShuttingDown, 1, 0) == 0)
-                    {
-                        Console.WriteLine("\nCtrl+Q detected. Do you want to shut down the server? (Y/N): ");
-                        var response = Console.ReadLine()?.Trim().ToUpper();
+                    var keyInfo = Console.ReadKey(intercept: true);
 
-                        if (response == "Y")
+                    // Ctrl+Q (Q key with Control modifier)
+                    if (keyInfo.Key == ConsoleKey.Q && keyInfo.Modifiers.HasFlag(ConsoleModifiers.Control))
+                    {
+                        // Interlocked.CompareExchange でスレッドセーフな比較と交換
+                        if (Interlocked.CompareExchange(ref isShuttingDown, 1, 0) == 0)
                         {
-                            Console.WriteLine("Shutting down the server gracefully...");
-                            lifetime.StopApplication(); // アプリケーションの適切なシャットダウンを要求
-                        }
-                        else
-                        {
-                            Console.WriteLine("Shutdown canceled. Server continues running.");
-                            Interlocked.Exchange(ref isShuttingDown, 0); // フラグをリセット
+                            Console.WriteLine("\nCtrl+Q detected. Do you want to shut down the server? (Y/N): ");
+                            var response = Console.ReadLine()?.Trim().ToUpperInvariant();
+
+                            if (response == "Y")
+                            {
+                                Console.WriteLine("Shutting down the server gracefully...");
+                                lifetime.StopApplication(); // アプリケーションの適切なシャットダウンを要求
+                            }
+                            else
+                            {
+                                Console.WriteLine("Shutdown canceled. Server continues running.");
+                                Interlocked.Exchange(ref isShuttingDown, 0); // フラグをリセット
+                            }
                         }
                     }
                 }
-            }
-            else
-            {
-                // キー入力がない場合は少し待機してCPU使用率を抑える
-                Thread.Sleep(100);
+                else
+                {
+                    // キー入力がない場合は少し待機してCPU使用率を抑える
+                    Thread.Sleep(100);
+                }
             }
         }
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Error in shutdown monitor: {ex.Message}");
-    }
-});
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in shutdown monitor: {ex.Message}");
+        }
+    });
+}
 
-// ポートが利用可能か確認する関数
+app.Run();
+
+static bool ArePortsAvailable(int port)
+{
+    return IsPortAvailable(port) && IsPortAvailable(port + 1);
+}
+
 static bool IsPortAvailable(int port)
 {
     // ポートが設定可能範囲内の数値か確認
@@ -209,7 +332,7 @@ static bool IsPortAvailable(int port)
     // ポートが使用中か確認
     try
     {
-        using var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Any, port);
+        using var listener = new System.Net.Sockets.TcpListener(IPAddress.Any, port);
         listener.Start();
         listener.Stop();
         return true;
@@ -226,4 +349,40 @@ static bool IsPortAvailable(int port)
     }
 }
 
-app.Run();
+// 指定されたホストがループバックアドレスかどうかを判定するヘルパーメソッド
+static bool IsLoopbackHost(string host)
+{
+    if (string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase))
+    {
+        return true;
+    }
+
+    return IPAddress.TryParse(host, out var address) && IPAddress.IsLoopback(address);
+}
+
+// デスクトップホストから標準入力経由で "shutdown" が送られたときだけ停止を受け付ける。
+static void MonitorShutdownCommands(IHostApplicationLifetime lifetime)
+{
+    try
+    {
+        while (!lifetime.ApplicationStopping.IsCancellationRequested)
+        {
+            var command = Console.ReadLine();
+            if (command is null)
+            {
+                break;
+            }
+
+            if (string.Equals(command.Trim(), "shutdown", StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine("Shutdown command received.");
+                lifetime.StopApplication();
+                break;
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error in shutdown command monitor: {ex.Message}");
+    }
+}
