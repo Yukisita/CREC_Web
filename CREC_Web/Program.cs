@@ -23,20 +23,18 @@ for (var i = 0; i < args.Length; i++)
 
     switch (argument)
     {
-        case "--project":
+        case "--project":// CRECのプロジェクトファイルのパスを指定
             if (i + 1 >= args.Length)
             {
                 throw new ArgumentException("Missing value for --project.");
             }
-
             startupProjectPath = args[++i];
             break;
-        case "--port":
+        case "--port":// 起動ポート番号を指定
             if (i + 1 >= args.Length)
             {
                 throw new ArgumentException("Missing value for --port.");
             }
-
             if (int.TryParse(args[++i], out var parsedPort))
             {
                 startupPort = parsedPort;
@@ -46,21 +44,20 @@ for (var i = 0; i < args.Length; i++)
                 Console.WriteLine($"Invalid --port value: {args[i]}");
             }
             break;
-        case "--bind-host":
+        case "--bind-host":// バインドホストを指定
             if (i + 1 >= args.Length)
             {
                 throw new ArgumentException("Missing value for --bind-host.");
             }
-
             startupBindHost = args[++i];
             break;
-        case "--non-interactive":
+        case "--non-interactive":// 非対話モードを有効化
             nonInteractive = true;
             break;
-        case "--local-only":
+        case "--local-only":// ローカルホストのみで起動
             startupBindHost = "127.0.0.1";
             break;
-        case "--public":
+        case "--public":// 公開用に起動
             startupBindHost = "0.0.0.0";
             break;
     }
@@ -72,9 +69,9 @@ var projectSettingsService = new ProjectSettingsService(builder.Configuration);
 
 // CRECのプロジェクトファイルのパスを取得
 var crecFilePath = startupProjectPath?.Trim();
-if (string.IsNullOrWhiteSpace(crecFilePath))
+if (string.IsNullOrWhiteSpace(crecFilePath))// コマンドライン引数で指定されていない場合は、標準入力から取得
 {
-    if (Console.IsInputRedirected)
+    if (Console.IsInputRedirected)// 標準入力がリダイレクトされている場合は、ユーザーに入力を促すことができないため、例外をスロー
     {
         throw new InvalidOperationException("No .crec file specified. Please set the project path before startup.");
     }
@@ -125,7 +122,7 @@ builder.Services.AddCors(options =>
 
 // URL設定 (HTTPSはカメラアクセスに必要)
 int port;
-if (startupPort is int configuredPort)
+if (startupPort is int configuredPort)// コマンドライン引数で指定されたポート番号がある場合はパターンマッチング後にそれを使用
 {
     if (ArePortsAvailable(configuredPort))
     {
@@ -136,11 +133,11 @@ if (startupPort is int configuredPort)
         throw new InvalidOperationException($"Port {configuredPort} is already in use. Please specify a different port.");
     }
 }
-else if (Console.IsInputRedirected)
+else if (Console.IsInputRedirected)// 標準入力がリダイレクトされている場合は、ユーザーに入力を促すことができないため、例外をスロー
 {
     throw new InvalidOperationException("No port specified. Please set the startup port before launch.");
 }
-else
+else// ユーザーにポート番号の入力を促す
 {
     while (true)
     {
@@ -172,16 +169,17 @@ else
     }
 }
 
+// バインドホストの設定
 string bindHost;
-if (!string.IsNullOrWhiteSpace(startupBindHost))
+if (!string.IsNullOrWhiteSpace(startupBindHost))// コマンドライン引数で指定されたバインドホストがある場合はそれを使用
 {
     bindHost = startupBindHost.Trim();
 }
-else if (Console.IsInputRedirected)
+else if (Console.IsInputRedirected)// 標準入力がリダイレクトされている場合は、ユーザーに入力を促すことができないため、例外をスロー
 {
     throw new InvalidOperationException("No bind host specified. Please set --local-only, --public, or --bind-host before launch.");
 }
-else
+else// ユーザーにバインドホストの入力を促す
 {
     while (true)
     {
@@ -351,6 +349,7 @@ static bool IsPortAvailable(int port)
     }
 }
 
+// 指定されたホストがループバックアドレスかどうかを判定するヘルパーメソッド
 static bool IsLoopbackHost(string host)
 {
     if (string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase))
