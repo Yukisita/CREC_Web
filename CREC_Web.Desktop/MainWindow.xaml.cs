@@ -272,8 +272,14 @@ public partial class MainWindow : Window
             LoadingHost.Visibility = Visibility.Collapsed;
             await _webServerHost.StopAsync();
         }
-        catch
+        catch (Exception ex)
         {
+            MessageBox.Show(
+                this,
+                $"サーバーの停止中にエラーが発生しました。\n{ex.Message}",
+                "CREC Desktop",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
         }
         finally
         {
