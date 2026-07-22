@@ -307,7 +307,7 @@ public partial class MainWindow : Window
     /// </summary>
     private void HideLoadingState()
     {
-        ResetLoadingMessage();
+        ApplyLoadingMessage();
         LoadingHost.Visibility = Visibility.Collapsed;
 
         if (!_closeRequested)
@@ -328,14 +328,6 @@ public partial class MainWindow : Window
         Title = string.IsNullOrWhiteSpace(projectName)
             ? "CREC Desktop - 読み込み中..."
             : $"CREC Desktop - {projectName} を読み込み中...";
-    }
-
-    /// <summary>
-    /// 読み込みオーバーレイの文言とタイトルを既定値へ戻すメソッド
-    /// </summary>
-    private void ResetLoadingMessage()
-    {
-        ApplyLoadingMessage();
     }
 
     /// <summary>
