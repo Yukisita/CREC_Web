@@ -160,7 +160,7 @@ public partial class MainWindow : Window
                 return;
             }
 
-            SetLoadingState(true, fullProjectPath);
+            ShowLoadingState(fullProjectPath);
 
             // プロジェクト切り替え時は既存サーバーを止めてから再起動し、読み込み中表示も同時に切り替える
             if (_webServerHost.IsRunning)
@@ -198,7 +198,7 @@ public partial class MainWindow : Window
         }
         finally
         {
-            SetLoadingState(false);
+            HideLoadingState();
         }
     }
 
@@ -283,31 +283,36 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// 読み込み中の状態を設定するメソッド
+    /// 読み込み中オーバーレイを表示し、対象プロジェクト名に合わせて文言を更新するメソッド
     /// </summary>
-    /// <param name="isLoading">読み込み中のフラグ  </param>
     /// <param name="projectPath">プロジェクトのパス</param>
-    private void SetLoadingState(bool isLoading, string? projectPath = null)
+    private void ShowLoadingState(string? projectPath = null)
     {
         var projectName = string.IsNullOrWhiteSpace(projectPath)
             ? null
             : Path.GetFileNameWithoutExtension(projectPath);
 
-        if (isLoading)
-        {
-            ApplyLoadingMessage(projectName);
-            BrowserHost.Visibility = Visibility.Collapsed;
-            LoadingHost.Visibility = Visibility.Visible;
-        }
-        else
-        {
-            ApplyLoadingMessage();
-            LoadingHost.Visibility = Visibility.Collapsed;
-        }
+        ApplyLoadingMessage(projectName);
+        BrowserHost.Visibility = Visibility.Collapsed;
+        LoadingHost.Visibility = Visibility.Visible;
 
         if (!_closeRequested)
         {
-            SetLauncherControlsEnabled(!isLoading);
+            SetLauncherControlsEnabled(false);
+        }
+    }
+
+    /// <summary>
+    /// 読み込み中オーバーレイを閉じ、次回表示用に既定の文言へ戻すメソッド
+    /// </summary>
+    private void HideLoadingState()
+    {
+        ResetLoadingMessage();
+        LoadingHost.Visibility = Visibility.Collapsed;
+
+        if (!_closeRequested)
+        {
+            SetLauncherControlsEnabled(true);
         }
     }
 
@@ -323,6 +328,14 @@ public partial class MainWindow : Window
         Title = string.IsNullOrWhiteSpace(projectName)
             ? "CREC Desktop - 読み込み中..."
             : $"CREC Desktop - {projectName} を読み込み中...";
+    }
+
+    /// <summary>
+    /// 読み込みオーバーレイの文言とタイトルを既定値へ戻すメソッド
+    /// </summary>
+    private void ResetLoadingMessage()
+    {
+        ApplyLoadingMessage();
     }
 
     /// <summary>
