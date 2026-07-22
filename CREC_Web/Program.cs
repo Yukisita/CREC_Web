@@ -10,11 +10,13 @@ using Microsoft.Extensions.FileProviders;
 
 Console.WriteLine("Starting CREC Web Server...");
 
-string? startupProjectPath = null;
-int? startupPort = null;
-string? startupBindHost = null;
-var nonInteractive = false;
+// コマンドライン引数
+string? startupProjectPath = null;// CRECのプロジェクトファイルのパス
+int? startupPort = null;// 起動ポート番号
+string? startupBindHost = null;// バインドホスト (例: "127.0.0.1" または "0.0.0.0")
+var nonInteractive = false;// 非対話モード (標準入力からのシャットダウンコマンドを受け付ける)
 
+// コマンドライン引数の解析
 for (var i = 0; i < args.Length; i++)
 {
     var argument = args[i];
