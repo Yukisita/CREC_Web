@@ -289,38 +289,51 @@ public partial class MainWindow : Window
     /// <param name="projectPath">プロジェクトのパス</param>
     private void SetLoadingState(bool isLoading, string? projectPath = null)
     {
+        var projectName = string.IsNullOrWhiteSpace(projectPath)
+            ? null
+            : Path.GetFileNameWithoutExtension(projectPath);
+
         if (isLoading)
         {
-            var projectName = string.IsNullOrWhiteSpace(projectPath)
-                ? null
-                : Path.GetFileNameWithoutExtension(projectPath);
-            LoadingTextBlock.Text = string.IsNullOrWhiteSpace(projectName)
-                ? "読み込み中..."
-                : $"{projectName} を読み込み中...";
+            ApplyLoadingMessage(projectName);
             BrowserHost.Visibility = Visibility.Collapsed;
             LoadingHost.Visibility = Visibility.Visible;
-            Title = string.IsNullOrWhiteSpace(projectName)
-                ? "CREC Desktop - 読み込み中..."
-                : $"CREC Desktop - {projectName} を読み込み中...";
         }
         else
         {
-            LoadingTextBlock.Text = "読み込み中...";
+            ApplyLoadingMessage();
             LoadingHost.Visibility = Visibility.Collapsed;
-            if (!_closeRequested)
-            {
-                OpenProjectButton.IsEnabled = true;
-                PortTextBox.IsEnabled = true;
-                PublishCheckBox.IsEnabled = true;
-            }
         }
 
         if (!_closeRequested)
         {
-            OpenProjectButton.IsEnabled = !isLoading;
-            PortTextBox.IsEnabled = !isLoading;
-            PublishCheckBox.IsEnabled = !isLoading;
+            SetLauncherControlsEnabled(!isLoading);
         }
+    }
+
+    /// <summary>
+    /// 読み込みオーバーレイの文言とタイトルを更新するメソッド
+    /// </summary>
+    /// <param name="projectName">表示対象のプロジェクト名</param>
+    private void ApplyLoadingMessage(string? projectName = null)
+    {
+        LoadingTextBlock.Text = string.IsNullOrWhiteSpace(projectName)
+            ? "読み込み中..."
+            : $"{projectName} を読み込み中...";
+        Title = string.IsNullOrWhiteSpace(projectName)
+            ? "CREC Desktop - 読み込み中..."
+            : $"CREC Desktop - {projectName} を読み込み中...";
+    }
+
+    /// <summary>
+    /// 起動設定まわりの入力 UI の有効/無効をまとめて切り替えるメソッド
+    /// </summary>
+    /// <param name="isEnabled">有効にする場合は true</param>
+    private void SetLauncherControlsEnabled(bool isEnabled)
+    {
+        OpenProjectButton.IsEnabled = isEnabled;
+        PortTextBox.IsEnabled = isEnabled;
+        PublishCheckBox.IsEnabled = isEnabled;
     }
 
     /// <summary>
