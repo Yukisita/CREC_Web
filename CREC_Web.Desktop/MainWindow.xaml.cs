@@ -285,8 +285,8 @@ public partial class MainWindow : Window
     /// <summary>
     /// 読み込み中の状態を設定するメソッド
     /// </summary>
-    /// <param name="isLoading"></param>
-    /// <param name="projectPath"></param>
+    /// <param name="isLoading">読み込み中のフラグ  </param>
+    /// <param name="projectPath">プロジェクトのパス</param>
     private void SetLoadingState(bool isLoading, string? projectPath = null)
     {
         if (isLoading)
@@ -354,27 +354,27 @@ public partial class MainWindow : Window
     {
         targetUri = null;
 
-        if (string.IsNullOrWhiteSpace(uriText))
+        if (string.IsNullOrWhiteSpace(uriText))// URI が null または空文字の場合は無視する
         {
             return BrowserNavigationMode.Ignore;
         }
 
-        if (string.Equals(uriText, "about:blank", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(uriText, "about:blank", StringComparison.OrdinalIgnoreCase))// "about:blank" の場合は、ignoreAboutBlankPopup フラグに応じて遷移モードを決定する
         {
             return ignoreAboutBlankPopup ? BrowserNavigationMode.Ignore : BrowserNavigationMode.InApp;
         }
 
-        if (!Uri.TryCreate(uriText, UriKind.Absolute, out targetUri))
+        if (!Uri.TryCreate(uriText, UriKind.Absolute, out targetUri))// URI の解析に失敗した場合は無視する
         {
             return BrowserNavigationMode.Ignore;
         }
 
-        if (targetUri.IsLoopback && (targetUri.Scheme == Uri.UriSchemeHttp || targetUri.Scheme == Uri.UriSchemeHttps))
+        if (targetUri.IsLoopback && (targetUri.Scheme == Uri.UriSchemeHttp || targetUri.Scheme == Uri.UriSchemeHttps))// ループバックアドレスの場合はアプリ内で遷移する
         {
             return BrowserNavigationMode.InApp;
         }
 
-        if (targetUri.Scheme == Uri.UriSchemeHttp || targetUri.Scheme == Uri.UriSchemeHttps)
+        if (targetUri.Scheme == Uri.UriSchemeHttp || targetUri.Scheme == Uri.UriSchemeHttps)// ループバックアドレス以外の HTTP/HTTPS の場合は外部ブラウザで遷移する
         {
             return BrowserNavigationMode.External;
         }
@@ -386,7 +386,7 @@ public partial class MainWindow : Window
     /// <summary>
     /// 指定された URI を OS 既定のブラウザで開くメソッド
     /// </summary>
-    /// <param name="uri"></param>
+    /// <param name="uri">開く対象の URI</param>
     private static void OpenInDefaultBrowser(Uri uri)
     {
         try
