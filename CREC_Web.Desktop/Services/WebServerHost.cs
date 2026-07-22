@@ -15,7 +15,7 @@ internal sealed class WebServerHost
     /// </summary>
     /// <param name="settings">起動設定値</param>
     /// <param name="cancellationToken">キャンセルトークン</param>
-    /// <returns>Web サーバーセ</returns>
+    /// <returns>Web サーバーセッション</returns>
     /// <exception cref="InvalidOperationException"></exception>
     /// <exception cref="FileNotFoundException"></exception>
     public async Task<WebServerSession> StartAsync(DesktopLaunchSettings settings, CancellationToken cancellationToken = default)
