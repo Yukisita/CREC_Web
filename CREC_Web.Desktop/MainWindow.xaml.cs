@@ -405,7 +405,7 @@ public partial class MainWindow : Window
     /// 指定された URI を OS 既定のブラウザで開くメソッド
     /// </summary>
     /// <param name="uri">開く対象の URI</param>
-    private static void OpenInDefaultBrowser(Uri uri)
+    private void OpenInDefaultBrowser(Uri uri)
     {
         try
         {
@@ -415,8 +415,14 @@ public partial class MainWindow : Window
                 UseShellExecute = true
             });
         }
-        catch
+        catch (Exception ex)
         {
+            MessageBox.Show(
+                this,
+                $"既定のブラウザでリンクを開けませんでした。\n{ex.Message}",
+                "CREC Desktop",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
         }
     }
 
