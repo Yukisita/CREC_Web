@@ -41,7 +41,7 @@ for (var i = 0; i < args.Length; i++)
             }
             else
             {
-                Console.WriteLine($"Invalid --port value: {args[i]}");
+                throw new ArgumentException($"Invalid value for --port: {args[i]}");
             }
             break;
         case "--bind-host":// バインドホストを指定
