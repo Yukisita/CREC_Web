@@ -20,12 +20,17 @@ internal sealed class WebServerHost
     /// <exception cref="FileNotFoundException"></exception>
     public async Task<WebServerSession> StartAsync(DesktopLaunchSettings settings, CancellationToken cancellationToken = default)
     {
+        if (_process is { HasExited: true } exitedProcess)
+        {
+            exitedProcess.Dispose();
+            _process = null;
+        }
+
         // すでに起動中の場合は例外をスローする
         if (IsRunning)
         {
             throw new InvalidOperationException("The web server is already running.");
         }
-
         // 起動設定で指定しているプロジェクトファイルの存在を確認する
         var projectFilePath = Path.GetFullPath(settings.ProjectFilePath);
         if (!File.Exists(projectFilePath))
