@@ -249,13 +249,21 @@ logger.LogInformation("Web root path: {WebRootPath}", webRootPath);
 logger.LogInformation("wwwroot exists: {WebRootExists}", Directory.Exists(webRootPath));
 logger.LogInformation("Bind host: {BindHost}", bindHost);
 logger.LogInformation("Web interface will be available at:");
-logger.LogInformation("  - http://localhost:{Port} (HTTP)", port);
-logger.LogInformation("  - https://localhost:{Port} (HTTPS)", port + 1);
-if (!IsLoopbackHost(bindHost))
+var isPublicBind = string.Equals(bindHost, "0.0.0.0", StringComparison.Ordinal);
+if (isPublicBind)// 公開の場合
 {
+    logger.LogInformation("  - http://localhost:{Port} (HTTP, local access)", port);
+    logger.LogInformation("  - https://localhost:{Port} (HTTPS, local access)", port + 1);
+    logger.LogInformation("  - http://[your-ip]:{Port} (HTTP, network access)", port);
     logger.LogInformation("  - https://[your-ip]:{Port}", port + 1);
 }
-logger.LogInformation("API documentation available at: https://localhost:{Port}/swagger", port + 1);
+else// ローカルのみの場合
+{
+    logger.LogInformation("  - http://{BindHost}:{Port} (HTTP)", bindHost, port);
+    logger.LogInformation("  - https://{BindHost}:{Port} (HTTPS)", bindHost, port + 1);
+}
+var documentationHost = isPublicBind ? "localhost" : bindHost;
+logger.LogInformation("API documentation available at: https://{DocumentationHost}:{Port}/swagger", documentationHost, port + 1);
 
 // シャットダウンハンドラの設定
 var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
@@ -352,17 +360,6 @@ static bool IsPortAvailable(int port)
         Console.WriteLine($"Unexpected error when checking port {port}: {ex.Message}");
         return false;
     }
-}
-
-// 指定されたホストがループバックアドレスかどうかを判定するヘルパーメソッド
-static bool IsLoopbackHost(string host)
-{
-    if (string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase))
-    {
-        return true;
-    }
-
-    return IPAddress.TryParse(host, out var address) && IPAddress.IsLoopback(address);
 }
 
 // デスクトップホストから標準入力経由で "shutdown" が送られたときだけ停止を受け付ける。
