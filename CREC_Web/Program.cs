@@ -124,6 +124,11 @@ builder.Services.AddCors(options =>
 int port;
 if (startupPort is int configuredPort)// コマンドライン引数で指定されたポート番号がある場合はパターンマッチング後にそれを使用
 {
+    if (configuredPort < 1 || configuredPort > 65534)
+    {
+        throw new ArgumentOutOfRangeException(nameof(configuredPort), configuredPort, "Port must be between 1 and 65534 (HTTPS uses port+1).");
+    }
+
     if (ArePortsAvailable(configuredPort))
     {
         port = configuredPort;
