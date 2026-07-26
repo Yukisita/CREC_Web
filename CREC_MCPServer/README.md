@@ -36,15 +36,37 @@ cd CREC_MCPServer
 
 # 2. Create a virtual environment (recommended)
 python -m venv .venv
-source .venv/bin/activate       # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 
 # 3. Install dependencies
 pip install -r requirements.txt
-
-# 4. Configure environment variables
-cp .env.example .env
-# Open .env in a text editor and set LLM_URL / LLM_MODEL etc.
 ```
+
+On Windows PowerShell, activate the virtual environment with:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+To override the built-in LLM defaults, set environment variables before
+starting the server.
+
+PowerShell:
+
+```powershell
+$env:LLM_URL = "http://localhost:11434"
+$env:LLM_MODEL = "llama3.2"
+```
+
+bash:
+
+```bash
+export LLM_URL="http://localhost:11434"
+export LLM_MODEL="llama3.2"
+```
+
+`.env.example` is a reference template. `server.py` reads process environment
+variables directly and does not load `.env` files automatically.
 
 ---
 
@@ -59,7 +81,7 @@ On startup, the following message is displayed:
 
 ```
 Starting CREC Web MCP Server on 127.0.0.1:8765
-LLM backend: http://localhost:11434  model: llama3.2
+LLM backend: http://localhost:1234  model: google/gemma-4-e2b
 ```
 
 ---
@@ -68,15 +90,21 @@ LLM backend: http://localhost:11434  model: llama3.2
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `LLM_URL` | `http://localhost:11434` | Base URL of the LLM backend (no trailing slash). Default is for Ollama. For LM Studio use `http://localhost:1234`. |
-| `LLM_MODEL` | `llama3.2` | Model name to use. For Ollama, use a model that has been pulled with `ollama pull`. |
+| `LLM_URL` | `http://localhost:1234` | Base URL of the OpenAI-compatible LLM backend (no trailing slash). The default is for LM Studio. For Ollama's OpenAI-compatible API, use `http://localhost:11434`. |
+| `LLM_MODEL` | `google/gemma-4-e2b` | Model identifier passed to the OpenAI-compatible backend. Set this to a model available in your backend. |
 | `MCP_HOST` | `127.0.0.1` | Bind address for the MCP server. Change to `0.0.0.0` for external access. |
 | `MCP_PORT` | `8765` | Port number for the MCP server. Must match `McpServer:Url` in CREC Web's `appsettings.json`. |
 | `LLM_TIMEOUT` | `120` | Timeout for LLM requests (seconds). |
+| `MAX_CONTEXT_CHARS` | `3000` | Maximum number of page-context characters included in the system prompt. |
+| `MAX_HISTORY_TURNS` | `10` | Maximum number of prior user/assistant turn pairs sent to the LLM. |
+| `CHAT_LOG_DIR` | `logs` | Directory for the structured XML chat log, relative to the MCP server's working directory unless absolute. |
+| `CHAT_LOG_RETENTION_DAYS` | `90` | Number of days to retain rotated chat logs. Use `0` for unlimited retention. |
+| `CHAT_LOG_MAX_FIELD_LENGTH` | `10000` | Maximum number of characters stored per chat-log field. |
 | `SAFE_BUTTON_IDS` | (see below) | Comma-separated list of button IDs the AI is allowed to click. |
 | `SAFE_INPUT_IDS` | (see below) | Comma-separated list of form field IDs the AI is allowed to fill. |
 
-Environment variables can be specified in a `.env` file or set via OS shell configuration.
+Set these values in the environment of the `server.py` process. `.env` files are
+not loaded automatically.
 
 ---
 
@@ -98,6 +126,14 @@ Environment variables can be specified in a `.env` file or set via OS shell conf
 | `inventoryManagementSettingsSave` | Save inventory management settings |
 | `inventoryManagementSettingsCancel` | Cancel inventory management settings |
 | `editIndexBtn` | Open index edit modal |
+| `projectEditSaveBtn` | Save project settings |
+| `saveIndexEdit` | Save collection index changes |
+| `toggleAdvancedFiltersButton` | Toggle advanced search filters |
+| `gridViewBtn` | Switch to grid view |
+| `tableViewBtn` | Switch to table view |
+
+`deleteCollectionBtn` is hard-blocked and cannot be enabled through
+`SAFE_BUTTON_IDS`.
 
 ### Form Field IDs (`SAFE_INPUT_IDS`)
 
@@ -113,6 +149,22 @@ Environment variables can be specified in a `.env` file or set via OS shell conf
 | `searchField` | Search target field | Text |
 | `searchMethod` | Search method | Text |
 | `inventoryStatusFilter` | Inventory status filter | Text |
+| `editName` | Collection name | Text |
+| `editManagementCode` | Collection management code | Text |
+| `editRegistrationDate` | Collection registration date | Date |
+| `editCategory` | Collection category | Text |
+| `editFirstTag` | Collection tag 1 | Text |
+| `editSecondTag` | Collection tag 2 | Text |
+| `editThirdTag` | Collection tag 3 | Text |
+| `editLocation` | Collection location | Text |
+| `editProjectName` | Project name | Text |
+| `editCollectionNameLabel` | Collection-name field label | Text |
+| `editUUIDLabel` | UUID field label | Text |
+| `editManagementCodeLabel` | Management-code field label | Text |
+| `editCategoryLabel` | Category field label | Text |
+| `editTag1Label` | Tag 1 field label | Text |
+| `editTag2Label` | Tag 2 field label | Text |
+| `editTag3Label` | Tag 3 field label | Text |
 
 ---
 
@@ -120,7 +172,7 @@ Environment variables can be specified in a `.env` file or set via OS shell conf
 
 | Tool | Description |
 |------|-------------|
-| `process_chat(message, history, page_context, page_title, lang, project_name)` | Main tool. Calls the LLM to generate a chat response, validates action IDs against the whitelist, and returns the result. |
+| `process_chat(message, history, page_context, page_title, project_name)` | Main tool. Calls the LLM to generate a chat response, validates action IDs against the whitelist, and returns the result. |
 | `search_collections(keyword)` | Returns a collection search action tag. |
 | `navigate(path)` | Returns a page navigation action tag. |
 | `show_admin_panel()` | Returns an admin panel display action tag. |
@@ -152,16 +204,13 @@ Configure the following in CREC Web's `appsettings.json`:
 {
   "McpServer": {
     "Url": "http://127.0.0.1:8765"
-  },
-  "LlmBackend": {
-    "Url": "http://localhost:11434",
-    "Model": "llama3.2"
   }
 }
 ```
 
-> **Note**: `McpServer:Url` must match this server's `MCP_HOST:MCP_PORT`.  
-> The `LlmBackend` settings are not required on the CREC Web side but are kept for reference (LLM configuration is managed via this server's environment variables).
+> **Note**: `McpServer:Url` must match this server's `MCP_HOST:MCP_PORT`.
+> LLM configuration belongs to the MCP server process and is not read from
+> CREC Web's `appsettings.json`.
 
 ---
 

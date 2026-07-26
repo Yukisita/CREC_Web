@@ -1,7 +1,7 @@
 # CREC Web AI 操作リファレンス
 
 AIチャットウィジェットが実行できる操作の完全リファレンスです。  
-サーバ側のシステムプロンプトは `CREC_MCPServer/prompts/system_prompt.ja.txt` で管理されています。詳細な操作リファレンスはこのドキュメントを参照してください。
+サーバ側のシステムプロンプトは `CREC_MCPServer/prompts/system_prompt.txt` で管理されています。詳細な操作リファレンスはこのドキュメントを参照してください。
 
 ---
 
@@ -18,12 +18,24 @@ AIチャットウィジェットが実行できる操作の完全リファレン
 
 ---
 
-### `openCollection` — コレクションを開く
+### `openCollectionByName` — 名前でコレクション概要を開く
 
-指定 ID のコレクション詳細を新しいタブで開きます。
+表示中のコレクションから名前を照合し、ホームページでは概要サイドパネルを開きます。ホームページ以外では同一ウィンドウの詳細ページへ移動します。
 
 ```json
-{"type": "openCollection", "id": "コレクションID"}
+{"type": "openCollectionByName", "name": "コレクション名"}
+```
+
+名前の照合は、完全一致、大文字・小文字を無視した完全一致、部分一致の順に行われます。
+
+---
+
+### `navigateToCollectionByName` — 名前でコレクション詳細へ移動
+
+表示中のコレクションから名前を照合し、同一ウィンドウの詳細ページへ移動します。
+
+```json
+{"type": "navigateToCollectionByName", "name": "コレクション名"}
 ```
 
 ---
@@ -31,13 +43,13 @@ AIチャットウィジェットが実行できる操作の完全リファレン
 ### `showCollectionPanel` — コレクション詳細パネルを開く
 
 指定 ID のコレクション詳細をホームページのサイドパネルで開きます。  
-ホームページ以外では `openCollection` と同様に新しいタブで開きます。
+ホームページ以外では同一ウィンドウの詳細ページへ移動します。
 
 ```json
 {"type": "showCollectionPanel", "id": "コレクションID"}
 ```
 
-> **使い分けの目安:** ホームページで詳細を確認・操作したい場合は `showCollectionPanel` を使用してください。他のページから遷移せずに詳細を見たい場合は `openCollection` が適しています。
+> **使い分けの目安:** ID が分かっている場合は `showCollectionPanel`、名前が分かっている場合は `openCollectionByName` を使用します。明示的に詳細ページへ移動する場合は `navigateToCollectionByName` を使用してください。
 
 ---
 
@@ -81,6 +93,28 @@ AIチャットウィジェットが実行できる操作の完全リファレン
 
 ---
 
+### `navigateHome` — ホームへ移動
+
+同一ウィンドウでホーム（コレクション一覧）へ移動します。ホームへ戻る指示には、`navigate` よりこちらを優先します。
+
+```json
+{"type": "navigateHome"}
+```
+
+---
+
+### `switchLanguage` — 表示言語を切り替える
+
+表示言語を日本語、英語、ドイツ語のいずれかへ切り替えます。
+
+```json
+{"type": "switchLanguage", "lang": "ja"}
+```
+
+`lang` に指定できる値は `ja`、`en`、`de` のみです。
+
+---
+
 ### `clickButton` — ボタンをクリック
 
 指定 ID のボタンをクリックします。使用可能な ID は以下の通りです。
@@ -103,6 +137,13 @@ AIチャットウィジェットが実行できる操作の完全リファレン
 | `inventoryManagementSettingsSave` | 在庫管理設定を保存 | 在庫管理設定モーダルが開いているとき |
 | `inventoryManagementSettingsCancel` | 在庫管理設定をキャンセル | 在庫管理設定モーダルが開いているとき |
 | `editIndexBtn` | インデックス編集モーダルを開く | コレクション詳細ページのみ |
+| `projectEditSaveBtn` | プロジェクト設定を保存 | プロジェクト設定ページ |
+| `saveIndexEdit` | インデックス編集内容を保存 | インデックス編集モーダルが開いているとき |
+| `toggleAdvancedFiltersButton` | 詳細フィルタを開閉 | ホームページ |
+| `gridViewBtn` | グリッド表示へ切り替え | ホームページ |
+| `tableViewBtn` | テーブル表示へ切り替え | ホームページ |
+
+`deleteCollectionBtn` はハードコードされた禁止対象であり、環境変数のホワイトリストへ追加してもAIから実行できません。
 
 ---
 
@@ -123,6 +164,25 @@ AIチャットウィジェットが実行できる操作の完全リファレン
 | `safetyStock` | 安全在庫数 | 数値 |
 | `reorderPoint` | 発注点 | 数値 |
 | `maximumLevel` | 最大在庫数 | 数値 |
+| `searchField` | 検索対象フィールド | 選択肢の値 |
+| `searchMethod` | 検索方法 | 選択肢の値 |
+| `inventoryStatusFilter` | 在庫状態フィルタ | 選択肢の値 |
+| `editName` | コレクション名 | テキスト |
+| `editManagementCode` | 管理コード | テキスト |
+| `editRegistrationDate` | 登録日 | 日付 |
+| `editCategory` | カテゴリ | テキスト |
+| `editFirstTag` | タグ1 | テキスト |
+| `editSecondTag` | タグ2 | テキスト |
+| `editThirdTag` | タグ3 | テキスト |
+| `editLocation` | 場所 | テキスト |
+| `editProjectName` | プロジェクト名 | テキスト |
+| `editCollectionNameLabel` | コレクション名ラベル | テキスト |
+| `editUUIDLabel` | UUIDラベル | テキスト |
+| `editManagementCodeLabel` | 管理コードラベル | テキスト |
+| `editCategoryLabel` | カテゴリラベル | テキスト |
+| `editTag1Label` | タグ1ラベル | テキスト |
+| `editTag2Label` | タグ2ラベル | テキスト |
+| `editTag3Label` | タグ3ラベル | テキスト |
 
 ---
 
@@ -137,7 +197,7 @@ AIチャットウィジェットが実行できる操作の完全リファレン
 ...
 ```
 
-この情報を使って、「表示中の最初のコレクションを開いて」などの指示に対して正確な ID を使った `showCollectionPanel` または `openCollection` アクションを実行してください。
+この情報を使って、「表示中の最初のコレクションを開いて」などの指示に対して、正確な ID を使った `showCollectionPanel`、または名前を使った `openCollectionByName` / `navigateToCollectionByName` アクションを実行してください。
 
 ---
 
@@ -243,14 +303,16 @@ AIチャットウィジェットが実行できる操作の完全リファレン
 
 新しい操作を AI に許可するには、以下の箇所を変更してください:
 
-1. **`CREC_MCPServer/.env`** — `SAFE_BUTTON_IDS` または `SAFE_INPUT_IDS` に新しい ID を追加
+1. **MCPサーバープロセスの環境変数** — `SAFE_BUTTON_IDS` または `SAFE_INPUT_IDS` に新しい ID を追加
 2. **このドキュメント** — 上記のテーブルとワークフロー例を更新
 
-MCP サーバは環境変数に記載のない ID を自動的に除去するため、ホワイトリストに追加しない限り AI はその要素を操作できません。
+`server.py` は `.env` ファイルを自動では読み込みません。シェル、サービス定義、または起動構成で環境変数を設定してからMCPサーバーを再起動してください。`SAFE_BUTTON_IDS` / `SAFE_INPUT_IDS` を指定すると既定リスト全体を上書きするため、引き続き許可する既存IDも含める必要があります。
+
+MCP サーバは環境変数のホワイトリストにない ID を自動的に除去するため、ホワイトリストに追加しない限り AI はその要素を操作できません。
 
 ### システムプロンプトの編集
 
-`CREC_MCPServer/prompts/system_prompt.ja.txt` を直接編集することで、再コンパイルなしにプロンプトを変更できます。  
+`CREC_MCPServer/prompts/system_prompt.txt` を直接編集することで、再コンパイルなしにプロンプトを変更できます。
 ファイルはサーバ起動時にキャッシュされるため、変更後はサーバを再起動してください。
 
 ---
