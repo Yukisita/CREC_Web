@@ -20,6 +20,24 @@ LLM Backend (Ollama / LM Studio / etc.)
 
 ---
 
+## Source Layout
+
+| Path | Responsibility |
+|------|----------------|
+| `server.py` | Compose dependencies, register MCP tools, and start the Streamable HTTP server. |
+| `crec_mcp/config.py` | Load environment variables and define default allowlists. |
+| `crec_mcp/actions.py` | Format and validate browser action tags. Malformed or unknown actions are rejected. |
+| `crec_mcp/audit_log.py` | Write structured, rotating XML audit logs. |
+| `crec_mcp/conversation.py` | Render the system prompt and normalize browser conversation history. |
+| `crec_mcp/llm_client.py` | Call the OpenAI-compatible chat-completions endpoint. |
+| `crec_mcp/chat_service.py` | Coordinate prompt building, LLM calls, response policy, and audit logging. |
+| `tests/` | Unit tests for action policy, conversations, prompts, and chat orchestration. |
+
+`server.py` is intentionally kept small. Review business rules in
+`crec_mcp/` and transport/tool registration in `server.py` separately.
+
+---
+
 ## Prerequisites
 
 - Python 3.11 or higher
@@ -83,6 +101,20 @@ On startup, the following message is displayed:
 Starting CREC Web MCP Server on 127.0.0.1:8765
 LLM backend: http://localhost:1234  model: google/gemma-4-e2b
 ```
+
+---
+
+## Running Tests
+
+From the `CREC_MCPServer` directory:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+The tests use Python's standard `unittest` framework. Install
+`requirements.txt` first because the chat-service module imports the configured
+HTTP client implementation.
 
 ---
 
