@@ -599,9 +599,15 @@
          */
         function createCollectionRow(collection) {
             const row = document.createElement('tr');
-            row.dataset.collectionId = collection.indexData?.systemData?.id || '';
-            row.dataset.collectionName = collection.indexData?.values?.name || '';
-            row.addEventListener('click', () => showCollectionOverview(collection.indexData?.systemData?.id));
+            row.addEventListener('click', () => {
+                const selectedCollectionId = collection.indexData?.systemData?.id;
+                if (!selectedCollectionId) {
+                    console.warn('Cannot show collection overview: collection ID is missing.');
+                    return;
+                }
+
+                showCollectionOverview(selectedCollectionId);
+            });
 
             const inventoryStatusText = getInventoryStatusText(
                 collection.collectionInventoryStatus,
@@ -786,9 +792,9 @@
             const detailsBtn = document.createElement('button');
             detailsBtn.className = 'btn btn-primary btn-sm w-100';
             detailsBtn.innerHTML = `<i class="bi bi-box-arrow-up-right"></i> ${t('view-details')}`;
-            detailsBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
+            detailsBtn.addEventListener('click', () => {
                 window.location.href = `/Collection/${encodeURIComponent(collection.indexData.systemData.id)}`;
+            });
             });
 
             const cardFooter = document.createElement('div');
