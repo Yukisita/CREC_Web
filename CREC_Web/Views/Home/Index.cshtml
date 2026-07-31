@@ -600,13 +600,13 @@
         function createCollectionRow(collection) {
             const row = document.createElement('tr');
             row.addEventListener('click', () => {
-                const collectionId = collection.indexData?.systemData?.id;
-                if (!collectionId) {
+                const selectedCollectionId = collection.indexData?.systemData?.id;
+                if (!selectedCollectionId) {
                     console.warn('Cannot show collection overview: collection ID is missing.');
                     return;
                 }
 
-                showCollectionOverview(collectionId);
+                showCollectionOverview(selectedCollectionId);
             });
 
             const inventoryStatusText = getInventoryStatusText(
