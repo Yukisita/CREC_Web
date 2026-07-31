@@ -599,7 +599,15 @@
          */
         function createCollectionRow(collection) {
             const row = document.createElement('tr');
-            row.addEventListener('click', () => showCollectionOverview(collection.indexData?.systemData?.id));
+            row.addEventListener('click', () => {
+                const collectionId = collection.indexData?.systemData?.id;
+                if (!collectionId) {
+                    console.warn('Cannot show collection overview: collection ID is missing.');
+                    return;
+                }
+
+                showCollectionOverview(collectionId);
+            });
 
             const inventoryStatusText = getInventoryStatusText(
                 collection.collectionInventoryStatus,
