@@ -393,11 +393,6 @@ namespace CREC_Web.Models
         /// 3Dデータファイルリスト
         /// </summary>
         public List<string> ThreeDFiles { get; set; } = new List<string>();
-
-        /// <summary>
-        /// その他ファイルリスト
-        /// </summary>
-        public List<string> OtherFiles { get; set; } = new List<string>();
     }
 
     /// <summary>
