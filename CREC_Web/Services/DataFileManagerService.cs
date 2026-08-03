@@ -10,17 +10,31 @@ using CREC_Web.Models;
 
 namespace CREC_Web.Services
 {
+    /// <summary>
+    /// コレクションの data フォルダに対するファイル・フォルダ操作を提供します。
+    /// </summary>
     public sealed class DataFileManagerService
     {
         private readonly IConfiguration _configuration;
         private readonly ILogger<DataFileManagerService> _logger;
 
+        /// <summary>
+        /// データファイル管理サービスを初期化します。
+        /// </summary>
+        /// <param name="configuration">プロジェクトデータフォルダなどのアプリケーション設定。</param>
+        /// <param name="logger">ファイル操作の警告やエラーを記録するロガー。</param>
         public DataFileManagerService(IConfiguration configuration, ILogger<DataFileManagerService> logger)
         {
             _configuration = configuration;
             _logger = logger;
         }
 
+        /// <summary>
+        /// 指定した data フォルダ内のファイルとフォルダを一覧で取得します。
+        /// </summary>
+        /// <param name="collectionId">対象コレクションのID。</param>
+        /// <param name="relativePath">data フォルダを基準とした対象フォルダの相対パス。ルートの場合は null または空文字。</param>
+        /// <returns>現在の相対パスと、直下に存在する項目の一覧。</returns>
         public DataDirectoryListing ListDirectory(string collectionId, string? relativePath)
         {
             var dataRoot = GetDataRoot(collectionId, createIfMissing: false);
@@ -77,6 +91,13 @@ namespace CREC_Web.Services
             };
         }
 
+        /// <summary>
+        /// 指定した親フォルダ内に新しいフォルダを作成します。
+        /// </summary>
+        /// <param name="collectionId">対象コレクションのID。</param>
+        /// <param name="parentPath">data フォルダを基準とした親フォルダの相対パス。</param>
+        /// <param name="name">作成するフォルダ名。</param>
+        /// <returns>作成したフォルダの情報。</returns>
         public DataFileEntry CreateDirectory(string collectionId, string? parentPath, string name)
         {
             ValidateEntryName(name);
@@ -92,6 +113,14 @@ namespace CREC_Web.Services
             return CreateEntry(directoryPath, dataRoot);
         }
 
+        /// <summary>
+        /// ファイルまたはフォルダの名前を変更します。
+        /// </summary>
+        /// <param name="collectionId">対象コレクションのID。</param>
+        /// <param name="path">data フォルダを基準とした変更対象の相対パス。</param>
+        /// <param name="newName">変更後のファイル名またはフォルダ名。</param>
+        /// <param name="confirmExtensionChange">ファイルの拡張子変更を利用者が確認済みの場合は true。</param>
+        /// <returns>名前変更後の項目情報。</returns>
         public DataFileEntry RenameEntry(
             string collectionId,
             string path,
@@ -147,6 +176,11 @@ namespace CREC_Web.Services
             return CreateEntry(destinationPath, dataRoot);
         }
 
+        /// <summary>
+        /// ファイルまたはフォルダを削除します。フォルダの場合は配下の項目も再帰的に削除します。
+        /// </summary>
+        /// <param name="collectionId">対象コレクションのID。</param>
+        /// <param name="path">data フォルダを基準とした削除対象の相対パス。</param>
         public void DeleteEntry(string collectionId, string path)
         {
             var dataRoot = GetDataRoot(collectionId, createIfMissing: false);
@@ -164,6 +198,14 @@ namespace CREC_Web.Services
             }
         }
 
+        /// <summary>
+        /// 指定したフォルダへファイルをアップロードします。
+        /// </summary>
+        /// <param name="collectionId">対象コレクションのID。</param>
+        /// <param name="directoryPath">data フォルダを基準としたアップロード先フォルダの相対パス。</param>
+        /// <param name="file">アップロードするファイル。</param>
+        /// <param name="cancellationToken">アップロード処理のキャンセルを通知するトークン。</param>
+        /// <returns>アップロードしたファイルの情報。</returns>
         public async Task<DataFileEntry> UploadFileAsync(
             string collectionId,
             string? directoryPath,
@@ -216,6 +258,12 @@ namespace CREC_Web.Services
             return CreateEntry(destinationPath, dataRoot);
         }
 
+        /// <summary>
+        /// ダウンロード対象ファイルの実パスとダウンロード名を取得します。
+        /// </summary>
+        /// <param name="collectionId">対象コレクションのID。</param>
+        /// <param name="path">data フォルダを基準としたファイルの相対パス。</param>
+        /// <returns>検証済みの実パスとダウンロード時のファイル名。</returns>
         public (string FullPath, string DownloadName) GetFileForDownload(string collectionId, string path)
         {
             var dataRoot = GetDataRoot(collectionId, createIfMissing: false);
@@ -231,6 +279,13 @@ namespace CREC_Web.Services
             return (filePath, Path.GetFileName(filePath));
         }
 
+        /// <summary>
+        /// 指定したフォルダと配下の項目を含む一時ZIPアーカイブを作成します。
+        /// </summary>
+        /// <param name="collectionId">対象コレクションのID。</param>
+        /// <param name="path">data フォルダを基準とした対象フォルダの相対パス。</param>
+        /// <param name="cancellationToken">ZIP作成処理のキャンセルを通知するトークン。</param>
+        /// <returns>読み取り後に自動削除されるZIPストリームとダウンロード名。</returns>
         public async Task<(FileStream Stream, string DownloadName)> CreateDirectoryArchiveAsync(
             string collectionId,
             string path,
@@ -287,6 +342,12 @@ namespace CREC_Web.Services
             }
         }
 
+        /// <summary>
+        /// コレクションの存在とパスの安全性を検証し、data フォルダの実パスを取得します。
+        /// </summary>
+        /// <param name="collectionId">対象コレクションのID。</param>
+        /// <param name="createIfMissing">data フォルダが存在しない場合に作成するかどうか。</param>
+        /// <returns>検証済みの data フォルダ実パス。</returns>
         private string GetDataRoot(string collectionId, bool createIfMissing)
         {
             if (!ValidationHelper.IsValidCollectionId(collectionId))
@@ -321,6 +382,12 @@ namespace CREC_Web.Services
             return dataRoot;
         }
 
+        /// <summary>
+        /// 相対パスを検証し、区切り文字をスラッシュに統一します。
+        /// </summary>
+        /// <param name="path">検証対象の相対パス。</param>
+        /// <param name="allowRoot">ルートを表す null または空文字を許可するかどうか。</param>
+        /// <returns>正規化した相対パス。</returns>
         private static string NormalizeRelativePath(string? path, bool allowRoot)
         {
             if (string.IsNullOrWhiteSpace(path))
@@ -361,6 +428,10 @@ namespace CREC_Web.Services
             return string.Join('/', segments);
         }
 
+        /// <summary>
+        /// ファイル名またはフォルダ名として使用できる文字列か検証します。
+        /// </summary>
+        /// <param name="name">検証する項目名。</param>
         private static void ValidateEntryName(string name)
         {
             if (!ValidationHelper.IsValidFileSystemEntryName(name))
@@ -369,6 +440,12 @@ namespace CREC_Web.Services
             }
         }
 
+        /// <summary>
+        /// 正規化済み相対パスを実パスへ変換し、data フォルダ外を指していないことを検証します。
+        /// </summary>
+        /// <param name="dataRoot">基準となる data フォルダの実パス。</param>
+        /// <param name="normalizedRelativePath">正規化済みの相対パス。</param>
+        /// <returns>data フォルダ内であることを確認した実パス。</returns>
         private static string ResolvePath(string dataRoot, string normalizedRelativePath)
         {
             var relativeOsPath = normalizedRelativePath.Replace('/', Path.DirectorySeparatorChar);
@@ -381,6 +458,11 @@ namespace CREC_Web.Services
             return resolvedPath;
         }
 
+        /// <summary>
+        /// フォルダが存在し、パス上にリパースポイントが含まれないことを検証します。
+        /// </summary>
+        /// <param name="dataRoot">基準となる data フォルダの実パス。</param>
+        /// <param name="directoryPath">検証するフォルダの実パス。</param>
         private static void EnsureExistingDirectoryIsSafe(string dataRoot, string directoryPath)
         {
             if (!Directory.Exists(directoryPath))
@@ -391,6 +473,11 @@ namespace CREC_Web.Services
             EnsurePathHasNoReparsePoints(dataRoot, directoryPath);
         }
 
+        /// <summary>
+        /// ファイルまたはフォルダが存在し、パス上にリパースポイントが含まれないことを検証します。
+        /// </summary>
+        /// <param name="dataRoot">基準となる data フォルダの実パス。</param>
+        /// <param name="entryPath">検証する項目の実パス。</param>
         private static void EnsureExistingEntryIsSafe(string dataRoot, string entryPath)
         {
             if (!File.Exists(entryPath) && !Directory.Exists(entryPath))
@@ -401,6 +488,11 @@ namespace CREC_Web.Services
             EnsurePathHasNoReparsePoints(dataRoot, entryPath);
         }
 
+        /// <summary>
+        /// data フォルダから対象までの各階層にリパースポイントがないことを検証します。
+        /// </summary>
+        /// <param name="dataRoot">基準となる data フォルダの実パス。</param>
+        /// <param name="path">検証する対象の実パス。</param>
         private static void EnsurePathHasNoReparsePoints(string dataRoot, string path)
         {
             EnsureNotReparsePoint(dataRoot);
@@ -418,6 +510,10 @@ namespace CREC_Web.Services
             }
         }
 
+        /// <summary>
+        /// 指定パスがシンボリックリンクなどのリパースポイントでないことを検証します。
+        /// </summary>
+        /// <param name="path">検証する実パス。</param>
         private static void EnsureNotReparsePoint(string path)
         {
             if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0)
@@ -426,6 +522,12 @@ namespace CREC_Web.Services
             }
         }
 
+        /// <summary>
+        /// 指定パスが基準フォルダ自身またはその配下にあるか判定します。
+        /// </summary>
+        /// <param name="path">判定対象の実パス。</param>
+        /// <param name="root">基準フォルダの実パス。</param>
+        /// <returns>基準フォルダ内であれば true。</returns>
         private static bool IsPathWithinRoot(string path, string root)
         {
             var relativePath = Path.GetRelativePath(root, path);
@@ -435,15 +537,31 @@ namespace CREC_Web.Services
                  !Path.IsPathRooted(relativePath));
         }
 
+        /// <summary>
+        /// 親の相対パスと項目名をスラッシュ区切りで結合します。
+        /// </summary>
+        /// <param name="parentPath">親フォルダの相対パス。</param>
+        /// <param name="name">結合するファイル名またはフォルダ名。</param>
+        /// <returns>結合後の相対パス。</returns>
         private static string CombineRelativePath(string parentPath, string name) =>
             string.IsNullOrEmpty(parentPath) ? name : $"{parentPath}/{name}";
 
+        /// <summary>
+        /// 実パスを data フォルダ基準の相対パスへ変換します。
+        /// </summary>
+        /// <param name="dataRoot">基準となる data フォルダの実パス。</param>
+        /// <param name="path">変換対象の実パス。</param>
+        /// <returns>スラッシュ区切りの相対パス。</returns>
         private static string GetRelativePath(string dataRoot, string path)
         {
             var relativePath = Path.GetRelativePath(dataRoot, path);
             return relativePath == "." ? string.Empty : relativePath.Replace('\\', '/');
         }
 
+        /// <summary>
+        /// 作成・名前変更先に同名のファイルまたはフォルダが存在しないことを検証します。
+        /// </summary>
+        /// <param name="path">作成・名前変更先の実パス。</param>
         private static void EnsureDestinationDoesNotExist(string path)
         {
             if (File.Exists(path) || Directory.Exists(path))
@@ -452,12 +570,24 @@ namespace CREC_Web.Services
             }
         }
 
+        /// <summary>
+        /// ファイル名の拡張子が大文字・小文字の違いを除いて変更されるか判定します。
+        /// </summary>
+        /// <param name="oldName">変更前のファイル名。</param>
+        /// <param name="newName">変更後のファイル名。</param>
+        /// <returns>拡張子が変更される場合は true。</returns>
         private static bool HasExtensionChanged(string oldName, string newName) =>
             !string.Equals(
                 Path.GetExtension(oldName),
                 Path.GetExtension(newName),
                 StringComparison.OrdinalIgnoreCase);
 
+        /// <summary>
+        /// Windows上でも大文字・小文字だけの名前変更を反映できるよう、一時名を経由して変更します。
+        /// </summary>
+        /// <param name="sourcePath">変更前の実パス。</param>
+        /// <param name="destinationPath">変更後の実パス。</param>
+        /// <param name="isDirectory">変更対象がフォルダの場合は true。</param>
         private static void RenameEntryCaseOnly(string sourcePath, string destinationPath, bool isDirectory)
         {
             var parentPath = Path.GetDirectoryName(sourcePath)
@@ -497,6 +627,12 @@ namespace CREC_Web.Services
             }
         }
 
+        /// <summary>
+        /// ファイルシステム上の項目からAPIレスポンス用の項目情報を生成します。
+        /// </summary>
+        /// <param name="path">対象項目の実パス。</param>
+        /// <param name="dataRoot">相対パスの基準となる data フォルダの実パス。</param>
+        /// <returns>項目名、相対パス、種類、サイズ、更新日時を含む情報。</returns>
         private static DataFileEntry CreateEntry(string path, string dataRoot)
         {
             var isDirectory = Directory.Exists(path);
@@ -511,6 +647,10 @@ namespace CREC_Web.Services
             };
         }
 
+        /// <summary>
+        /// リパースポイントのリンク先をたどらず、指定フォルダを配下から再帰的に削除します。
+        /// </summary>
+        /// <param name="directoryPath">削除するフォルダの実パス。</param>
         private static void DeleteDirectoryWithoutFollowingReparsePoints(string directoryPath)
         {
             foreach (var entry in new DirectoryInfo(directoryPath).EnumerateFileSystemInfos())
@@ -542,6 +682,13 @@ namespace CREC_Web.Services
             Directory.Delete(directoryPath, recursive: false);
         }
 
+        /// <summary>
+        /// フォルダ配下の項目を再帰的にZIPアーカイブへ追加します。
+        /// </summary>
+        /// <param name="archive">追加先のZIPアーカイブ。</param>
+        /// <param name="directoryPath">追加するフォルダの実パス。</param>
+        /// <param name="archivePath">ZIP内で使用するフォルダパス。</param>
+        /// <param name="cancellationToken">処理のキャンセルを通知するトークン。</param>
         private static async Task AddDirectoryToArchiveAsync(
             ZipArchive archive,
             string directoryPath,
@@ -589,11 +736,20 @@ namespace CREC_Web.Services
         }
     }
 
+    /// <summary>
+    /// データファイル操作でHTTPステータスとエラーコードを呼び出し元へ伝えるための例外です。
+    /// </summary>
     public sealed class DataFileManagerException : Exception
     {
         public int StatusCode { get; }
         public string? ErrorCode { get; }
 
+        /// <summary>
+        /// データファイル操作例外を生成します。
+        /// </summary>
+        /// <param name="statusCode">APIレスポンスに使用するHTTPステータスコード。</param>
+        /// <param name="message">利用者へ返すエラーメッセージ。</param>
+        /// <param name="errorCode">フロントエンドで処理を分岐するための任意のエラーコード。</param>
         public DataFileManagerException(int statusCode, string message, string? errorCode = null)
             : base(message)
         {

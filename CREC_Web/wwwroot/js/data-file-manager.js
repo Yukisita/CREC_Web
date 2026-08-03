@@ -4,7 +4,14 @@ Copyright (c) [2025 - 2026] [S.Yukisita]
 This software is released under the MIT License.
 */
 
+/**
+ * コレクションの data フォルダをブラウザ上で操作するUIを管理します。
+ */
 class DataFileManager {
+    /**
+     * @param {HTMLElement} container ファイル管理UIを描画するコンテナ。
+     * @param {string} collectionId 操作対象のコレクションID。
+     */
     constructor(container, collectionId) {
         this.container = container;
         this.collectionId = collectionId;
@@ -13,12 +20,21 @@ class DataFileManager {
         this.loadSequence = 0;
     }
 
+    /**
+     * UIを初期化し、現在のフォルダ内容を読み込みます。
+     * @param {HTMLElement} container ファイル管理UIを描画するコンテナ。
+     * @returns {Promise<void>}
+     */
     async initialize(container = this.container) {
         this.container = container;
         this.renderShell();
         await this.loadDirectory(this.currentPath);
     }
 
+    /**
+     * ツールバー、一覧、操作ダイアログの土台を描画し、イベントを登録します。
+     * @returns {void}
+     */
     renderShell() {
         this.container.classList.remove('loading');
         this.container.innerHTML = `
@@ -85,6 +101,11 @@ class DataFileManager {
         });
     }
 
+    /**
+     * ファイル管理UI内のボタン操作を判別し、対応する処理へ振り分けます。
+     * @param {MouseEvent} event クリックイベント。
+     * @returns {Promise<void>}
+     */
     async handleClick(event) {
         const actionElement = event.target.closest('[data-data-action]');
         if (!actionElement || !this.container.contains(actionElement)) return;
@@ -117,6 +138,11 @@ class DataFileManager {
         }
     }
 
+    /**
+     * 指定フォルダの一覧をAPIから取得し、パンくずと一覧を更新します。
+     * @param {string} path data フォルダを基準とした対象フォルダの相対パス。
+     * @returns {Promise<void>}
+     */
     async loadDirectory(path) {
         const sequence = ++this.loadSequence;
         this.setLoading(true);
@@ -140,6 +166,10 @@ class DataFileManager {
         }
     }
 
+    /**
+     * フォルダ名を入力するダイアログを表示し、現在のフォルダ内に作成します。
+     * @returns {Promise<void>}
+     */
     async createFolder() {
         const name = await this.showInputDialog(
             t('data-new-folder'),
@@ -155,6 +185,12 @@ class DataFileManager {
         this.showSuccess(t('data-create-folder-success'));
     }
 
+    /**
+     * ファイルまたはフォルダの新しい名前を入力し、APIへ名前変更を要求します。
+     * ファイルの拡張子が変わる場合は、利用者の確認結果もAPIへ送信します。
+     * @param {string} path data フォルダを基準とした変更対象の相対パス。
+     * @returns {Promise<void>}
+     */
     async renameEntry(path) {
         const entry = this.entries.find(item => item.relativePath === path);
         if (!entry) return;
@@ -189,6 +225,11 @@ class DataFileManager {
         this.showSuccess(t('data-rename-success'));
     }
 
+    /**
+     * 削除確認後、指定したファイルまたはフォルダを削除します。
+     * @param {string} path data フォルダを基準とした削除対象の相対パス。
+     * @returns {Promise<void>}
+     */
     async deleteEntry(path) {
         const entry = this.entries.find(item => item.relativePath === path);
         if (!entry) return;
@@ -206,6 +247,11 @@ class DataFileManager {
         this.showSuccess(t('data-delete-success'));
     }
 
+    /**
+     * 選択されたファイルを現在のフォルダへアップロードします。
+     * @param {File} file アップロードするブラウザのFileオブジェクト。
+     * @returns {Promise<void>}
+     */
     async uploadFile(file) {
         const formData = new FormData();
         formData.append('file', file);
@@ -222,6 +268,10 @@ class DataFileManager {
         }
     }
 
+    /**
+     * 現在の相対パスからパンくずリストと上位フォルダボタンの状態を更新します。
+     * @returns {void}
+     */
     renderBreadcrumb() {
         const breadcrumb = this.container.querySelector('[data-data-breadcrumb]');
         const segments = this.currentPath ? this.currentPath.split('/') : [];
@@ -244,6 +294,10 @@ class DataFileManager {
         upButton.disabled = !this.currentPath;
     }
 
+    /**
+     * 現在保持しているファイル・フォルダ一覧と各操作ボタンを描画します。
+     * @returns {void}
+     */
     renderEntries() {
         const list = this.container.querySelector('[data-data-list]');
         if (!this.entries.length) {
@@ -301,6 +355,13 @@ class DataFileManager {
             </div>`;
     }
 
+    /**
+     * APIへリクエストを送り、失敗時は画面表示用のエラーへ変換します。
+     * @param {string} url リクエスト先URL。
+     * @param {RequestInit} options fetchへ渡すリクエスト設定。
+     * @param {boolean} expectJson 成功レスポンスをJSONとして読み取る場合はtrue。
+     * @returns {Promise<object|null>} JSONレスポンス。本文が不要な場合はnull。
+     */
     async request(url, options, expectJson = true) {
         const response = await fetch(url, options);
         if (!response.ok) {
@@ -310,11 +371,21 @@ class DataFileManager {
         return response.json();
     }
 
+    /**
+     * fetchレスポンスの成否を確認し、成功時のJSONを返します。
+     * @param {Response} response fetchから返されたレスポンス。
+     * @returns {Promise<object>} 読み取ったJSON。
+     */
     async readJsonResponse(response) {
         if (!response.ok) throw await this.createResponseError(response);
         return response.json();
     }
 
+    /**
+     * APIのProblem Detailsレスポンスを、ローカライズ済みのErrorへ変換します。
+     * @param {Response} response エラーとなったAPIレスポンス。
+     * @returns {Promise<Error>} 画面表示に使用するエラー。
+     */
     async createResponseError(response) {
         const problem = await response.json().catch(() => null);
         if (problem?.code === 'extension_change_confirmation_required') {
@@ -338,10 +409,25 @@ class DataFileManager {
         return error;
     }
 
+    /**
+     * 文字列入力用ダイアログを表示します。
+     * @param {string} title ダイアログのタイトル。
+     * @param {string} label 入力欄の説明。
+     * @param {string} initialValue 入力欄の初期値。
+     * @returns {Promise<string|null>} 入力値。キャンセル時はnull。
+     */
     showInputDialog(title, label, initialValue = '') {
         return this.showDialog({ title, label, initialValue, requiresInput: true });
     }
 
+    /**
+     * 確認用ダイアログを表示します。
+     * @param {string} title ダイアログのタイトル。
+     * @param {string} message 確認内容。
+     * @param {string} confirmText 実行ボタンに表示する文言。
+     * @param {boolean} isDanger 実行ボタンを危険操作の表示にする場合はtrue。
+     * @returns {Promise<boolean|null>} 確認した場合はtrue、キャンセル時はnull。
+     */
     showConfirmDialog(title, message, confirmText, isDanger = false) {
         return this.showDialog({
             title,
@@ -352,6 +438,18 @@ class DataFileManager {
         });
     }
 
+    /**
+     * 共通モーダルを入力用または確認用として設定し、利用者の操作結果を返します。
+     * @param {object} options ダイアログの表示設定。
+     * @param {string} options.title ダイアログのタイトル。
+     * @param {string} options.label 入力欄の説明。
+     * @param {string} options.message 確認メッセージ。
+     * @param {string} options.initialValue 入力欄の初期値。
+     * @param {string} options.confirmText 実行ボタンの文言。
+     * @param {boolean} options.isDanger 危険操作として表示する場合はtrue。
+     * @param {boolean} options.requiresInput 入力欄を使用する場合はtrue。
+     * @returns {Promise<string|boolean|null>} 入力値、確認結果、またはキャンセル時のnull。
+     */
     showDialog({
         title,
         label = '',
@@ -409,10 +507,18 @@ class DataFileManager {
         });
     }
 
+    /**
+     * 操作対象コレクションのデータファイル管理API URLを返します。
+     * @returns {string} URLエンコード済みのAPI URL。
+     */
     get baseUrl() {
         return `/api/collections/${encodeURIComponent(this.collectionId)}/data`;
     }
 
+    /**
+     * 現在のフォルダから1階層上の相対パスを取得します。
+     * @returns {string} 親フォルダの相対パス。ルートでは空文字。
+     */
     getParentPath() {
         if (!this.currentPath) return '';
         const segments = this.currentPath.split('/');
@@ -420,16 +526,32 @@ class DataFileManager {
         return segments.join('/');
     }
 
+    /**
+     * ファイルの拡張子が大文字・小文字の違いを除いて変更されるか判定します。
+     * @param {string} oldName 変更前のファイル名。
+     * @param {string} newName 変更後のファイル名。
+     * @returns {boolean} 拡張子が変更される場合はtrue。
+     */
     hasExtensionChanged(oldName, newName) {
         return this.getExtension(oldName).toLowerCase() !== this.getExtension(newName).toLowerCase();
     }
 
+    /**
+     * ファイル名から末尾の拡張子を取得します。
+     * @param {string} name 対象のファイル名。
+     * @returns {string} ドットを含む拡張子。拡張子がない場合は空文字。
+     */
     getExtension(name) {
         const lastDotIndex = name.lastIndexOf('.');
         if (lastDotIndex < 0 || lastDotIndex === name.length - 1) return '';
         return name.slice(lastDotIndex);
     }
 
+    /**
+     * ファイル操作中のボタン無効化と初回読み込み表示を切り替えます。
+     * @param {boolean} isLoading 読み込み中の場合はtrue。
+     * @returns {void}
+     */
     setLoading(isLoading) {
         this.container.querySelectorAll('button, input').forEach(element => {
             if (element.dataset.dataAction === 'up' && !this.currentPath) return;
@@ -441,16 +563,32 @@ class DataFileManager {
         }
     }
 
+    /**
+     * 操作成功メッセージをステータス領域へ表示します。
+     * @param {string} message 表示するメッセージ。
+     * @returns {void}
+     */
     showSuccess(message) {
         const status = this.container.querySelector('[data-data-status]');
         status.innerHTML = `<div class="alert alert-success py-2" role="status">${escapeHtml(message)}</div>`;
     }
 
+    /**
+     * 進行中の処理をステータス領域へ表示します。
+     * @param {string} message 表示するメッセージ。
+     * @returns {void}
+     */
     showInfo(message) {
         const status = this.container.querySelector('[data-data-status]');
         status.innerHTML = `<div class="alert alert-info py-2" role="status"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>${escapeHtml(message)}</div>`;
     }
 
+    /**
+     * エラー内容をログへ記録し、ステータス領域へ表示します。
+     * @param {Error|null} error 発生したエラー。
+     * @param {string} fallbackMessage エラーメッセージがない場合の表示文言。
+     * @returns {void}
+     */
     showError(error, fallbackMessage = t('data-operation-error')) {
         console.error('Data file manager error:', error);
         const status = this.container.querySelector('[data-data-status]');
@@ -458,10 +596,19 @@ class DataFileManager {
         status.innerHTML = `<div class="alert alert-danger py-2" role="alert">${escapeHtml(message)}</div>`;
     }
 
+    /**
+     * ステータス領域のメッセージを消去します。
+     * @returns {void}
+     */
     clearStatus() {
         this.container.querySelector('[data-data-status]').innerHTML = '';
     }
 
+    /**
+     * バイト数を画面表示用の単位付き文字列へ変換します。
+     * @param {number|null} size ファイルサイズ（バイト）。
+     * @returns {string} B、KB、MB、GB、TBのいずれかで整形した文字列。
+     */
     formatSize(size) {
         if (!Number.isFinite(size)) return '—';
         if (size < 1024) return `${size} B`;
@@ -475,6 +622,11 @@ class DataFileManager {
         return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unitIndex]}`;
     }
 
+    /**
+     * UTC日時を利用者のローカル日時文字列へ変換します。
+     * @param {string|null} value APIから取得した日時文字列。
+     * @returns {string} ローカル日時。値が不正な場合はプレースホルダー。
+     */
     formatDate(value) {
         if (!value) return '—';
         const date = new Date(value);

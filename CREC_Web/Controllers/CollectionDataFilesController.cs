@@ -12,6 +12,9 @@ using Microsoft.AspNetCore.StaticFiles;
 
 namespace CREC_Web.Controllers
 {
+    /// <summary>
+    /// コレクションの data フォルダを操作するAPIを提供します。
+    /// </summary>
     [ApiController]
     [Route("api/collections/{collectionId}/data")]
     public sealed class CollectionDataFilesController : ControllerBase
@@ -23,6 +26,12 @@ namespace CREC_Web.Controllers
         private readonly ILogger<CollectionDataFilesController> _logger;
         private readonly FileExtensionContentTypeProvider _contentTypeProvider = new();
 
+        /// <summary>
+        /// データファイル管理APIを初期化します。
+        /// </summary>
+        /// <param name="dataFileManager">ファイルシステム操作を担当するサービス。</param>
+        /// <param name="crecDataService">操作後にコレクションキャッシュを更新するためのサービス。</param>
+        /// <param name="logger">API処理の警告やエラーを記録するロガー。</param>
         public CollectionDataFilesController(
             DataFileManagerService dataFileManager,
             CrecDataService crecDataService,
@@ -33,6 +42,12 @@ namespace CREC_Web.Controllers
             _logger = logger;
         }
 
+        /// <summary>
+        /// 指定した data フォルダ直下のファイルとフォルダを取得します。
+        /// </summary>
+        /// <param name="collectionId">対象コレクションのID。</param>
+        /// <param name="path">data フォルダを基準とした対象フォルダの相対パス。</param>
+        /// <returns>現在のパスと直下の項目一覧。</returns>
         [HttpGet]
         public ActionResult<DataDirectoryListing> ListDirectory(string collectionId, [FromQuery] string? path = null)
         {
@@ -46,6 +61,12 @@ namespace CREC_Web.Controllers
             }
         }
 
+        /// <summary>
+        /// 指定した data フォルダ内に新しいフォルダを作成します。
+        /// </summary>
+        /// <param name="collectionId">対象コレクションのID。</param>
+        /// <param name="request">親フォルダの相対パスと作成するフォルダ名。</param>
+        /// <returns>作成したフォルダの情報。</returns>
         [HttpPost("folders")]
         public ActionResult<DataFileEntry> CreateDirectory(
             string collectionId,
@@ -63,6 +84,12 @@ namespace CREC_Web.Controllers
             }
         }
 
+        /// <summary>
+        /// data フォルダ内のファイルまたはフォルダの名前を変更します。
+        /// </summary>
+        /// <param name="collectionId">対象コレクションのID。</param>
+        /// <param name="request">変更対象の相対パス、新しい名前、拡張子変更の確認状態。</param>
+        /// <returns>名前変更後の項目情報。</returns>
         [HttpPatch("entries")]
         public ActionResult<DataFileEntry> RenameEntry(
             string collectionId,
@@ -84,6 +111,12 @@ namespace CREC_Web.Controllers
             }
         }
 
+        /// <summary>
+        /// data フォルダ内のファイルまたはフォルダを削除します。
+        /// </summary>
+        /// <param name="collectionId">対象コレクションのID。</param>
+        /// <param name="path">data フォルダを基準とした削除対象の相対パス。</param>
+        /// <returns>削除成功時はレスポンス本文なし。</returns>
         [HttpDelete("entries")]
         public IActionResult DeleteEntry(string collectionId, [FromQuery] string path)
         {
@@ -99,6 +132,13 @@ namespace CREC_Web.Controllers
             }
         }
 
+        /// <summary>
+        /// 指定した data フォルダへファイルをアップロードします。
+        /// </summary>
+        /// <param name="collectionId">対象コレクションのID。</param>
+        /// <param name="path">data フォルダを基準としたアップロード先の相対パス。</param>
+        /// <param name="file">アップロードするファイル。</param>
+        /// <returns>アップロードしたファイルの情報。</returns>
         [HttpPost("files")]
         [RequestSizeLimit(MaxDataFileSizeBytes)]
         [RequestFormLimits(MultipartBodyLengthLimit = MaxDataFileSizeBytes)]
@@ -127,6 +167,12 @@ namespace CREC_Web.Controllers
             }
         }
 
+        /// <summary>
+        /// data フォルダ内のファイルをダウンロードします。
+        /// </summary>
+        /// <param name="collectionId">対象コレクションのID。</param>
+        /// <param name="path">data フォルダを基準とした対象ファイルの相対パス。</param>
+        /// <returns>対象ファイルのダウンロードレスポンス。</returns>
         [HttpGet("files")]
         public IActionResult DownloadFile(string collectionId, [FromQuery] string path)
         {
@@ -151,6 +197,12 @@ namespace CREC_Web.Controllers
             }
         }
 
+        /// <summary>
+        /// data フォルダ内の指定フォルダを、配下の項目を含むZIPとしてダウンロードします。
+        /// </summary>
+        /// <param name="collectionId">対象コレクションのID。</param>
+        /// <param name="path">data フォルダを基準とした対象フォルダの相対パス。</param>
+        /// <returns>作成したZIPファイルのダウンロードレスポンス。</returns>
         [HttpGet("folders/archive")]
         public async Task<IActionResult> DownloadDirectory(string collectionId, [FromQuery] string path)
         {
@@ -173,8 +225,18 @@ namespace CREC_Web.Controllers
             }
         }
 
+        /// <summary>
+        /// ファイル操作後に、コレクション一覧のキャッシュを破棄します。
+        /// </summary>
         private void ClearCollectionCache() => _crecDataService.ClearCollectionsListCache();
 
+        /// <summary>
+        /// ファイル操作中の例外を、ログ出力と適切なHTTPエラーレスポンスへ変換します。
+        /// </summary>
+        /// <param name="exception">変換対象の例外。</param>
+        /// <param name="operation">ログに記録する実行中の操作名。</param>
+        /// <param name="collectionId">操作対象のコレクションID。</param>
+        /// <returns>例外の種類に対応したエラーレスポンス。</returns>
         private ObjectResult HandleException(Exception exception, string operation, string collectionId)
         {
             if (exception is DataFileManagerException dataException)
