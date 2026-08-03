@@ -1162,7 +1162,7 @@
             if (!dataFileManager || dataFileManager.collectionId !== collection.indexData.systemData.id) {
                 dataFileManager = new DataFileManager(dataTabContent, collection.indexData.systemData.id);
             }
-            dataFileManager.initialize(dataTabContent);
+dataFileManager.initialize(dataTabContent).catch(error => dataFileManager.showError(error));
         }
 
 		// コレクションインデックス編集モーダルを開く関数
