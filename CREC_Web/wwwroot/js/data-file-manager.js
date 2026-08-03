@@ -165,10 +165,25 @@ class DataFileManager {
             entry.name);
         if (newName === null || newName === entry.name) return;
 
+        let confirmExtensionChange = false;
+        if (entry.entryType === 'file' && this.hasExtensionChanged(entry.name, newName)) {
+            const oldExtension = this.getExtension(entry.name) || t('data-no-extension');
+            const newExtension = this.getExtension(newName) || t('data-no-extension');
+            const warning = t('data-extension-change-confirm')
+                .replace('{oldExtension}', oldExtension)
+                .replace('{newExtension}', newExtension);
+            const confirmed = await this.showConfirmDialog(
+                t('data-extension-change-title'),
+                warning,
+                t('data-rename'));
+            if (!confirmed) return;
+            confirmExtensionChange = true;
+        }
+
         await this.request(`${this.baseUrl}/entries`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path, newName })
+            body: JSON.stringify({ path, newName, confirmExtensionChange })
         });
         await this.loadDirectory(this.currentPath);
         this.showSuccess(t('data-rename-success'));
@@ -182,7 +197,7 @@ class DataFileManager {
             ? 'data-delete-folder-confirm'
             : 'data-delete-file-confirm';
         const message = t(messageKey).replace('{name}', entry.name);
-        if (!await this.showConfirmDialog(t('data-delete'), message)) return;
+        if (!await this.showConfirmDialog(t('data-delete'), message, t('data-delete'), true)) return;
 
         await this.request(`${this.baseUrl}/entries?path=${encodeURIComponent(path)}`, {
             method: 'DELETE'
@@ -302,6 +317,12 @@ class DataFileManager {
 
     async createResponseError(response) {
         const problem = await response.json().catch(() => null);
+        if (problem?.code === 'extension_change_confirmation_required') {
+            const error = new Error(t('data-extension-confirmation-required'));
+            error.status = response.status;
+            error.code = problem.code;
+            return error;
+        }
         const localizedErrorKeys = {
             400: 'data-invalid-request',
             403: 'data-access-denied',
@@ -321,11 +342,25 @@ class DataFileManager {
         return this.showDialog({ title, label, initialValue, requiresInput: true });
     }
 
-    showConfirmDialog(title, message) {
-        return this.showDialog({ title, message, requiresInput: false });
+    showConfirmDialog(title, message, confirmText, isDanger = false) {
+        return this.showDialog({
+            title,
+            message,
+            confirmText,
+            isDanger,
+            requiresInput: false
+        });
     }
 
-    showDialog({ title, label = '', message = '', initialValue = '', requiresInput }) {
+    showDialog({
+        title,
+        label = '',
+        message = '',
+        initialValue = '',
+        confirmText = '',
+        isDanger = false,
+        requiresInput
+    }) {
         const modalElement = this.container.querySelector('[data-data-dialog]');
         const titleElement = modalElement.querySelector('[data-data-dialog-title]');
         const messageElement = modalElement.querySelector('[data-data-dialog-message]');
@@ -342,9 +377,9 @@ class DataFileManager {
         labelElement.textContent = label;
         inputElement.value = initialValue;
         inputElement.classList.remove('is-invalid');
-        confirmButton.textContent = requiresInput ? t('save') : t('data-delete');
-        confirmButton.classList.toggle('btn-primary', requiresInput);
-        confirmButton.classList.toggle('btn-danger', !requiresInput);
+        confirmButton.textContent = requiresInput ? t('save') : confirmText;
+        confirmButton.classList.toggle('btn-primary', requiresInput || !isDanger);
+        confirmButton.classList.toggle('btn-danger', !requiresInput && isDanger);
 
         return new Promise(resolve => {
             let result = null;
@@ -383,6 +418,16 @@ class DataFileManager {
         const segments = this.currentPath.split('/');
         segments.pop();
         return segments.join('/');
+    }
+
+    hasExtensionChanged(oldName, newName) {
+        return this.getExtension(oldName).toLowerCase() !== this.getExtension(newName).toLowerCase();
+    }
+
+    getExtension(name) {
+        const lastDotIndex = name.lastIndexOf('.');
+        if (lastDotIndex < 0 || lastDotIndex === name.length - 1) return '';
+        return name.slice(lastDotIndex);
     }
 
     setLoading(isLoading) {

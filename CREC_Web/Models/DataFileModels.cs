@@ -31,5 +31,6 @@ namespace CREC_Web.Models
     {
         public string Path { get; set; } = string.Empty;
         public string NewName { get; set; } = string.Empty;
+        public bool ConfirmExtensionChange { get; set; }
     }
 }

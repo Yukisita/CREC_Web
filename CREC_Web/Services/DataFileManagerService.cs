@@ -92,13 +92,26 @@ namespace CREC_Web.Services
             return CreateEntry(directoryPath, dataRoot);
         }
 
-        public DataFileEntry RenameEntry(string collectionId, string path, string newName)
+        public DataFileEntry RenameEntry(
+            string collectionId,
+            string path,
+            string newName,
+            bool confirmExtensionChange)
         {
             ValidateEntryName(newName);
             var dataRoot = GetDataRoot(collectionId, createIfMissing: false);
             var normalizedPath = NormalizeRelativePath(path, allowRoot: false);
             var sourcePath = ResolvePath(dataRoot, normalizedPath);
             EnsureExistingEntryIsSafe(dataRoot, sourcePath);
+
+            var isDirectory = Directory.Exists(sourcePath);
+            if (!isDirectory && HasExtensionChanged(Path.GetFileName(sourcePath), newName) && !confirmExtensionChange)
+            {
+                throw new DataFileManagerException(
+                    409,
+                    "Changing the file extension requires confirmation.",
+                    "extension_change_confirmation_required");
+            }
 
             var parentPath = Path.GetDirectoryName(sourcePath)
                 ?? throw new DataFileManagerException(400, "Invalid entry path.");
@@ -120,9 +133,9 @@ namespace CREC_Web.Services
 
             if (isCaseOnlyRename)
             {
-                RenameEntryCaseOnly(sourcePath, destinationPath, Directory.Exists(sourcePath));
+                RenameEntryCaseOnly(sourcePath, destinationPath, isDirectory);
             }
-            else if (Directory.Exists(sourcePath))
+            else if (isDirectory)
             {
                 Directory.Move(sourcePath, destinationPath);
             }
@@ -439,6 +452,12 @@ namespace CREC_Web.Services
             }
         }
 
+        private static bool HasExtensionChanged(string oldName, string newName) =>
+            !string.Equals(
+                Path.GetExtension(oldName),
+                Path.GetExtension(newName),
+                StringComparison.OrdinalIgnoreCase);
+
         private static void RenameEntryCaseOnly(string sourcePath, string destinationPath, bool isDirectory)
         {
             var parentPath = Path.GetDirectoryName(sourcePath)
@@ -573,11 +592,13 @@ namespace CREC_Web.Services
     public sealed class DataFileManagerException : Exception
     {
         public int StatusCode { get; }
+        public string? ErrorCode { get; }
 
-        public DataFileManagerException(int statusCode, string message)
+        public DataFileManagerException(int statusCode, string message, string? errorCode = null)
             : base(message)
         {
             StatusCode = statusCode;
+            ErrorCode = errorCode;
         }
     }
 }

@@ -70,7 +70,11 @@ namespace CREC_Web.Controllers
         {
             try
             {
-                var entry = _dataFileManager.RenameEntry(collectionId, request.Path, request.NewName);
+                var entry = _dataFileManager.RenameEntry(
+                    collectionId,
+                    request.Path,
+                    request.NewName,
+                    request.ConfirmExtensionChange);
                 ClearCollectionCache();
                 return Ok(entry);
             }
@@ -180,9 +184,16 @@ namespace CREC_Web.Controllers
                     operation,
                     collectionId.SanitizeForLog(),
                     dataException.Message.SanitizeForLog());
-                return Problem(
-                    statusCode: dataException.StatusCode,
-                    title: dataException.Message);
+                var problemDetails = new ProblemDetails
+                {
+                    Status = dataException.StatusCode,
+                    Title = dataException.Message
+                };
+                if (!string.IsNullOrEmpty(dataException.ErrorCode))
+                {
+                    problemDetails.Extensions["code"] = dataException.ErrorCode;
+                }
+                return new ObjectResult(problemDetails) { StatusCode = dataException.StatusCode };
             }
 
             if (exception is UnauthorizedAccessException)
