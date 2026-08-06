@@ -15,6 +15,10 @@ namespace CREC_Web.Services
     /// </summary>
     public sealed class DataFileManagerService
     {
+        private const long MaxArchiveUncompressedSizeBytes = 1024L * 1024 * 1024;
+        private const int MaxArchiveEntryCount = 10_000;
+        private const int MaxArchiveDepth = 32;
+
         private readonly IConfiguration _configuration;
         private readonly ILogger<DataFileManagerService> _logger;
 
@@ -309,11 +313,14 @@ namespace CREC_Web.Services
                     useAsync: true))
                 using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: false))
                 {
+                    var archiveState = new ArchiveCreationState();
                     await AddDirectoryToArchiveAsync(
                         archive,
                         directoryPath,
                         Path.GetFileName(directoryPath),
-                        cancellationToken);
+                        archiveState,
+                        depth: 0,
+                        cancellationToken: cancellationToken);
                 }
 
                 var stream = new FileStream(
@@ -702,14 +709,26 @@ namespace CREC_Web.Services
         /// <param name="archive">追加先のZIPアーカイブ。</param>
         /// <param name="directoryPath">追加するフォルダの実パス。</param>
         /// <param name="archivePath">ZIP内で使用するフォルダパス。</param>
+        /// <param name="archiveState">ZIP作成中の項目数と非圧縮合計サイズ。</param>
+        /// <param name="depth">ZIP対象ルートを0とした現在の階層。</param>
         /// <param name="cancellationToken">処理のキャンセルを通知するトークン。</param>
         private static async Task AddDirectoryToArchiveAsync(
             ZipArchive archive,
             string directoryPath,
             string archivePath,
+            ArchiveCreationState archiveState,
+            int depth,
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (depth > MaxArchiveDepth)
+            {
+                throw new DataFileManagerException(
+                    413,
+                    "The directory is too deeply nested to archive.",
+                    "archive_depth_limit_exceeded");
+            }
+
             var entries = new DirectoryInfo(directoryPath).EnumerateFileSystemInfos().ToList();
             if (entries.Count == 0)
             {
@@ -725,6 +744,15 @@ namespace CREC_Web.Services
                     continue;
                 }
 
+                archiveState.EntryCount++;
+                if (archiveState.EntryCount > MaxArchiveEntryCount)
+                {
+                    throw new DataFileManagerException(
+                        413,
+                        "The directory contains too many entries to archive.",
+                        "archive_entry_limit_exceeded");
+                }
+
                 var childArchivePath = $"{archivePath.TrimEnd('/')}/{entry.Name}";
                 if ((entry.Attributes & FileAttributes.Directory) != 0)
                 {
@@ -732,8 +760,19 @@ namespace CREC_Web.Services
                         archive,
                         entry.FullName,
                         childArchivePath,
+                        archiveState,
+                        depth + 1,
                         cancellationToken);
                     continue;
+                }
+
+                var fileSize = ((FileInfo)entry).Length;
+                if (fileSize > MaxArchiveUncompressedSizeBytes - archiveState.TotalUncompressedSizeBytes)
+                {
+                    throw new DataFileManagerException(
+                        413,
+                        "The directory is too large to archive.",
+                        "archive_size_limit_exceeded");
                 }
 
                 var archiveEntry = archive.CreateEntry(childArchivePath, CompressionLevel.Fastest);
@@ -745,8 +784,50 @@ namespace CREC_Web.Services
                     bufferSize: 81920,
                     useAsync: true);
                 await using var output = archiveEntry.Open();
-                await input.CopyToAsync(output, cancellationToken);
+                await CopyFileToArchiveAsync(input, output, archiveState, cancellationToken);
             }
+        }
+
+        /// <summary>
+        /// 実際に読み取ったバイト数で合計サイズを検証しながら、ファイルをZIP項目へコピーします。
+        /// </summary>
+        /// <param name="input">圧縮対象ファイルの読み取りストリーム。</param>
+        /// <param name="output">ZIP項目の書き込みストリーム。</param>
+        /// <param name="archiveState">ZIP作成中の項目数と非圧縮合計サイズ。</param>
+        /// <param name="cancellationToken">コピー処理のキャンセルを通知するトークン。</param>
+        private static async Task CopyFileToArchiveAsync(
+            Stream input,
+            Stream output,
+            ArchiveCreationState archiveState,
+            CancellationToken cancellationToken)
+        {
+            var buffer = new byte[81920];
+            while (true)
+            {
+                var bytesRead = await input.ReadAsync(buffer, cancellationToken);
+                if (bytesRead == 0)
+                {
+                    return;
+                }
+
+                if (bytesRead > MaxArchiveUncompressedSizeBytes - archiveState.TotalUncompressedSizeBytes)
+                {
+                    throw new DataFileManagerException(
+                        413,
+                        "The directory is too large to archive.",
+                        "archive_size_limit_exceeded");
+                }
+
+                archiveState.TotalUncompressedSizeBytes += bytesRead;
+                await output.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
+            }
+        }
+
+        /// <summary>ZIP作成中の項目数と非圧縮合計サイズを保持します。</summary>
+        private sealed class ArchiveCreationState
+        {
+            public int EntryCount { get; set; }
+            public long TotalUncompressedSizeBytes { get; set; }
         }
     }
 
