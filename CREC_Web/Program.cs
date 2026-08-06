@@ -108,6 +108,7 @@ builder.Services.AddSingleton(projectSettingsService);
 
 // Add CREC data service
 builder.Services.AddSingleton<CrecDataService>();
+builder.Services.AddSingleton<DataFileManagerService>();
 
 // Add CORS for browser access
 builder.Services.AddCors(options =>
