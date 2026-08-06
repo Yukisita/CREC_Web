@@ -355,7 +355,15 @@ namespace CREC_Web.Services
                 throw new DataFileManagerException(400, "Invalid collection ID.");
             }
 
-            var configuredRoot = _configuration["ProjectDataPath"] ?? Directory.GetCurrentDirectory();
+            var configuredRoot = _configuration["ProjectDataPath"];
+            if (string.IsNullOrWhiteSpace(configuredRoot))
+            {
+                throw new DataFileManagerException(
+                    500,
+                    "ProjectDataPath is not configured.",
+                    "project_data_path_not_configured");
+            }
+
             var projectRoot = Path.GetFullPath(configuredRoot);
             var collectionRoot = Path.GetFullPath(Path.Combine(projectRoot, collectionId));
             if (!IsPathWithinRoot(collectionRoot, projectRoot) || !Directory.Exists(collectionRoot))
