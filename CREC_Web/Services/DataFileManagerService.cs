@@ -155,22 +155,22 @@ namespace CREC_Web.Services
             var isCaseOnlyRename =
                 string.Equals(sourcePath, destinationPath, StringComparison.OrdinalIgnoreCase) &&
                 !string.Equals(sourcePath, destinationPath, StringComparison.Ordinal);
-            if (!isCaseOnlyRename)
-            {
-                EnsureDestinationDoesNotExist(destinationPath);
-            }
 
             if (isCaseOnlyRename)
             {
                 RenameEntryCaseOnly(sourcePath, destinationPath, isDirectory);
             }
-            else if (isDirectory)
-            {
-                Directory.Move(sourcePath, destinationPath);
-            }
             else
             {
-                File.Move(sourcePath, destinationPath);
+                EnsureDestinationDoesNotExist(destinationPath);
+                if (isDirectory)
+                {
+                    Directory.Move(sourcePath, destinationPath);
+                }
+                else
+                {
+                    File.Move(sourcePath, destinationPath);
+                }
             }
 
             return CreateEntry(destinationPath, dataRoot);
