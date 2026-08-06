@@ -245,7 +245,7 @@ namespace CREC_Web.Services
                 {
                     try
                     {
-                        File.Delete(destinationPath);
+                        File.Delete(destinationPath);// アップロードが中断された場合は不完全なファイルを削除する
                     }
                     catch (Exception cleanupException)
                     {
@@ -331,7 +331,7 @@ namespace CREC_Web.Services
                 {
                     try
                     {
-                        File.Delete(tempArchivePath);
+                        File.Delete(tempArchivePath);// ZIP作成が中断された場合は不完全なアーカイブを削除する
                     }
                     catch (Exception cleanupException)
                     {
