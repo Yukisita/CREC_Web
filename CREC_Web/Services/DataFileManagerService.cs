@@ -78,6 +78,7 @@ namespace CREC_Web.Services
                 });
             }
 
+            // ディレクトリを先に、名前は大文字小文字を区別せず昇順、同じ名前の場合は大文字小文字を区別して昇順でソート
             entries = entries
                 .OrderBy(entry => entry.EntryType == "directory" ? 0 : 1)
                 .ThenBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase)
@@ -613,7 +614,7 @@ namespace CREC_Web.Services
                 {
                     if (Directory.Exists(temporaryPath) && !Directory.Exists(sourcePath))
                     {
-                        Directory.Move(temporaryPath, sourcePath);
+                        Directory.Move(temporaryPath, sourcePath);// 失敗した場合は変更前の名前に戻す
                     }
                     throw;
                 }
@@ -629,7 +630,7 @@ namespace CREC_Web.Services
             {
                 if (File.Exists(temporaryPath) && !File.Exists(sourcePath))
                 {
-                    File.Move(temporaryPath, sourcePath);
+                    File.Move(temporaryPath, sourcePath);// 失敗した場合は変更前の名前に戻す
                 }
                 throw;
             }

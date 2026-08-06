@@ -32,7 +32,7 @@ namespace CREC_Web.Models
         /// <summary>項目種別。ファイルは file、フォルダは directory。</summary>
         public string EntryType { get; set; } = string.Empty;
 
-        /// <summary>ファイルサイズ。フォルダの場合は null。</summary>
+        /// <summary>ファイルサイズ(bytes)。フォルダの場合は null。</summary>
         public long? Size { get; set; }
 
         /// <summary>最終更新日時（UTC）。</summary>
