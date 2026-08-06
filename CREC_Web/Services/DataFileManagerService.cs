@@ -657,16 +657,20 @@ namespace CREC_Web.Services
         }
 
         /// <summary>
-        /// リパースポイントのリンク先をたどらず、指定フォルダを配下から再帰的に削除します。
+        /// リパースポイント（シンボリックリンクやジャンクションなど）のリンク先をたどらず、指定フォルダを配下から再帰的に削除します。
         /// </summary>
         /// <param name="directoryPath">削除するフォルダの実パス。</param>
         private static void DeleteDirectoryWithoutFollowingReparsePoints(string directoryPath)
         {
             foreach (var entry in new DirectoryInfo(directoryPath).EnumerateFileSystemInfos())
             {
-                if ((entry.Attributes & FileAttributes.ReparsePoint) != 0)
+                var isDirectory = (entry.Attributes & FileAttributes.Directory) != 0;
+                var isReparsePoint = (entry.Attributes & FileAttributes.ReparsePoint) != 0;
+
+                // リパースポイントは別の場所を参照する可能性があるため、配下を再帰せずDirectory または File のリンク自体だけを削除する。
+                if (isReparsePoint)
                 {
-                    if ((entry.Attributes & FileAttributes.Directory) != 0)
+                    if (isDirectory)
                     {
                         Directory.Delete(entry.FullName, recursive: false);
                     }
@@ -678,7 +682,7 @@ namespace CREC_Web.Services
                     continue;
                 }
 
-                if ((entry.Attributes & FileAttributes.Directory) != 0)
+                if (isDirectory)
                 {
                     DeleteDirectoryWithoutFollowingReparsePoints(entry.FullName);
                 }
@@ -688,6 +692,7 @@ namespace CREC_Web.Services
                 }
             }
 
+            // 配下が空になった通常フォルダを削除する。
             Directory.Delete(directoryPath, recursive: false);
         }
 
