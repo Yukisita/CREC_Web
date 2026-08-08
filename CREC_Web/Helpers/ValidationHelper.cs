@@ -62,5 +62,22 @@ namespace CREC_Web.Helpers
 
             return true;
         }
+
+        /// <summary>
+        /// data フォルダ内で使用するファイル・フォルダ名の妥当性を検証します。
+        /// </summary>
+        public static bool IsValidFileSystemEntryName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name) || name.Length > 255) return false;
+            if (name is "." or "..") return false;
+            if (!string.Equals(name, name.Trim(), StringComparison.Ordinal)) return false;
+            if (name.IndexOfAny(WindowsInvalidFileNameChars) >= 0) return false;
+            if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) return false;
+            if (name.Any(char.IsControl)) return false;
+            if (name[^1] is '.' or ' ') return false;
+
+            var nameWithoutExtension = Path.GetFileNameWithoutExtension(name);
+            return !WindowsReservedDeviceNames.Contains(nameWithoutExtension);
+        }
     }
 }

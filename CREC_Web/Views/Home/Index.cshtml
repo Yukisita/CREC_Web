@@ -879,18 +879,6 @@
                     `
                 : `<p class="text-muted">${t('no-images')}</p>`;
 
-            const filesHtml = collection.otherFiles.length > 0
-                ? collection.otherFiles.map(file => `
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        ${escapeHtml(file)}
-                        <a href="/api/File/${encodeURIComponent(collection.indexData.systemData.id)}/data/${encodeURIComponent(file)}"
-                            class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener noreferrer">
-                            <i class="bi bi-download"></i>
-                        </a>
-                    </li>
-                    `).join('')
-                : `<p class="text-muted">No files</p>`;
-
             panelBody.innerHTML = `
                 <div class="detail-section">
                     <h6>${projectSettings.uuidName}</h6>
@@ -959,13 +947,6 @@
                 <div class="detail-section">
                     <h6>${t('images')}</h6>
                     ${imagesHtml}
-                </div>
-
-                <div class="detail-section">
-                    <h6>${t('files')}</h6>
-                    <ul class="list-group">
-                        ${filesHtml}
-                    </ul>
                 </div>
             `;
 

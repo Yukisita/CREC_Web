@@ -4,6 +4,7 @@
 }
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/data-file-manager.css" />
     <style>
         body {
             padding: 0rem;
@@ -501,6 +502,7 @@
 </div>
 
 @section Scripts {
+    <script src="~/js/data-file-manager.js"></script>
     <script type="importmap">
     {
       "imports": {
@@ -515,6 +517,7 @@
         const collectionId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewData["CollectionId"]));
         // コレクションデータを保持する変数
         let currentCollection = null;
+        let dataFileManager = null;
         
 		// コレクションの詳細を取得して表示する関数
         async function loadCollectionDetails() {
@@ -683,30 +686,6 @@
                     </div>
                 </div>
                 <input type="file" id="videoFileInput" accept=".mp4,.mov,.avi,.mkv,.webm,.wmv,.flv,.m4v" style="display:none;">
-            `;
-        }
-
-        // データタブのHTMLを生成するヘルパー関数
-        function generateDataTabHtml(collection) {
-            const filesHtml = collection.otherFiles.length > 0
-                ? collection.otherFiles.map(file => `
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        ${escapeHtml(file)}
-                        <a href="/api/File/${encodeURIComponent(collection.indexData.systemData.id)}/data/${encodeURIComponent(file)}"
-                            class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener noreferrer">
-                            <i class="bi bi-download"></i>
-                        </a>
-                    </li>
-                    `).join('')
-                : `<p class="text-muted">${t('no-files')}</p>`;
-
-            return `
-                <div class="detail-section">
-                    <h6>${t('files')}</h6>
-                    <ul class="list-group">
-                        ${filesHtml}
-                    </ul>
-                </div>
             `;
         }
 
@@ -1189,8 +1168,12 @@
                 });
             }
             
-            // --- エリアB: データタブの内容を構築（ファイルのみ）---
-            document.getElementById('dataTabContent').innerHTML = generateDataTabHtml(collection);
+            // --- エリアB: データファイルマネージャーを構築 ---
+            const dataTabContent = document.getElementById('dataTabContent');
+            if (!dataFileManager || dataFileManager.collectionId !== collection.indexData.systemData.id) {
+                dataFileManager = new DataFileManager(dataTabContent, collection.indexData.systemData.id);
+            }
+            dataFileManager.initialize(dataTabContent).catch(error => dataFileManager.showError(error));
         }
 
 		// コレクションインデックス編集モーダルを開く関数

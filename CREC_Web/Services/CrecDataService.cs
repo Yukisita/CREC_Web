@@ -327,27 +327,6 @@ namespace CREC_Web.Services
                         }
                     }
                 }
-
-                // dataフォルダからデータファイルを読み込む
-                // CREC構造: {dataPath}\{collectionId}\data\
-                var dataPath = Path.Combine(directoryPath, "data");
-                if (Directory.Exists(dataPath))
-                {
-                    _logger.LogInformation($"Loading data files from data folder: {dataPath}");
-                    var dataFiles = Directory.GetFiles(dataPath);
-
-                    foreach (var file in dataFiles)
-                    {
-                        var fileName = Path.GetFileName(file);
-                        var extension = Path.GetExtension(file).ToLowerInvariant();
-
-                        if (!collection.OtherFiles.Contains(fileName))
-                        {
-                            collection.OtherFiles.Add(fileName);
-                            _logger.LogDebug($"Added data file from data folder: {fileName}");
-                        }
-                    }
-                }
             }
             catch (Exception ex)
             {
