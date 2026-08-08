@@ -213,6 +213,15 @@ registerTranslations('en', {
     'tag2-label': 'Tag 2 Label',
     'tag3-label': 'Tag 3 Label',
     'edit-project-success': 'Project settings saved successfully',
-    'edit-project-error': 'Failed to save project settings'
+    'edit-project-error': 'Failed to save project settings',
+    'chat-title': 'AI Assistant',
+    'chat-placeholder': 'Type a message...',
+    'chat-welcome': "Hello! I'm the CREC Web support assistant. Feel free to ask questions about how to use the system or request any operations.",
+    'chat-thinking': 'Thinking...',
+    'chat-error': 'An error occurred. Please try again.',
+    'chat-error-empty-response': 'Response was empty. Please try again.',
+    'chat-error-network': 'Could not connect to the AI server. Please check your network connection.',
+    'chat-error-server': 'An error occurred on the AI server. Please try again later.',
+    'chat-error-timeout': 'The AI response timed out. Please try again.'
 });
 
