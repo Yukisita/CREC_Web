@@ -1,11 +1,119 @@
 ﻿/*
 CREC Web - Collection Data Model
-Copyright (c) [2025] [S.Yukisita]
+Copyright (c) [2025 - 2026] [S.Yukisita]
 This software is released under the MIT License.
 */
 
+using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
+
 namespace CREC_Web.Models
 {
+    /// <summary>
+    /// Index.json のシステムデータ
+    /// </summary>
+    [DataContract]
+    public class IndexSystemData
+    {
+        /// <summary>
+        /// コレクションID (UUID)
+        /// </summary>
+        [DataMember(Name = "id")]
+        [JsonPropertyName("id")]
+        public string Id { get; set; } = string.Empty;
+
+        /// <summary>
+        /// システム作成日時 (UTC)
+        /// </summary>
+        [DataMember(Name = "systemCreateDate")]
+        [JsonPropertyName("systemCreateDate")]
+        public string SystemCreateDate { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Index.json の値データ
+    /// </summary>
+    [DataContract]
+    public class IndexValues
+    {
+        /// <summary>
+        /// 名称
+        /// </summary>
+        [DataMember(Name = "name")]
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 管理コード
+        /// </summary>
+        [DataMember(Name = "managementCode")]
+        [JsonPropertyName("managementCode")]
+        public string ManagementCode { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 登録日 (UTC)
+        /// </summary>
+        [DataMember(Name = "registrationDate")]
+        [JsonPropertyName("registrationDate")]
+        public string RegistrationDate { get; set; } = string.Empty;
+
+        /// <summary>
+        /// カテゴリ
+        /// </summary>
+        [DataMember(Name = "category")]
+        [JsonPropertyName("category")]
+        public string Category { get; set; } = string.Empty;
+
+        /// <summary>
+        /// タグ1
+        /// </summary>
+        [DataMember(Name = "firstTag")]
+        [JsonPropertyName("firstTag")]
+        public string FirstTag { get; set; } = string.Empty;
+
+        /// <summary>
+        /// タグ2
+        /// </summary>
+        [DataMember(Name = "secondTag")]
+        [JsonPropertyName("secondTag")]
+        public string SecondTag { get; set; } = string.Empty;
+
+        /// <summary>
+        /// タグ3
+        /// </summary>
+        [DataMember(Name = "thirdTag")]
+        [JsonPropertyName("thirdTag")]
+        public string ThirdTag { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 場所
+        /// </summary>
+        [DataMember(Name = "location")]
+        [JsonPropertyName("location")]
+        public string Location { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Index.json の全体構造
+    /// </summary>
+    [DataContract]
+    public class IndexData
+    {
+        /// <summary>
+        /// システムデータ
+        /// </summary>
+        [DataMember(Name = "systemData")]
+        [JsonPropertyName("systemData")]
+        public IndexSystemData SystemData { get; set; } = new IndexSystemData();
+
+        /// <summary>
+        /// 値データ
+        /// </summary>
+        [DataMember(Name = "values")]
+        [JsonPropertyName("values")]
+        public IndexValues Values { get; set; } = new IndexValues();
+    }
+
     /// <summary>
     /// 在庫状況の種類
     /// </summary>
@@ -13,90 +121,258 @@ namespace CREC_Web.Models
     {
         StockOut,        // 在庫切れ
         UnderStocked,    // 在庫不足
+        AppropriateNeedReorder, // 在庫適正だが発注点以下
         Appropriate,     // 在庫適正
         OverStocked,     // 在庫過剰
         NotSet           // 未設定
     }
 
     /// <summary>
-    /// コレクションデータクラス - CRECのCollectionDataValuesClassに対応
+    /// 在庫操作の種類
     /// </summary>
+    public enum InventoryOperationType
+    {
+        EntryOperation,   // 入庫
+        ExitOperation,     // 出庫
+        Stocktaking         // 棚卸
+    }
+
+    /// <summary>
+    /// 在庫メタデータ
+    /// </summary>
+    [DataContract]
+    public class InventoryMetaData
+    {
+        /// <summary>
+        /// コレクションID
+        /// </summary>
+        [DataMember(Name = "collectionId")]
+        public string CollectionId { get; set; }
+
+        public InventoryMetaData()
+        {
+            CollectionId = string.Empty;
+        }
+
+        public InventoryMetaData(string collectionId)
+        {
+            CollectionId = collectionId ?? string.Empty;
+        }
+    }
+
+    /// <summary>
+    /// 在庫管理設定
+    /// </summary>
+    [DataContract]
+    public class InventoryOperationSetting
+    {
+        /// <summary>
+        /// 安全在庫数
+        /// </summary>
+        [DataMember(Name = "safetyStock")]
+        public long? SafetyStock { get; set; }
+
+        /// <summary>
+        /// 発注点
+        /// </summary>
+        [DataMember(Name = "reorderPoint")]
+        public long? ReorderPoint { get; set; }
+
+        /// <summary>
+        /// 最大在庫数
+        /// </summary>
+        [DataMember(Name = "maximumLevel")]
+        public long? MaximumLevel { get; set; }
+
+        public InventoryOperationSetting()
+        {
+            SafetyStock = null;
+            ReorderPoint = null;
+            MaximumLevel = null;
+        }
+
+        public InventoryOperationSetting(int? safetyStock, int? reorderPoint, int? maximumLevel)
+        {
+            SafetyStock = safetyStock;
+            ReorderPoint = reorderPoint;
+            MaximumLevel = maximumLevel;
+        }
+    }
+
+    /// <summary>
+    /// 在庫操作レコード
+    /// </summary>
+    [DataContract]
+    public class InventoryOperationRecord
+    {
+        /// <summary>
+        /// 在庫操作日
+        /// </summary>
+        /// <remarks>
+        /// UTCで記録（例：2024-11-08T18:13:37.0000000+00:00）
+        /// </remarks>
+        [DataMember(Name = "dateTime")]
+        public string DateTime { get; set; }
+
+        /// <summary>
+        /// 在庫操作の種類
+        /// </summary>
+        [DataMember(Name = "operationType")]
+        public InventoryOperationType OperationType { get; set; }
+
+        /// <summary>
+        /// 現在の在庫数
+        /// </summary>
+        [DataMember(Name = "quantity")]
+        public long Quantity { get; set; }
+
+        /// <summary>
+        /// 在庫操作のコメント
+        /// </summary>
+        [DataMember(Name = "note")]
+        public string Note { get; set; }
+
+        public InventoryOperationRecord()
+        {
+            DateTime = string.Empty;
+            OperationType = InventoryOperationType.Stocktaking;
+            Quantity = 0;
+            Note = string.Empty;
+        }
+
+        public InventoryOperationRecord(string dateTime, InventoryOperationType operationType, int quantity, string note)
+        {
+            DateTime = dateTime ?? string.Empty;
+            OperationType = operationType;
+            Quantity = quantity;
+            Note = note ?? string.Empty;
+        }
+    }
+
+    /// <summary>
+    /// 在庫管理データ全体 (JSON用)
+    /// </summary>
+    [DataContract]
+    public class InventoryData
+    {
+        /// <summary>
+        /// 在庫メタデータ
+        /// </summary>
+        [DataMember(Name = "metaData")]
+        public InventoryMetaData MetaData { get; set; }
+
+        /// <summary>
+        /// 在庫管理設定
+        /// </summary>
+        [DataMember(Name = "setting")]
+        public InventoryOperationSetting Setting { get; set; }
+
+        /// <summary>
+        /// 在庫操作レコード
+        /// </summary>
+        [DataMember(Name = "operations")]
+        public List<InventoryOperationRecord> Operations { get; set; }
+
+        public InventoryData()
+        {
+            MetaData = new InventoryMetaData();
+            Setting = new InventoryOperationSetting();
+            Operations = new List<InventoryOperationRecord>();
+        }
+
+        /// <summary>
+        /// 現在の在庫数を計算
+        /// </summary>
+        public long? CalculateCurrentInventory()
+        {
+            long? inventory = 0;
+            if (Operations != null)
+            {
+                foreach (var op in Operations)
+                {
+                    inventory += op.Quantity;
+                }
+            }
+            else
+            {
+                inventory = null;
+            }
+            return inventory;
+        }
+
+        /// <summary>
+        /// 在庫状況を取得
+        /// </summary>
+        public InventoryStatus GetInventoryStatus(long? count)
+        {
+            if (!Setting.SafetyStock.HasValue && !Setting.ReorderPoint.HasValue && !Setting.MaximumLevel.HasValue)
+            {
+                return InventoryStatus.NotSet;
+            }
+
+            if (count == null)
+            {
+                return InventoryStatus.NotSet;
+            }
+            else if (count <= 0)
+            {
+                return InventoryStatus.StockOut;
+            }
+            else if (Setting.SafetyStock.HasValue && count < Setting.SafetyStock.Value)
+            {
+                return InventoryStatus.UnderStocked;
+            }
+            else if (Setting.ReorderPoint.HasValue && count >= (Setting.SafetyStock ?? 0) && count < Setting.ReorderPoint.Value)
+            {
+                return InventoryStatus.AppropriateNeedReorder;
+            }
+            else if (Setting.MaximumLevel.HasValue && count > Setting.MaximumLevel.Value)
+            {
+                return InventoryStatus.OverStocked;
+            }
+            else
+            {
+                return InventoryStatus.Appropriate;
+            }
+        }
+    }
+
+    /// <summary>
+    /// コレクションデータクラス
+    /// </summary>
+    [DataContract]
     public class CollectionData
     {
         /// <summary>
         /// コレクションフォルダパス
         /// </summary>
+        [DataMember(Name = "collectionFolderPath")]
         public string CollectionFolderPath { get; set; } = string.Empty;
 
         /// <summary>
-        /// コレクション名
+        /// インデックスデータ
         /// </summary>
-        public string CollectionName { get; set; } = string.Empty;
+        [DataMember(Name = "indexData")]
+        public IndexData IndexData { get; set; } = new IndexData();
 
         /// <summary>
-        /// コレクションID
+        /// コレクションの在庫管理データ
         /// </summary>
-        public string CollectionID { get; set; } = string.Empty;
-
-        /// <summary>
-        /// 管理コード
-        /// </summary>
-        public string CollectionMC { get; set; } = string.Empty;
-
-        /// <summary>
-        /// 登録日
-        /// </summary>
-        public string CollectionRegistrationDate { get; set; } = string.Empty;
-
-        /// <summary>
-        /// カテゴリ
-        /// </summary>
-        public string CollectionCategory { get; set; } = string.Empty;
-
-        /// <summary>
-        /// タグ1
-        /// </summary>
-        public string CollectionTag1 { get; set; } = string.Empty;
-
-        /// <summary>
-        /// タグ2
-        /// </summary>
-        public string CollectionTag2 { get; set; } = string.Empty;
-
-        /// <summary>
-        /// タグ3
-        /// </summary>
-        public string CollectionTag3 { get; set; } = string.Empty;
-
-        /// <summary>
-        /// 場所(Real)
-        /// </summary>
-        public string CollectionRealLocation { get; set; } = string.Empty;
+        [DataMember(Name = "inventoryData")]
+        public InventoryData InventoryData { get; set; } = new InventoryData();
 
         /// <summary>
         /// 現在の在庫数
         /// </summary>
-        public int? CollectionCurrentInventory { get; set; } = null;
+        /// <remarks>
+        /// 範囲は-9223372036854775808 ~ 9223372036854775807
+        /// </remarks>
+        public long? CollectionCurrentInventory { get; set; } = null;
 
         /// <summary>
         /// 在庫状況
         /// </summary>
         public InventoryStatus CollectionInventoryStatus { get; set; } = InventoryStatus.NotSet;
-
-        /// <summary>
-        /// 安全在庫数
-        /// </summary>
-        public int? CollectionSafetyStock { get; set; } = null;
-
-        /// <summary>
-        /// 発注点
-        /// </summary>
-        public int? CollectionOrderPoint { get; set; } = null;
-
-        /// <summary>
-        /// 最大在庫数
-        /// </summary>
-        public int? CollectionMaxStock { get; set; } = null;
 
         /// <summary>
         /// サムネイル画像パス（相対パス）
@@ -109,9 +385,14 @@ namespace CREC_Web.Models
         public List<string> ImageFiles { get; set; } = new List<string>();
 
         /// <summary>
-        /// その他ファイルリスト
+        /// 動画ファイルリスト
         /// </summary>
-        public List<string> OtherFiles { get; set; } = new List<string>();
+        public List<string> VideoFiles { get; set; } = new List<string>();
+
+        /// <summary>
+        /// 3Dデータファイルリスト
+        /// </summary>
+        public List<string> ThreeDFiles { get; set; } = new List<string>();
     }
 
     /// <summary>

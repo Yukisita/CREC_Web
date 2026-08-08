@@ -1,11 +1,15 @@
 ﻿/*
 CREC Web - Data Reader Service
-Copyright (c) [2025] [S.Yukisita]
+Copyright (c) [2025 - 2026] [S.Yukisita]
 This software is released under the MIT License.
 */
 
-using System.Text;
+using CREC_Web.Extensions;
+using CREC_Web.Helpers;
 using CREC_Web.Models;
+using System.Runtime.Serialization.Json;
+using System.Text;
+using System.Text.Json;
 
 namespace CREC_Web.Services
 {
@@ -19,6 +23,13 @@ namespace CREC_Web.Services
         private readonly List<CollectionData> _collectionsCache = new();
         private DateTime _lastCacheUpdate = DateTime.MinValue;
         private readonly TimeSpan _cacheExpiry = TimeSpan.FromMinutes(5);
+        private readonly object _cacheLock = new object();// キャッシュのスレッドセーフなアクセスのためのロックオブジェクト
+
+        // クラススコープにキャッシュ用JsonSerializerOptionsを追加
+        private static readonly JsonSerializerOptions _indexDataJsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
 
         public CrecDataService(ILogger<CrecDataService> logger, IConfiguration configuration)
         {
@@ -35,23 +46,30 @@ namespace CREC_Web.Services
         public async Task<List<CollectionData>> GetAllCollectionsAsync()
         {
             // キャッシュが有効な場合はキャッシュを返す
-            if (_collectionsCache.Any() && DateTime.Now - _lastCacheUpdate < _cacheExpiry)
+            lock (_cacheLock)
             {
-                _logger.LogInformation($"Returning {_collectionsCache.Count} collections from cache");
-                return _collectionsCache;
+                if (_collectionsCache.Any() && DateTime.Now - _lastCacheUpdate < _cacheExpiry)
+                {
+                    _logger.LogInformation($"Returning {_collectionsCache.Count} collections from cache");
+                    return new List<CollectionData>(_collectionsCache);
+                }
             }
-
-            _collectionsCache.Clear();
 
             try
             {
                 _logger.LogInformation($"Loading collections from data folder: {_dataFolderPath}");
                 _logger.LogInformation($"Data folder exists: {Directory.Exists(_dataFolderPath)}");
 
+                // データフォルダが存在しない場合は空のリストを返す
                 if (!Directory.Exists(_dataFolderPath))
                 {
                     _logger.LogWarning($"Data folder does not exist: {_dataFolderPath}");
-                    return _collectionsCache;
+                    lock (_cacheLock)
+                    {
+                        _collectionsCache.Clear();
+                        _lastCacheUpdate = DateTime.Now;
+                    }
+                    return new List<CollectionData>();
                 }
 
                 // データフォルダ内のサブフォルダを検索
@@ -76,17 +94,23 @@ namespace CREC_Web.Services
                 var validCollections = collections.Where(c => c != null).Cast<CollectionData>().ToList();
                 _logger.LogInformation($"Successfully loaded {validCollections.Count} collections");
 
-                _collectionsCache.AddRange(validCollections);
-                _lastCacheUpdate = DateTime.Now;
-
-                _logger.LogInformation($"Total collections in cache: {_collectionsCache.Count}");
+                lock (_cacheLock)
+                {
+                    _collectionsCache.Clear();
+                    _collectionsCache.AddRange(validCollections);
+                    _lastCacheUpdate = DateTime.Now;
+                    _logger.LogInformation($"Total collections in cache: {_collectionsCache.Count}");
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading collections");
             }
 
-            return _collectionsCache;
+            lock (_cacheLock)
+            {
+                return new List<CollectionData>(_collectionsCache);
+            }
         }
 
         /// <summary>
@@ -98,82 +122,41 @@ namespace CREC_Web.Services
             {
                 _logger.LogDebug($"Loading collection from: {directoryPath}");
 
-                // index.txtまたはIndex.txtを探す（大文字小文字を区別しない）
-                var indexFilePath = Path.Combine(directoryPath, "index.txt");
-                if (!File.Exists(indexFilePath))
-                {
-                    indexFilePath = Path.Combine(directoryPath, "Index.txt");
-                }
+                // SystemData/index.json を探す
+                var indexFilePath = Path.Combine(directoryPath, "SystemData", "index.json");
 
                 if (!File.Exists(indexFilePath))
                 {
-                    // index.txtが存在しない場合、フォルダ名をIDとして基本的なデータを作成
-                    _logger.LogWarning($"No index file found in {directoryPath}, creating basic collection data");
+                    // index.jsonが存在しない場合、フォルダ名をIDとして基本的なデータを作成
+                    _logger.LogWarning($"No index.json found in {indexFilePath}, creating basic collection data");
                     return CreateBasicCollectionData(directoryPath);
                 }
 
-                _logger.LogDebug($"Found index file: {indexFilePath}");
-
-                var collection = new CollectionData
+                // index.jsonを読み込み
+                var collection = new CollectionData();
+                var jsonContent = await File.ReadAllTextAsync(indexFilePath, Encoding.UTF8);
+                try
                 {
-                    CollectionFolderPath = directoryPath,
-                    CollectionID = Path.GetFileName(directoryPath)
-                };
-
-                // index.txtを読み込み
-                var lines = await File.ReadAllLinesAsync(indexFilePath, Encoding.GetEncoding("UTF-8"));
-
-                foreach (var line in lines)
-                {
-                    if (string.IsNullOrWhiteSpace(line)) continue;
-
-                    // カンマで分割して最初の要素をキーとして扱う
-                    var commaIndex = line.IndexOf(',');
-                    if (commaIndex < 0) continue;  // カンマがない行はスキップ
-
-                    var key = line.Substring(0, commaIndex);
-                    var value = commaIndex + 1 < line.Length ? line.Substring(commaIndex + 1) : string.Empty;
-
-                    // CRECのLoadCollectionIndexDataに準拠した処理
-                    switch (key)
+                    var indexData = JsonSerializer.Deserialize<IndexData>(jsonContent, _indexDataJsonOptions);
+                    if (indexData is null)
                     {
-                        case "名称": // Collection Name
-                            collection.CollectionName = value;
-                            break;
-                        case "ID":
-                            collection.CollectionID = value;
-                            break;
-                        case "MC":
-                            collection.CollectionMC = value;
-                            break;
-                        case "登録日": // Registration Date
-                            collection.CollectionRegistrationDate = value;
-                            break;
-                        case "カテゴリ": // Category
-                            collection.CollectionCategory = value;
-                            break;
-                        case "タグ1": // Tag1
-                            collection.CollectionTag1 = value;
-                            break;
-                        case "タグ2": // Tag2
-                            collection.CollectionTag2 = value;
-                            break;
-                        case "タグ3": // Tag3
-                            collection.CollectionTag3 = value;
-                            break;
-                        case "場所1(Real)": // Real Location
-                            collection.CollectionRealLocation = value;
-                            break;
+                        _logger.LogWarning($"Failed to deserialize index.json in {indexFilePath}: Null result");
+                        return CreateBasicCollectionData(directoryPath);
                     }
+                    collection.IndexData = indexData;
+                    _logger.LogDebug($"Successfully deserialized index.json in {indexFilePath}");
+                }
+                catch (JsonException jsonEx)
+                {
+                    _logger.LogError(jsonEx, $"Failed to parse index.json in {indexFilePath}: Invalid JSON format");
+                    return CreateBasicCollectionData(directoryPath);
                 }
 
-                // 在庫情報を読み込み
-                LoadInventoryData(collection, directoryPath);
+                collection.CollectionFolderPath = directoryPath;// コレクションフォルダパスを設定
 
-                // 画像ファイルとその他のファイルを検索
-                LoadFileList(collection, directoryPath);
+                LoadInventoryData(collection, directoryPath);// 在庫情報を読み込み
 
-                _logger.LogInformation($"Successfully loaded collection: ID={collection.CollectionID}, Name={collection.CollectionName}");
+                LoadFileList(collection, directoryPath);// 画像ファイルとその他のファイルを検索
 
                 return collection;
             }
@@ -185,23 +168,31 @@ namespace CREC_Web.Services
         }
 
         /// <summary>
-        /// 基本的なコレクションデータを作成（index.txtが存在しない場合）
+        /// 基本的なコレクションデータを作成（index.jsonが存在しない場合）
         /// </summary>
         private CollectionData CreateBasicCollectionData(string directoryPath)
         {
             var collection = new CollectionData
             {
                 CollectionFolderPath = directoryPath,
-                CollectionID = Path.GetFileName(directoryPath),
-                CollectionName = " - ",
-                CollectionMC = " - ",
-                CollectionRegistrationDate = " - ",
-                CollectionCategory = " - ",
-                CollectionTag1 = " - ",
-                CollectionTag2 = " - ",
-                CollectionTag3 = " - ",
-                CollectionRealLocation = " - ",
-                CollectionInventoryStatus = InventoryStatus.NotSet
+                IndexData = new IndexData
+                {
+                    SystemData = new IndexSystemData
+                    {
+                        Id = Path.GetFileName(directoryPath)
+                    },
+                    Values = new IndexValues
+                    {
+                        Name = " - ",
+                        ManagementCode = " - ",
+                        RegistrationDate = " - ",
+                        Category = " - ",
+                        FirstTag = " - ",
+                        SecondTag = " - ",
+                        ThirdTag = " - ",
+                        Location = " - "
+                    }
+                }
             };
 
             LoadFileList(collection, directoryPath);
@@ -209,87 +200,40 @@ namespace CREC_Web.Services
         }
 
         /// <summary>
-        /// 在庫情報を読み込み（CREC本体のLoadCollectionInventoryDataに準拠）
+        /// 在庫情報を読み込み
         /// </summary>
         private void LoadInventoryData(CollectionData collection, string directoryPath)
         {
+            var inventoryFilePath = Path.Combine(directoryPath, "SystemData", "inventory.json");
+            if (!File.Exists(inventoryFilePath))
+            {
+                _logger.LogWarning($"{inventoryFilePath} does not exist.");
+                collection.CollectionCurrentInventory = null;
+                collection.CollectionInventoryStatus = InventoryStatus.NotSet;
+                return;
+            }
+
             try
             {
-                var inventoryFilePath = Path.Combine(directoryPath, "inventory.inv");
-                if (!File.Exists(inventoryFilePath))
+                string json = File.ReadAllText(inventoryFilePath, Encoding.UTF8);
+                var serializer = new DataContractJsonSerializer(typeof(InventoryData));
+                using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(json)))
                 {
-                    collection.CollectionInventoryStatus = InventoryStatus.NotSet;
-                    collection.CollectionCurrentInventory = null;
-                    return;
-                }
-
-                var lines = File.ReadAllLines(inventoryFilePath, Encoding.GetEncoding("UTF-8"));
-                if (lines.Length == 0) return;
-
-                int? safetyStock = null;
-                int? orderPoint = null;
-                int? maxStock = null;
-                int totalInventory = 0;
-
-                bool firstLine = true;
-                foreach (var line in lines)
-                {
-                    var cols = line.Split(',');
-                    if (cols.Length < 4) continue;
-
-                    if (firstLine)
+                    var inventoryData = serializer.ReadObject(stream) as InventoryData;
+                    if (inventoryData != null)
                     {
-                        // 最初の行から安全在庫、発注点、最大在庫レベルを読み取る
-                        if (!string.IsNullOrEmpty(cols[1]) && int.TryParse(cols[1], out int ss))
-                            safetyStock = ss;
-                        if (!string.IsNullOrEmpty(cols[2]) && int.TryParse(cols[2], out int op))
-                            orderPoint = op;
-                        if (!string.IsNullOrEmpty(cols[3]) && int.TryParse(cols[3], out int ms))
-                            maxStock = ms;
-                        firstLine = false;
+                        collection.InventoryData = inventoryData;
+                        collection.CollectionCurrentInventory = inventoryData.CalculateCurrentInventory();
+                        collection.CollectionInventoryStatus = inventoryData.GetInventoryStatus(collection.CollectionCurrentInventory);
                     }
-                    else
-                    {
-                        // 2行目以降から在庫数を合計
-                        if (cols.Length >= 3 && int.TryParse(cols[2], out int count))
-                        {
-                            totalInventory += count;
-                        }
-                    }
-                }
-
-                collection.CollectionCurrentInventory = totalInventory;
-                collection.CollectionSafetyStock = safetyStock;
-                collection.CollectionOrderPoint = orderPoint;
-                collection.CollectionMaxStock = maxStock;
-
-                // 在庫状況を判定（CREC本体のロジックに準拠）
-                if (totalInventory == 0)
-                {
-                    collection.CollectionInventoryStatus = InventoryStatus.StockOut;
-                }
-                else if (safetyStock.HasValue && totalInventory < safetyStock.Value)
-                {
-                    collection.CollectionInventoryStatus = InventoryStatus.UnderStocked;
-                }
-                else if (maxStock.HasValue && totalInventory > maxStock.Value)
-                {
-                    collection.CollectionInventoryStatus = InventoryStatus.OverStocked;
-                }
-                else if (!safetyStock.HasValue && !orderPoint.HasValue && !maxStock.HasValue)
-                {
-                    collection.CollectionInventoryStatus = InventoryStatus.NotSet;
-                }
-                else
-                {
-                    collection.CollectionInventoryStatus = InventoryStatus.Appropriate;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, $"Error loading inventory data from {directoryPath}");
-                collection.CollectionInventoryStatus = InventoryStatus.NotSet;
+                _logger.LogWarning(ex, $"Error loading inventory data from {inventoryFilePath}");
                 collection.CollectionCurrentInventory = null;
+                collection.CollectionInventoryStatus = InventoryStatus.NotSet;
+                return;
             }
         }
 
@@ -309,11 +253,10 @@ namespace CREC_Web.Services
                 }
 
                 var files = Directory.GetFiles(directoryPath);
-                var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff" };
+                var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" };
 
                 // picturesフォルダから画像を読み込む
                 // CREC構造: {dataPath}\{collectionId}\pictures\
-                var collectionId = collection.CollectionID;
                 var picturesPath = Path.Combine(directoryPath, "pictures");
                 if (Directory.Exists(picturesPath))
                 {
@@ -337,23 +280,50 @@ namespace CREC_Web.Services
                     }
                 }
 
-                // dataフォルダからデータファイルを読み込む
-                // CREC構造: {dataPath}\{collectionId}\data\
-                var dataPath = Path.Combine(directoryPath, "data");
-                if (Directory.Exists(dataPath))
+                // videosフォルダから動画を読み込む
+                // CREC構造: {dataPath}\{collectionId}\videos\
+                var videosPath = Path.Combine(directoryPath, "videos");
+                if (Directory.Exists(videosPath))
                 {
-                    _logger.LogInformation($"Loading data files from data folder: {dataPath}");
-                    var dataFiles = Directory.GetFiles(dataPath);
+                    _logger.LogInformation($"Loading videos from videos folder: {videosPath}");
+                    var videoFiles = Directory.GetFiles(videosPath);
 
-                    foreach (var file in dataFiles)
+                    foreach (var file in videoFiles)
                     {
                         var fileName = Path.GetFileName(file);
                         var extension = Path.GetExtension(file).ToLowerInvariant();
 
-                        if (!collection.OtherFiles.Contains(fileName))
+                        if (VideoFormats.AllowedExtensions.Contains(extension))
                         {
-                            collection.OtherFiles.Add(fileName);
-                            _logger.LogDebug($"Added data file from data folder: {fileName}");
+                            if (!collection.VideoFiles.Contains(fileName))
+                            {
+                                collection.VideoFiles.Add(fileName);
+                                _logger.LogDebug($"Added video from videos folder: {fileName}");
+                            }
+                        }
+                    }
+                }
+
+                // 3DDataフォルダから3Dファイルを読み込む
+                // CREC構造: {dataPath}\{collectionId}\3DData\
+                var threeDDataPath = Path.Combine(directoryPath, "3DData");
+                if (Directory.Exists(threeDDataPath))
+                {
+                    _logger.LogInformation($"Loading 3D files from 3DData folder: {threeDDataPath}");
+                    var threeDFiles = Directory.GetFiles(threeDDataPath);
+
+                    foreach (var file in threeDFiles)
+                    {
+                        var fileName = Path.GetFileName(file);
+                        var extension = Path.GetExtension(file).ToLowerInvariant();
+
+                        if (ThreeDDataFormats.AllowedExtensions.Contains(extension))
+                        {
+                            if (!collection.ThreeDFiles.Contains(fileName))
+                            {
+                                collection.ThreeDFiles.Add(fileName);
+                                _logger.LogDebug($"Added 3D file from 3DData folder: {fileName}");
+                            }
                         }
                     }
                 }
@@ -377,10 +347,11 @@ namespace CREC_Web.Services
             // テキスト検索
             if (!string.IsNullOrWhiteSpace(criteria.SearchText))
             {
-                _logger.LogInformation($"Filtering by search text: '{criteria.SearchText}', Field: {criteria.SearchField}, Method: {criteria.SearchMethod}");
+                _logger.LogInformation("Filtering by search text: '{SearchText}', Field: {SearchField}, Method: {SearchMethod}",
+                    criteria.SearchText.SanitizeForLog(), criteria.SearchField, criteria.SearchMethod);
                 filteredCollections = filteredCollections.Where(c =>
                     MatchesSearchCriteria(c, criteria.SearchText, criteria.SearchField, criteria.SearchMethod));
-                _logger.LogInformation($"After text search: {filteredCollections.Count()} collections match");
+                _logger.LogInformation("After text search: {Count} collections match", filteredCollections.Count());
             }
             else
             {
@@ -426,43 +397,43 @@ namespace CREC_Web.Services
             switch (searchField)
             {
                 case SearchField.All:
-                    fieldsToSearch.Add(collection.CollectionID);
-                    fieldsToSearch.Add(collection.CollectionName);
-                    fieldsToSearch.Add(collection.CollectionMC);
-                    fieldsToSearch.Add(collection.CollectionCategory);
-                    fieldsToSearch.Add(collection.CollectionTag1);
-                    fieldsToSearch.Add(collection.CollectionTag2);
-                    fieldsToSearch.Add(collection.CollectionTag3);
-                    fieldsToSearch.Add(collection.CollectionRealLocation);
+                    fieldsToSearch.Add(collection.IndexData.SystemData.Id);
+                    fieldsToSearch.Add(collection.IndexData.Values.Name);
+                    fieldsToSearch.Add(collection.IndexData.Values.ManagementCode);
+                    fieldsToSearch.Add(collection.IndexData.Values.Category);
+                    fieldsToSearch.Add(collection.IndexData.Values.FirstTag);
+                    fieldsToSearch.Add(collection.IndexData.Values.SecondTag);
+                    fieldsToSearch.Add(collection.IndexData.Values.ThirdTag);
+                    fieldsToSearch.Add(collection.IndexData.Values.Location);
                     break;
                 case SearchField.ID:
-                    fieldsToSearch.Add(collection.CollectionID);
+                    fieldsToSearch.Add(collection.IndexData.SystemData.Id);
                     break;
                 case SearchField.Name:
-                    fieldsToSearch.Add(collection.CollectionName);
+                    fieldsToSearch.Add(collection.IndexData.Values.Name);
                     break;
                 case SearchField.ManagementCode:
-                    fieldsToSearch.Add(collection.CollectionMC);
+                    fieldsToSearch.Add(collection.IndexData.Values.ManagementCode);
                     break;
                 case SearchField.Category:
-                    fieldsToSearch.Add(collection.CollectionCategory);
+                    fieldsToSearch.Add(collection.IndexData.Values.Category);
                     break;
                 case SearchField.Tag:
-                    fieldsToSearch.Add(collection.CollectionTag1);
-                    fieldsToSearch.Add(collection.CollectionTag2);
-                    fieldsToSearch.Add(collection.CollectionTag3);
+                    fieldsToSearch.Add(collection.IndexData.Values.FirstTag);
+                    fieldsToSearch.Add(collection.IndexData.Values.SecondTag);
+                    fieldsToSearch.Add(collection.IndexData.Values.ThirdTag);
                     break;
                 case SearchField.Tag1:
-                    fieldsToSearch.Add(collection.CollectionTag1);
+                    fieldsToSearch.Add(collection.IndexData.Values.FirstTag);
                     break;
                 case SearchField.Tag2:
-                    fieldsToSearch.Add(collection.CollectionTag2);
+                    fieldsToSearch.Add(collection.IndexData.Values.SecondTag);
                     break;
                 case SearchField.Tag3:
-                    fieldsToSearch.Add(collection.CollectionTag3);
+                    fieldsToSearch.Add(collection.IndexData.Values.ThirdTag);
                     break;
                 case SearchField.Location:
-                    fieldsToSearch.Add(collection.CollectionRealLocation);
+                    fieldsToSearch.Add(collection.IndexData.Values.Location);
                     break;
             }
 
@@ -492,7 +463,7 @@ namespace CREC_Web.Services
         public async Task<CollectionData?> GetCollectionByIdAsync(string id)
         {
             var collections = await GetAllCollectionsAsync();
-            return collections.FirstOrDefault(c => c.CollectionID.Equals(id, StringComparison.OrdinalIgnoreCase));
+            return collections.FirstOrDefault(c => c.IndexData.SystemData.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>
@@ -502,7 +473,7 @@ namespace CREC_Web.Services
         {
             var collections = await GetAllCollectionsAsync();
             return collections
-                .Select(c => c.CollectionCategory)
+                .Select(c => c.IndexData.Values.Category)
                 .Where(cat => !string.IsNullOrWhiteSpace(cat) && cat != " - ")
                 .Distinct()
                 .OrderBy(cat => cat)
@@ -517,15 +488,109 @@ namespace CREC_Web.Services
             var collections = await GetAllCollectionsAsync();
             var tags = new List<string>();
 
-            tags.AddRange(collections.Select(c => c.CollectionTag1));
-            tags.AddRange(collections.Select(c => c.CollectionTag2));
-            tags.AddRange(collections.Select(c => c.CollectionTag3));
+            tags.AddRange(collections.Select(c => c.IndexData.Values.FirstTag));
+            tags.AddRange(collections.Select(c => c.IndexData.Values.SecondTag));
+            tags.AddRange(collections.Select(c => c.IndexData.Values.ThirdTag));
 
             return tags
                 .Where(tag => !string.IsNullOrWhiteSpace(tag) && tag != " - ")
                 .Distinct()
                 .OrderBy(tag => tag)
                 .ToList();
+        }
+
+        /// <summary>
+        /// コレクションリストのキャッシュをクリア
+        /// </summary>
+        public void ClearCollectionsListCache()
+        {
+
+            lock (_cacheLock)
+            {
+                _collectionsCache.Clear();
+                _lastCacheUpdate = DateTime.MinValue; // 最終キャッシュ更新時刻を最小値（実質的に「初期化されていない」状態）にリセット
+            }
+            _logger.LogInformation("Collections list cache cleared");
+        }
+
+        /// <summary>
+        /// 特定コレクションの画像リストキャッシュのみクリア（全体キャッシュは維持）
+        /// </summary>
+        /// <param name="collectionId">コレクションID</param>
+        public void RefreshCollectionImageFileCache(string collectionId)
+        {
+            // セキュリティ: コレクション ID を検証
+            if (!ValidationHelper.IsValidCollectionId(collectionId))
+            {
+                _logger.LogWarning("Invalid collection ID: {CollectionId}", collectionId.SanitizeForLog());
+                return;
+            }
+
+            lock (_cacheLock)
+            {
+                var collection = _collectionsCache.FirstOrDefault(c =>
+                    c.IndexData.SystemData.Id.Equals(collectionId, StringComparison.OrdinalIgnoreCase));
+
+                if (collection != null)
+                {
+                    collection.ImageFiles.Clear();
+                    LoadFileList(collection, collection.CollectionFolderPath);
+                    _logger.LogInformation("File cache refreshed for collection {CollectionId}", collectionId.SanitizeForLog());
+                }
+            }
+        }
+        /// <summary>
+        /// 特定コレクションの動画リストキャッシュのみクリア（全体キャッシュは維持）
+        /// </summary>
+        /// <param name="collectionId">コレクションID</param>
+        public void RefreshCollectionVideoFileCache(string collectionId)
+        {
+            // セキュリティ: コレクション ID を検証
+            if (!ValidationHelper.IsValidCollectionId(collectionId))
+            {
+                _logger.LogWarning("Invalid collection ID: {CollectionId}", collectionId.SanitizeForLog());
+                return;
+            }
+
+            lock (_cacheLock)
+            {
+                var collection = _collectionsCache.FirstOrDefault(c =>
+                    c.IndexData.SystemData.Id.Equals(collectionId, StringComparison.OrdinalIgnoreCase));
+
+                if (collection != null)
+                {
+                    collection.VideoFiles.Clear();
+                    LoadFileList(collection, collection.CollectionFolderPath);
+                    _logger.LogInformation("Video file cache refreshed for collection {CollectionId}", collectionId.SanitizeForLog());
+                }
+            }
+        }
+
+        /// <summary>
+        /// 特定コレクションの3Dファイルリストキャッシュのみクリア（全体キャッシュは維持）
+        /// </summary>
+        /// <param name="collectionId">コレクションID</param>
+        public void RefreshCollection3DFileCache(string collectionId)
+        {
+            // セキュリティ: コレクション ID を検証
+            if (!ValidationHelper.IsValidCollectionId(collectionId))
+            {
+                _logger.LogWarning("Invalid collection ID: {CollectionId}", collectionId.SanitizeForLog());
+                return;
+            }
+
+            lock (_cacheLock)
+            {
+                var collection = _collectionsCache.FirstOrDefault(c =>
+                    c.IndexData.SystemData.Id.Equals(collectionId, StringComparison.OrdinalIgnoreCase));
+
+                if (collection != null)
+                {
+                    collection.ThreeDFiles.Clear();
+                    LoadFileList(collection, collection.CollectionFolderPath);
+                    _logger.LogInformation("3D file cache refreshed for collection {CollectionId}", collectionId.SanitizeForLog());
+                }
+            }
         }
     }
 }

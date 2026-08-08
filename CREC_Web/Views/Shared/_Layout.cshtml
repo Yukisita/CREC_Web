@@ -1,0 +1,731 @@
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"] - CREC Web</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+    <style>
+        :root {
+            --mobile-breakpoint: 768px;
+            --min-column-width: 80px;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        main {
+            flex: 1;
+        }
+
+        .search-filters {
+            background-color: #f8f9fa;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            color: white !important;
+            margin: 0;
+        }
+
+        .navbar-layout {
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+
+        .navbar-layout-left {
+            flex: 1;
+            padding-left: 1rem;
+        }
+
+        .navbar-layout-right {
+            flex: 1;
+            text-align: right;
+            padding-right: 1rem;
+        }
+
+        .navbar-btn {
+            cursor: pointer;
+            color: white;
+            font-size: 1rem;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        .navbar-btn:hover {
+            opacity: 0.85;
+        }
+
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .error {
+            color: #dc3545;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .language-toggle {
+            cursor: pointer;
+        }
+
+        .language-toggle.dropdown-toggle::after {
+            vertical-align: middle;
+        }
+
+        /* Table styles */
+        .collections-table {
+            width: 100%;
+            background: white;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+            table-layout: fixed;
+        }
+
+        .collections-table thead {
+            background-color: #e9ecef;
+        }
+
+        .collections-table tbody tr {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .collections-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .collections-table tbody tr.selected {
+            background-color: #e7f3ff;
+        }
+
+        .collections-table th,
+        .collections-table td {
+            padding: 0.75rem;
+            vertical-align: middle;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .collections-table th {
+            position: relative;
+            user-select: none;
+        }
+
+        .collections-table th.resizable {
+            min-width: var(--min-column-width);
+        }
+
+        .collections-table th .th-content {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding-right: 15px;
+        }
+
+        .collections-table th .resizer {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 2px;
+            cursor: col-resize;
+            user-select: none;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .collections-table th .resizer:hover {
+            background-color: #0d6efd;
+        }
+
+        .collections-table th.resizing {
+            border-right: 2px solid #0d6efd;
+        }
+
+        .thumbnail-small {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 0.25rem;
+        }
+
+        .thumbnail-placeholder-small {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #e9ecef;
+            color: #6c757d;
+            border-radius: 0.25rem;
+            font-size: 1.5rem;
+        }
+
+        .collections-table th.thumbnail-cell {
+            width: 90px;
+            min-width: var(--min-column-width);
+        }
+
+        /* Side panel styles */
+        .detail-panel {
+            position: fixed;
+            top: 0;
+            right: -600px;
+            width: 600px;
+            height: 100vh;
+            background: white;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+            transition: right 0.3s ease-in-out;
+            z-index: 1050;
+            overflow-y: auto;
+        }
+
+        .detail-panel.open {
+            right: 0;
+        }
+
+        .detail-panel-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(0,0,0,0.5);
+            z-index: 1040;
+            display: none;
+        }
+
+        .detail-panel-overlay.show {
+            display: block;
+        }
+
+        .detail-panel-header {
+            padding: 1.5rem;
+            background-color: #0d6efd;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .detail-panel-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            float: right;
+            line-height: 1;
+        }
+
+        .detail-panel-body {
+            padding: 1.5rem;
+        }
+
+        .detail-image {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            border-radius: 0.5rem;
+        }
+
+        canvas.detail-image {
+            width: auto;
+            max-width: 100%;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .detail-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .detail-section h6 {
+            color: #6c757d;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .detail-section p {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Grid/Card view styles */
+        .collection-card {
+            transition: transform 0.2s;
+            height: 100%;
+        }
+
+        .collection-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-img-top {
+            height: 200px;
+            object-fit: contain;
+        }
+
+        .thumbnail-placeholder {
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            background-color: #e9ecef;
+            color: #6c757d;
+        }
+
+        .tag-badge {
+            margin: 0.1rem;
+        }
+
+        .view-toggle-buttons {
+            min-width: 200px;
+        }
+
+        .view-toggle-buttons .btn {
+            min-width: 100px;
+        }
+
+        /* Advanced filters toggle section */
+        .advanced-filters-section {
+            display: none;
+            padding-top: 0.5rem;
+            border-top: 1px solid #dee2e6;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .advanced-filters-section.show {
+            display: block;
+        }
+
+        /* Footer styles */
+        .footer {
+            background-color: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            padding: 1rem;
+        }
+
+        .footer a {
+            color: #0d6efd;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Mobile responsive - auto-switch to grid view */
+        @@media (max-width: var(--mobile-breakpoint)) {
+            .detail-panel {
+                width: 100%;
+                right: -100%;
+            }
+        }
+
+        /* QR Scanner Modal Styles */
+        .qr-scanner-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(0,0,0,0.7);
+            z-index: 1060;
+            display: none;
+        }
+
+        .qr-scanner-overlay.show {
+            display: block;
+        }
+
+        .qr-scanner-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            width: 90%;
+            max-width: 500px;
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.3);
+            z-index: 1070;
+            display: none;
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+
+        .qr-scanner-modal.show {
+            display: block;
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+
+        .qr-scanner-header {
+            padding: 1rem 1.5rem;
+            background-color: #0d6efd;
+            color: white;
+            border-radius: 0.5rem 0.5rem 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .qr-scanner-header h5 {
+            margin: 0;
+        }
+
+        .qr-scanner-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0;
+        }
+
+        .qr-scanner-close:hover {
+            opacity: 0.8;
+        }
+
+        .qr-scanner-body {
+            padding: 1.5rem;
+        }
+
+        .qr-video-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+            background: #000;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        #qrVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .qr-scan-region {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60%;
+            height: 60%;
+            border: 3px solid #0d6efd;
+            border-radius: 0.5rem;
+            box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);
+        }
+
+        .qr-scan-region::before,
+        .qr-scan-region::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-color: #0d6efd;
+            border-style: solid;
+        }
+
+        .qr-scan-region::before {
+            top: -3px;
+            left: -3px;
+            border-width: 3px 0 0 3px;
+            border-radius: 0.5rem 0 0 0;
+        }
+
+        .qr-scan-region::after {
+            bottom: -3px;
+            right: -3px;
+            border-width: 0 3px 3px 0;
+            border-radius: 0 0 0.5rem 0;
+        }
+
+        .qr-scanner-status {
+            text-align: center;
+            margin-top: 1rem;
+            color: #6c757d;
+        }
+
+        .qr-scanner-error {
+            text-align: center;
+            margin-top: 1rem;
+            color: #dc3545;
+            padding: 0.5rem;
+            background-color: #f8d7da;
+            border-radius: 0.25rem;
+        }
+
+        /* Admin Panel styles */
+        .admin-panel {
+            position: fixed;
+            top: 0;
+            left: -400px;
+            width: 400px;
+            height: 100vh;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            transition: left 0.3s ease-in-out;
+            z-index: 1050;
+            overflow-y: auto;
+        }
+
+        .admin-panel.open {
+            left: 0;
+        }
+
+        .admin-panel-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(0,0,0,0.5);
+            z-index: 1040;
+            display: none;
+        }
+
+        .admin-panel-overlay.show {
+            display: block;
+        }
+
+        #deleteCollectionBtn[aria-disabled="true"] {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        #deleteCollectionBtn[aria-disabled="true"]:hover {
+            opacity: 0.65;
+        }
+
+        @@media (max-width: 768px) {
+            .admin-panel {
+                width: 100%;
+                left: -100%;
+            }
+        }
+    </style>
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="navbar-layout">
+            <div class="navbar-layout-left">
+                <button type="button" class="navbar-btn" id="adminPanelToggle" aria-controls="adminPanel" aria-expanded="false">
+                    <i class="bi bi-gear"></i>
+                    <span data-lang="admin-panel"></span>
+                </button>
+            </div>
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-collection"></i>
+                CREC Web
+            </a>
+            <div class="navbar-layout-right">
+                <div class="dropdown">
+                    <button type="button" class="navbar-btn language-toggle dropdown-toggle" id="languageToggle" data-bs-toggle="dropdown" aria-expanded="false" aria-label="select language">
+                        <i class="bi bi-translate"></i>
+                        <span id="languageLabel"></span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" id="languageDropdownMenu">
+                        <!-- populated by buildLanguageDropdown() in app.js -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        @RenderBody()
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-muted">2025 - 2026 CREC Web. All rights reserved.</h6>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <ul class="list-unstyled">
+                        <li>
+							<a href="https://github.com/Yukisita/CREC_Web" target="_blank" rel="noopener noreferrer">
+								<i class="bi bi-box-arrow-up-right"></i>
+                                <span data-lang="project-overview"></span>
+                            </a>
+                        </li>
+                        <li>
+							<a href="https://github.com/Yukisita/CREC_Web/blob/master/THIRD-PARTY-LICENSES.md" target="_blank" rel="noopener noreferrer">
+								<i class="bi bi-box-arrow-up-right"></i>
+                                <span data-lang="third-party-licenses"></span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- QR Scanner Modal -->
+    <div class="qr-scanner-overlay" id="qrScannerOverlay"></div>
+    <div class="qr-scanner-modal" id="qrScannerModal">
+        <div class="qr-scanner-header">
+            <h5 id="qrScannerTitle" data-lang="qr-scanner-title"></h5>
+            <button class="qr-scanner-close" id="qrScannerClose">&times;</button>
+        </div>
+        <div class="qr-scanner-body">
+            <div class="qr-video-container">
+                <video id="qrVideo" autoplay playsinline></video>
+                <div class="qr-scan-region"></div>
+            </div>
+            <div id="qrScannerStatus" class="qr-scanner-status" data-lang="qr-scanner-initializing">カメラを起動中...</div>
+            <div id="qrScannerError" class="qr-scanner-error" style="display: none;"></div>
+            <div id="qrCodeRegisteredTrademark" class="qr-scanner-status small" data-lang="qr-registered-trademark"></div>
+        </div>
+    </div>
+
+    <!-- Inventory Operation Modal -->
+    <div class="qr-scanner-overlay" id="inventoryOperationOverlay"></div>
+    <div class="qr-scanner-modal" id="inventoryOperationModal">
+        <div class="qr-scanner-header">
+            <h5 id="inventoryOperationTitle" data-lang="inventory-operation-title"></h5>
+            <button class="qr-scanner-close" id="inventoryOperationClose">&times;</button>
+        </div>
+        <div class="qr-scanner-body">
+            <form id="inventoryOperationForm">
+                <div class="mb-3">
+                    <label for="operationType" class="form-label" data-lang="operation-type"></label>
+                    <select class="form-select" id="operationType" required>
+                        <option value="0" data-lang="operation-entry"></option>
+                        <option value="1" data-lang="operation-exit"></option>
+                        <option value="2" data-lang="operation-stocktaking"></option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="operationQuantity" class="form-label" data-lang="operation-quantity"></label>
+                    <input type="number" class="form-control" id="operationQuantity" required>
+                    <div class="invalid-feedback" id="quantityValidationMessage"></div>
+                </div>
+                <div class="mb-3">
+                    <label for="operationComment" class="form-label" data-lang="operation-comment"></label>
+                    <textarea class="form-control" id="operationComment" rows="3"></textarea>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary" id="inventoryOperationSave" data-lang="save"></button>
+                    <button type="button" class="btn btn-secondary" id="inventoryOperationCancel" data-lang="cancel"></button>
+                </div>
+            </form>
+            <div id="inventoryOperationError" class="qr-scanner-error" style="display: none; margin-top: 1rem;"></div>
+        </div>
+    </div>
+
+    <!-- Inventory Management Settings Modal -->
+    <div class="qr-scanner-overlay" id="inventoryManagementSettingsOverlay"></div>
+    <div class="qr-scanner-modal" id="inventoryManagementSettingsModal">
+        <div class="qr-scanner-header">
+            <h5 id="inventoryManagementSettingsTitle" data-lang="inventory-management-settings"></h5>
+            <button class="qr-scanner-close" id="inventoryManagementSettingsClose">&times;</button>
+        </div>
+        <div class="qr-scanner-body">
+            <form id="inventoryManagementSettingsForm">
+                <div class="mb-3">
+                    <label for="safetyStock" class="form-label" data-lang="safety-stock"></label>
+                    <input type="number" class="form-control" id="safetyStock">
+                    <div class="invalid-feedback" id="safetyStockValidationMessage"></div>
+                </div>
+                <div class="mb-3">
+                    <label for="reorderPoint" class="form-label" data-lang="reorder-point"></label>
+                    <input type="number" class="form-control" id="reorderPoint">
+                    <div class="invalid-feedback" id="reorderPointValidationMessage"></div>
+                </div>
+                <div class="mb-3">
+                    <label for="maximumLevel" class="form-label" data-lang="maximum-level"></label>
+                    <input type="number" class="form-control" id="maximumLevel">
+                    <div class="invalid-feedback" id="maximumLevelValidationMessage"></div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary" id="inventoryManagementSettingsSave" data-lang="save"></button>
+                    <button type="button" class="btn btn-secondary" id="inventoryManagementSettingsCancel" data-lang="cancel"></button>
+                </div>
+            </form>
+            <div id="inventoryManagementSettingsError" class="qr-scanner-error" style="display: none; margin-top: 1rem;"></div>
+        </div>
+    </div>
+
+    <!-- Admin Panel Overlay -->
+    <div class="admin-panel-overlay" id="adminPanelOverlay"></div>
+
+    <!-- Admin Panel -->
+    <div class="admin-panel" id="adminPanel">
+        <div class="detail-panel-header">
+            <button type="button" class="detail-panel-close" id="adminPanelClose" aria-label="Close admin panel">&times;</button>
+            <h5 data-lang="admin-panel"></h5>
+        </div>
+        <div class="detail-panel-body" id="adminPanelBody">
+            <button class="btn btn-primary w-100" id="addNewCollectionBtn">
+                <i class="bi bi-plus-circle"></i>
+                <span data-lang="add-new-collection"></span>
+            </button>
+            <button class="btn btn-danger w-100 mt-2" id="deleteCollectionBtn" aria-disabled="true">
+                <i class="bi bi-trash"></i>
+                <span data-lang="delete-collection"></span>
+            </button>
+            <hr class="my-3">
+            <button class="btn btn-primary w-100" id="editProjectBtn">
+                <i class="bi bi-pencil-square"></i>
+                <span data-lang="edit-project"></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Overview Panel Overlay -->
+    <div class="detail-panel-overlay" id="overviewPanelOverlay"></div>
+
+    <!-- Overview Panel -->
+    <div class="detail-panel" id="overviewPanel">
+        <div class="detail-panel-header">
+            <button type="button" class="detail-panel-close" id="overviewPanelClose" aria-label="Close overview panel">&times;</button>
+            <h5 id="overviewPanelTitle"></h5>
+        </div>
+        <div class="detail-panel-body" id="overviewPanelBody">
+            <!-- Overview content will be loaded here -->
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" integrity="sha384-9Q0jWoineiIq95JeIyBsNV90KKLfDsbkj29k/YFxf76a2JwkHDYkMuSbNGN6XJfV" crossorigin="anonymous"></script>
+    <script src="~/js/i18n/i18n.js" asp-append-version="true"></script>
+    <script src="~/js/i18n/locales/ja.js" asp-append-version="true"></script>
+    <script src="~/js/i18n/locales/de.js" asp-append-version="true"></script>
+    <script src="~/js/i18n/locales/en.js" asp-append-version="true"></script>
+    <script src="~/js/app.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

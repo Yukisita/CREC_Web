@@ -1,0 +1,1626 @@
+@{
+    ViewData["Title"] = "Collection Details";
+    Layout = "_Layout";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/data-file-manager.css" />
+    <style>
+        body {
+            padding: 0rem;
+            background-color: #fff;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .split-container {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+        }
+
+        .left-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border-right: 2px solid #dee2e6;
+        }
+
+        .left-panel-header {
+            flex-shrink: 0;
+            overflow-y: auto;
+            max-height: 50%;
+        }
+
+        .left-panel-tabs {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .left-panel-tabs .nav-tabs {
+            flex-shrink: 0;
+            padding: 0 1rem;
+        }
+
+        .left-panel-tabs .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        .left-panel-tabs .tab-pane {
+            padding: 1rem;
+        }
+
+        .right-panel {
+            flex: 1;
+            overflow-y: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .collection-container {
+            max-width: 100%;
+            margin: 0;
+            background: white;
+            padding: 1rem;
+        }
+
+        .collection-header {
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .collection-header h3 {
+            margin: 0;
+            color: #212529;
+            font-size: 1.5rem;
+        }
+
+        .detail-image {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            border-radius: 0.5rem;
+        }
+
+        .detail-video {
+            width: 100%;
+            max-height: 400px;
+            border-radius: 0.5rem;
+            background-color: #000;
+        }
+
+        .three-d-viewer-container {
+            position: relative;
+            width: 100%;
+            height: 350px;
+            background-color: #f0f0f0;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        .three-d-viewer-container canvas {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .three-d-viewer-toolbar {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            gap: 4px;
+            z-index: 10;
+        }
+
+        .detail-section {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .detail-section h6 {
+            color: #6c757d;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+            text-align: left;
+        }
+
+        .detail-section p {
+            margin-bottom: 0.5rem;
+            text-align: left;
+        }
+
+        #inventorySummary {
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            flex-shrink: 0;
+        }
+
+        #inventorySummary .detail-section {
+            margin-bottom: 1rem;
+        }
+
+        #inventorySummary .detail-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .history-header {
+            border-bottom: 2px solid #dee2e6;
+            padding: 0.5rem 1rem;
+            flex-shrink: 0;
+        }
+
+        .history-header h4 {
+            margin: 0;
+            color: #212529;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+
+        .history-table thead {
+            background-color: #f8f9fa;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .history-table th,
+        .history-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .history-table th {
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .history-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .operation-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .operation-entry {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .operation-exit {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .operation-stocktaking {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .no-history {
+            text-align: center;
+            padding: 2rem;
+            color: #6c757d;
+        }
+
+        #historyTableContainer {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 1rem 1rem 1rem;
+        }
+
+        .history-table-separator {
+            display: none;
+        }
+
+        /* Fallback tab visibility rules (Bootstrap CSS handles this when CDN is available) */
+        .tab-content > .tab-pane {
+            display: none;
+        }
+
+        .tab-content > .tab-pane.active {
+            display: block;
+        }
+
+        /* Responsive layout: switch to vertical layout on narrow screens */
+        @@media (max-width: 992px) {
+            body {
+                overflow: auto;
+            }
+
+            .split-container {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .left-panel {
+                flex: none;
+                border-right: none;
+                border-bottom: 2px solid #dee2e6;
+                max-height: none;
+                overflow: visible;
+            }
+
+            .left-panel-header {
+                overflow-y: visible;
+                max-height: none;
+            }
+
+            .left-panel-tabs {
+                overflow: visible;
+                min-height: 0;
+            }
+
+            .left-panel-tabs .tab-content {
+                overflow-y: visible;
+            }
+
+            .right-panel {
+                flex: none;
+                height: auto;
+            }
+
+            #historyTableContainer {
+                flex: none;
+                height: 275px;
+                overflow-y: auto;
+            }
+
+            .history-table-separator {
+                display: block;
+                margin: 0 1rem;
+                border: 0;
+                border-top: 2px solid #dee2e6;
+            }
+        }
+    </style>
+}
+
+<!-- Main Container -->
+<div class="split-container">
+    <!-- Left Panel: Collection Details -->
+    <div class="left-panel" role="region" aria-label="Collection Details">
+        <!-- Area A: Collection Header + Index Data -->
+        <div class="left-panel-header">
+            <div class="collection-container">
+                <div class="collection-header">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3 id="collectionTitle"></h3>
+                        <button id="editIndexBtn" class="btn btn-sm btn-outline-primary" style="font-size: 0.8em;">
+                            <i class="bi bi-pencil-square"></i> <span id="editBtnText"></span>
+                        </button>
+                    </div>
+                </div>
+                <div id="collectionIndexData"></div>
+            </div>
+        </div>
+
+        <!-- Area B: Tabbed Content -->
+        <div class="left-panel-tabs">
+            <ul class="nav nav-tabs" id="collectionTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="images-tab" data-bs-toggle="tab" data-bs-target="#images-tab-pane" type="button" role="tab" aria-controls="images-tab-pane" aria-selected="true">Image</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="videos-tab" data-bs-toggle="tab" data-bs-target="#videos-tab-pane" type="button" role="tab" aria-controls="videos-tab-pane" aria-selected="false">Video</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="threed-tab" data-bs-toggle="tab" data-bs-target="#threed-tab-pane" type="button" role="tab" aria-controls="threed-tab-pane" aria-selected="false">3D Data</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="data-tab" data-bs-toggle="tab" data-bs-target="#data-tab-pane" type="button" role="tab" aria-controls="data-tab-pane" aria-selected="false">Data</button>
+                </li>
+            </ul>
+            <div class="tab-content" id="collectionTabContent">
+                <div class="tab-pane fade show active" id="images-tab-pane" role="tabpanel" aria-labelledby="images-tab" tabindex="0">
+                    <div id="imageTabContent" class="loading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="videos-tab-pane" role="tabpanel" aria-labelledby="videos-tab" tabindex="0">
+                    <div id="videoTabContent" class="loading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="threed-tab-pane" role="tabpanel" aria-labelledby="threed-tab" tabindex="0">
+                    <div id="threeDTabContent" class="loading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="data-tab-pane" role="tabpanel" aria-labelledby="data-tab" tabindex="0">
+                    <div id="dataTabContent" class="loading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Panel / Area C: Inventory Operation History -->
+    <div class="right-panel" role="region" aria-label="Inventory Information">
+        <div id="inventorySummary"></div>
+        <div class="history-header">
+            <h4 id="historyTitle"></h4>
+        </div>
+        <div id="historyTableContainer">
+            <div class="loading">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+        <hr class="history-table-separator" />
+    </div>
+</div>
+
+<!-- Inventory Operation Modal -->
+<div class="modal fade" id="inventoryOperationModal" tabindex="-1" aria-labelledby="inventoryOperationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="inventoryOperationModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="operationType" class="form-label"></label>
+                    <select class="form-select" id="operationType">
+                        <option value="entry"></option>
+                        <option value="exit"></option>
+                        <option value="stocktaking"></option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="operationQuantity" class="form-label"></label>
+                    <input type="number" class="form-control" id="operationQuantity" required>
+                </div>
+                <div class="mb-3">
+                    <label for="operationComment" class="form-label"></label>
+                    <textarea class="form-control" id="operationComment" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn btn-primary" id="saveInventoryOperation"></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Inventory Management Settings Modal -->
+<div class="modal fade" id="inventoryManagementSettingsModal" tabindex="-1" aria-labelledby="inventoryManagementSettingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="inventoryManagementSettingsModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="safetyStock" class="form-label"></label>
+                    <input type="number" class="form-control" id="safetyStock">
+                </div>
+                <div class="mb-3">
+                    <label for="reorderPoint" class="form-label"></label>
+                    <input type="number" class="form-control" id="reorderPoint">
+                </div>
+                <div class="mb-3">
+                    <label for="maximumLevel" class="form-label"></label>
+                    <input type="number" class="form-control" id="maximumLevel">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn btn-primary" id="saveInventoryManagementSettings"></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Collection Index Edit Modal -->
+<div class="modal fade" id="editIndexModal" tabindex="-1" aria-labelledby="editIndexModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editIndexModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="editName" class="form-label"></label>
+                    <input type="text" class="form-control" id="editName" required>
+                </div>
+                <div class="mb-3">
+                    <label for="editManagementCode" class="form-label"></label>
+                    <input type="text" class="form-control" id="editManagementCode">
+                </div>
+                <div class="mb-3">
+                    <label for="editRegistrationDate" class="form-label"></label>
+                    <input type="datetime-local" class="form-control" id="editRegistrationDate" step="1">
+                </div>
+                <div class="mb-3">
+                    <label for="editCategory" class="form-label"></label>
+                    <input type="text" class="form-control" id="editCategory">
+                </div>
+                <div class="mb-3">
+                    <label for="editFirstTag" class="form-label"></label>
+                    <input type="text" class="form-control" id="editFirstTag">
+                </div>
+                <div class="mb-3">
+                    <label for="editSecondTag" class="form-label"></label>
+                    <input type="text" class="form-control" id="editSecondTag">
+                </div>
+                <div class="mb-3">
+                    <label for="editThirdTag" class="form-label"></label>
+                    <input type="text" class="form-control" id="editThirdTag">
+                </div>
+                <div class="mb-3">
+                    <label for="editLocation" class="form-label"></label>
+                    <input type="text" class="form-control" id="editLocation">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn btn-primary" id="saveIndexEdit"></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/data-file-manager.js"></script>
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.183.2/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.183.2/examples/jsm/"
+      }
+    }
+    </script>
+
+    <script>
+		// コレクションのIDをサーバーから取得
+        const collectionId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewData["CollectionId"]));
+        // コレクションデータを保持する変数
+        let currentCollection = null;
+        let dataFileManager = null;
+        
+		// コレクションの詳細を取得して表示する関数
+        async function loadCollectionDetails() {
+            try {
+				// コレクションの詳細をAPIから取得
+                const response = await fetch(`/api/collections/${encodeURIComponent(collectionId)}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const collection = await response.json();
+                currentCollection = collection;
+
+				// コレクションの詳細を表示(左パネル)
+                displayCollectionDetails(collection);
+                // 在庫履歴を表示(右パネル)
+				displayInventorySummary(collection);
+                displayInventoryHistory(collection);
+            } catch (error) {
+                console.error('Error loading collection details:', error);
+                const errorHtml = `
+                    <div class="alert alert-danger" role="alert">
+                        ${t('error-loading')}: ${escapeHtml(error.message)}
+                    </div>
+                `;
+                document.getElementById('imageTabContent').innerHTML = errorHtml;
+                document.getElementById('videoTabContent').innerHTML = errorHtml;
+                document.getElementById('threeDTabContent').innerHTML = errorHtml;
+                document.getElementById('dataTabContent').innerHTML = errorHtml;
+                document.getElementById('collectionIndexData').innerHTML = errorHtml;
+                document.getElementById('historyTableContainer').innerHTML = errorHtml;
+            }
+        }
+
+        // インデックスデータのHTMLを生成するヘルパー関数
+        function generateIndexDataHtml(collection) {
+            return `
+                <div class="detail-section">
+                    <h6>${projectSettings.uuidName}</h6>
+                    <p>${escapeHtml(collection.indexData.systemData.id)}</p>
+                </div>
+
+                <div class="detail-section">
+                    <h6>${projectSettings.managementCodeName}</h6>
+                    <p>${escapeHtml(collection.indexData.values.managementCode)}</p>
+                </div>
+                    
+                <div class="detail-section">
+                    <h6>${projectSettings.categoryName}</h6>
+                    <p>${escapeHtml(collection.indexData.values.category)}</p>
+                </div>
+                    
+                <div class="detail-section">
+                    <h6>${t('registration-date')}</h6>
+                    <p>${escapeHtml(formatUtcToLocal(collection.indexData.values.registrationDate))}</p>
+                </div>
+                    
+                <div class="detail-section">
+                    <h6>${t('location')}</h6>
+                    <p>${escapeHtml(collection.indexData.values.location)}</p>
+                </div>
+                    
+                <div class="detail-section">
+                    <h6>${t('tags')}</h6>
+                    <div>
+                        ${collection.indexData?.values?.firstTag && collection.indexData?.values?.firstTag !== ' - ' ? `<p>${escapeHtml(projectSettings.tag1Name || (currentLanguage === 'ja' ? 'タグ 1' : 'Tag 1'))}: ${escapeHtml(collection.indexData?.values?.firstTag)}</p>` : ''}
+                        ${collection.indexData?.values?.secondTag && collection.indexData?.values?.secondTag !== ' - ' ? `<p>${escapeHtml(projectSettings.tag2Name || (currentLanguage === 'ja' ? 'タグ 2' : 'Tag 2'))}: ${escapeHtml(collection.indexData?.values?.secondTag)}</p>` : ''}
+                        ${collection.indexData?.values?.thirdTag && collection.indexData?.values?.thirdTag !== ' - ' ? `<p>${escapeHtml(projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3'))}: ${escapeHtml(collection.indexData?.values?.thirdTag)}</p>` : ''}
+                        ${(!collection.indexData?.values?.firstTag || collection.indexData?.values?.firstTag === ' - ') &&
+                            (!collection.indexData?.values?.secondTag || collection.indexData?.values?.secondTag === ' - ') &&
+                            (!collection.indexData?.values?.thirdTag || collection.indexData?.values?.thirdTag === ' - ') ? `<p>${t('not-set')}</p>` : ''}
+                    </div>
+                </div>
+                    
+                ${collection.comment ? `
+                    <div class="detail-section">
+                        <h6>${t('comment')}</h6>
+                        <div class="border rounded p-3" style="white-space: pre-wrap; background-color: #f8f9fa;">${escapeHtml(collection.comment)}</div>
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        // 画像タブのHTMLを生成するヘルパー関数
+        function generateImageTabHtml(collection, images, currentImageIndex) {
+            const carouselHtml = images.length > 0
+                ? `
+                    <div class="image-carousel">
+                        <canvas id="carouselImage" class="detail-image" width="400" height="300" role="img" aria-label="${escapeHtml(images[currentImageIndex])}">${escapeHtml(images[currentImageIndex])}</canvas>
+                        <div class="text-center mt-3" style="display: flex; justify-content: center; align-items: center; gap: 15px;">
+                            <button id="prevImage" class="btn btn-outline-secondary btn-sm">◀</button>
+                            <span id="imageCounter" style="font-size: 14px; min-width: 60px;">${currentImageIndex + 1} / ${images.length}</span>
+                            <button id="nextImage" class="btn btn-outline-secondary btn-sm">▶</button>
+                        </div>
+                        <p id="imageName" class="small text-muted text-center mt-2">${escapeHtml(images[currentImageIndex])}</p>
+                    </div>
+                    `
+                : `<p class="text-muted">${t('no-images')}</p>`;
+
+            return `
+                ${carouselHtml}
+                <div class="image-action-toolbar mt-2 d-flex flex-wrap gap-2 justify-content-center">
+                    <button id="addImageBtn" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-plus-lg"></i> ${t('add-image')}
+                    </button>
+                    <button id="setThumbnailBtn" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-image"></i> ${t('set-thumbnail')}
+                    </button>
+                    <button id="deleteImageBtn" class="btn btn-sm btn-outline-danger" ${images.length === 0 ? 'disabled' : ''}>
+                        <i class="bi bi-trash"></i> ${t('delete-image')}
+                    </button>
+                </div>
+                <div id="imageUploadProgress" class="mt-2" style="display:none;">
+                    <div class="progress" style="height: 20px;">
+                        <div id="imageUploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-label="${t('uploading')}" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                    </div>
+                </div>
+                <input type="file" id="imageFileInput" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp" style="display:none;">
+            `;
+        }
+
+        // 動画タブのHTMLを生成するヘルパー関数
+        function generateVideoTabHtml(collection, videos, currentVideoIndex) {
+            const videoHtml = videos.length > 0
+                ? `
+                    <div class="video-carousel">
+                        <video id="carouselVideo"
+                               src="/api/File/${encodeURIComponent(collection.indexData.systemData.id)}/video/${encodeURIComponent(videos[currentVideoIndex])}"
+                               class="detail-video"
+                               controls
+                               preload="metadata">
+                        </video>
+                        <div class="text-center mt-3" style="display: flex; justify-content: center; align-items: center; gap: 15px;">
+                            <button id="prevVideo" class="btn btn-outline-secondary btn-sm">◀</button>
+                            <span id="videoCounter" style="font-size: 14px; min-width: 60px;">${currentVideoIndex + 1} / ${videos.length}</span>
+                            <button id="nextVideo" class="btn btn-outline-secondary btn-sm">▶</button>
+                        </div>
+                        <p id="videoName" class="small text-muted text-center mt-2">${escapeHtml(videos[currentVideoIndex])}</p>
+                    </div>
+                    `
+                : `<p class="text-muted">${t('no-videos')}</p>`;
+
+            return `
+                ${videoHtml}
+                <div class="video-action-toolbar mt-2 d-flex flex-wrap gap-2 justify-content-center">
+                    <button id="addVideoBtn" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-plus-lg"></i> ${t('add-video')}
+                    </button>
+                    <button id="deleteVideoBtn" class="btn btn-sm btn-outline-danger" ${videos.length === 0 ? 'disabled' : ''}>
+                        <i class="bi bi-trash"></i> ${t('delete-video')}
+                    </button>
+                </div>
+                <div id="videoUploadProgress" class="mt-2" style="display:none;">
+                    <div class="progress" style="height: 20px;">
+                        <div id="videoUploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-label="${t('uploading')}" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                    </div>
+                </div>
+                <input type="file" id="videoFileInput" accept=".mp4,.mov,.avi,.mkv,.webm,.wmv,.flv,.m4v" style="display:none;">
+            `;
+        }
+
+        // 3DデータタブのHTMLを生成するヘルパー関数
+        function generate3DDataTabHtml(collection, threeDFiles, currentThreeDIndex) {
+            const viewerHtml = threeDFiles.length > 0
+                ? `
+                    <div class="three-d-viewer-container" id="threeDViewerContainer">
+                        <div class="three-d-viewer-toolbar">
+                            <button id="resetViewBtn" class="btn btn-sm btn-outline-secondary" title="${t('3d-reset-view')}" aria-label="${t('3d-reset-view')}">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                            </button>
+                            <button id="fullscreen3DBtn" class="btn btn-sm btn-outline-secondary" title="${t('3d-fullscreen')}" aria-label="${t('3d-fullscreen')}">
+                                <i class="bi bi-fullscreen"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="text-center mt-3" style="display: flex; justify-content: center; align-items: center; gap: 15px;">
+                        <button id="prev3D" class="btn btn-outline-secondary btn-sm">◀</button>
+                        <span id="threeDCounter" style="font-size: 14px; min-width: 60px;">${currentThreeDIndex + 1} / ${threeDFiles.length}</span>
+                        <button id="next3D" class="btn btn-outline-secondary btn-sm">▶</button>
+                    </div>
+                    <p id="threeDName" class="small text-muted text-center mt-2">${escapeHtml(threeDFiles[currentThreeDIndex])}</p>
+                    `
+                : `<p class="text-muted">${t('no-3d-files')}</p>`;
+
+            return `
+                ${viewerHtml}
+                <div class="threed-action-toolbar mt-2 d-flex flex-wrap gap-2 justify-content-center">
+                    <button id="add3DBtn" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-plus-lg"></i> ${t('add-3d')}
+                    </button>
+                    <button id="delete3DBtn" class="btn btn-sm btn-outline-danger" ${threeDFiles.length === 0 ? 'disabled' : ''}>
+                        <i class="bi bi-trash"></i> ${t('delete-3d')}
+                    </button>
+                </div>
+                <div id="threeDUploadProgress" class="mt-2" style="display:none;">
+                    <div class="progress" style="height: 20px;">
+                        <div id="threeDUploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-label="${t('uploading')}" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                    </div>
+                </div>
+                <input type="file" id="threeDFileInput" accept=".stl" style="display:none;">
+            `;
+        }
+
+        // Three.js 3Dビューア インスタンス管理
+        let THREE = null;
+        let OrbitControlsClass = null;
+        let ThreeDLoaderClass = null;
+        let threeJsLoadPromise = null;
+        let threeDRenderer = null;
+        let threeDScene = null;
+        let threeDCamera = null;
+        let threeDControls = null;
+        let threeDAnimFrameId = null;
+        let threeDCurrentMesh = null;
+        let threeDResizeObserver = null;
+
+        // Three.js をダイナミックインポートで遅延読み込みする（v0.183.2、ESモジュール形式）
+        function loadThreeJS() {
+            if (THREE) return Promise.resolve();
+            if (threeJsLoadPromise) return threeJsLoadPromise;
+            threeJsLoadPromise = Promise.all([
+                import('three'),
+                import('three/addons/controls/OrbitControls.js'),
+                import('three/addons/loaders/STLLoader.js'),
+            ]).then(([threeModule, { OrbitControls }, { STLLoader }]) => {
+                THREE = threeModule;
+                OrbitControlsClass = OrbitControls;
+                ThreeDLoaderClass = STLLoader;
+            });
+            return threeJsLoadPromise;
+        }
+
+        // 3Dビューアを初期化する
+        async function init3DViewer(collectionId, threeDFiles, startIndex) {
+            // Three.js を読み込んでから既存のビューアを破棄
+            await loadThreeJS();
+            dispose3DViewer();
+
+            const container = document.getElementById('threeDViewerContainer');
+            if (!container || !THREE) return;
+
+            const w = container.clientWidth || 400;
+            const h = container.clientHeight || 350;
+
+            // シーン、カメラ、レンダラーを作成
+            threeDScene = new THREE.Scene();
+            threeDScene.background = new THREE.Color(0xf0f0f0);
+
+            threeDCamera = new THREE.PerspectiveCamera(45, w / h, 0.1, 10000);
+            threeDCamera.position.set(0, 0, 200);
+
+            threeDRenderer = new THREE.WebGLRenderer({ antialias: true });
+            threeDRenderer.setSize(w, h);
+            threeDRenderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(threeDRenderer.domElement);
+
+            // ライトを追加
+            // アンビエントライトは空間内に固定（全体を均一に照らす）
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            threeDScene.add(ambientLight);
+            // ディレクショナルライトはカメラに追従
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(1, 2, 3);
+            threeDCamera.add(dirLight);
+            threeDScene.add(threeDCamera);
+
+            // OrbitControls（回転、ズーム、パン）
+            threeDControls = new OrbitControlsClass(threeDCamera, threeDRenderer.domElement);
+            threeDControls.enableDamping = true;
+            threeDControls.dampingFactor = 0.1;
+
+            // アニメーションループ
+            function animate() {
+                threeDAnimFrameId = requestAnimationFrame(animate);
+                if (threeDControls) threeDControls.update();
+                if (threeDRenderer && threeDScene && threeDCamera) threeDRenderer.render(threeDScene, threeDCamera);
+            }
+            animate();
+
+            // リサイズハンドラ（モジュールレベルで管理）
+            threeDResizeObserver = new ResizeObserver(() => {
+                if (!threeDRenderer || !threeDCamera) return;
+                const c = document.getElementById('threeDViewerContainer');
+                if (!c) return;
+                const nw = c.clientWidth;
+                const nh = c.clientHeight;
+                if (nw === 0 || nh === 0) return;
+                threeDCamera.aspect = nw / nh;
+                threeDCamera.updateProjectionMatrix();
+                threeDRenderer.setSize(nw, nh);
+            });
+            threeDResizeObserver.observe(container);
+
+            // 最初のモデルをロード
+            load3DModel(collectionId, threeDFiles[startIndex]);
+        }
+
+        // 既存の3Dビューアを破棄する
+        function dispose3DViewer() {
+            if (threeDAnimFrameId !== null) {
+                cancelAnimationFrame(threeDAnimFrameId);
+                threeDAnimFrameId = null;
+            }
+            if (threeDResizeObserver) {
+                threeDResizeObserver.disconnect();
+                threeDResizeObserver = null;
+            }
+            if (threeDControls) { threeDControls.dispose(); threeDControls = null; }
+            if (threeDCurrentMesh) {
+                if (threeDScene) threeDScene.remove(threeDCurrentMesh);
+                if (threeDCurrentMesh.geometry) threeDCurrentMesh.geometry.dispose();
+                if (threeDCurrentMesh.material) threeDCurrentMesh.material.dispose();
+                threeDCurrentMesh = null;
+            }
+            if (threeDRenderer) {
+                threeDRenderer.dispose();
+                threeDRenderer = null;
+            }
+            threeDScene = null;
+            threeDCamera = null;
+        }
+
+        // 3Dモデルをロード・表示する
+        function load3DModel(collectionId, fileName) {
+            if (!threeDScene || !threeDCamera || !threeDControls || !THREE) return;
+
+            // 既存のメッシュを削除
+            if (threeDCurrentMesh) {
+                threeDScene.remove(threeDCurrentMesh);
+                if (threeDCurrentMesh.geometry) threeDCurrentMesh.geometry.dispose();
+                if (threeDCurrentMesh.material) threeDCurrentMesh.material.dispose();
+                threeDCurrentMesh = null;
+            }
+
+            const url = `/api/File/${encodeURIComponent(collectionId)}/3ddata/${encodeURIComponent(fileName)}`;
+            const loader = new ThreeDLoaderClass();
+            loader.load(
+                url,
+                (geometry) => {
+                    if (!threeDScene || !threeDCamera || !threeDControls) return;
+                    geometry.computeBoundingBox();
+                    geometry.computeVertexNormals();
+
+                    // モデルを中央に配置
+                    const bbox = geometry.boundingBox;
+                    const center = new THREE.Vector3();
+                    bbox.getCenter(center);
+                    geometry.translate(-center.x, -center.y, -center.z);
+
+                    // カメラをモデルサイズに合わせて調整
+                    const size = new THREE.Vector3();
+                    bbox.getSize(size);
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const fov = threeDCamera.fov * (Math.PI / 180);
+                    const cameraDist = Math.abs(maxDim / Math.sin(fov / 2)) * 0.8;
+                    threeDCamera.position.set(0, 0, cameraDist);
+                    threeDControls.target.set(0, 0, 0);
+                    threeDControls.update();
+                    threeDControls.saveState();
+
+                    const material = new THREE.MeshPhongMaterial({ color: 0x4488aa, specular: 0x222222, shininess: 200 });
+                    threeDCurrentMesh = new THREE.Mesh(geometry, material);
+                    threeDScene.add(threeDCurrentMesh);
+                },
+                undefined,
+                (error) => {
+                    console.error('Failed to load STL model:', error);
+                    alert('3Dモデルの読み込みに失敗しました。');
+                }
+            );
+        }
+
+        // コレクションの詳細を表示する関数
+        function displayCollectionDetails(collection) {
+			// タイトルを設定
+            document.title = collection.indexData.values.name;
+            document.getElementById('collectionTitle').textContent = collection.indexData.values.name;
+
+            // --- エリアA: インデックスデータを構築 ---
+            document.getElementById('collectionIndexData').innerHTML = generateIndexDataHtml(collection);
+
+			// 編集ボタンのテキストを設定
+            document.getElementById('editBtnText').textContent = t('edit');
+            
+            // 編集ボタンのイベントリスナを設定（既存のハンドラを上書きして重複を防ぐ）
+            const editIndexBtn = document.getElementById('editIndexBtn');
+            if (editIndexBtn) {
+                editIndexBtn.onclick = () => openEditIndexModal(collection);
+            }
+
+            // --- エリアB: タブ名を設定 ---
+            document.getElementById('images-tab').textContent = t('tab-image');
+            document.getElementById('videos-tab').textContent = t('tab-video');
+            document.getElementById('threed-tab').textContent = t('tab-3d');
+            document.getElementById('data-tab').textContent = t('tab-data');
+
+            // --- エリアB: 画像タブの内容を構築 ---
+            const images = collection.imageFiles || [];
+            let currentImageIndex = 0;
+            document.getElementById('imageTabContent').innerHTML = generateImageTabHtml(collection, images, currentImageIndex);
+
+            // 画像がある場合はカルーセル制御を設定
+            if (images.length > 0) {
+                const carouselImage = document.getElementById('carouselImage');
+                const imageCounter = document.getElementById('imageCounter');
+                const imageName = document.getElementById('imageName');
+                const prevBtn = document.getElementById('prevImage');
+                const nextBtn = document.getElementById('nextImage');
+
+                if (carouselImage && imageCounter && imageName && prevBtn && nextBtn) {
+                    const collectionID = collection?.indexData?.systemData?.id;
+                    const updateImage = () => {
+                        const capturedIndex = currentImageIndex;
+                        const filename = images[capturedIndex];
+                        if (!collectionID) {
+                            console.error('Collection ID is missing.');
+                            return;
+                        }
+                        imageCounter.textContent = `${capturedIndex + 1} / ${images.length}`;
+                        imageName.textContent = filename;
+                        carouselImage.setAttribute('aria-label', filename);
+                        const url = `/api/File/${encodeURIComponent(collectionID)}/picture/${encodeURIComponent(filename)}`;
+                        fetch(url)
+                            .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.blob(); })
+                            .then(blob => createImageBitmap(blob))
+                            .then(bitmap => {
+                                if (currentImageIndex !== capturedIndex) { bitmap.close(); return; }
+                                carouselImage.width = bitmap.width;
+                                carouselImage.height = bitmap.height;
+                                const ctx = carouselImage.getContext('2d');
+                                if (!ctx) { bitmap.close(); return; }
+                                try {
+                                    ctx.drawImage(bitmap, 0, 0);
+                                } finally {
+                                    bitmap.close();
+                                }
+                                if (images.length > 1) {
+                                    const preload = (fname) => fetch(`/api/File/${encodeURIComponent(collectionID)}/picture/${encodeURIComponent(fname)}`).catch(e => console.warn('Preload failed:', fname, e));
+                                    preload(images[(capturedIndex + 1) % images.length]);
+                                    preload(images[(capturedIndex - 1 + images.length) % images.length]);
+                                }
+                            })
+                            .catch(() => {
+                                if (currentImageIndex !== capturedIndex) return;
+                                const errW = 300, errH = 150;
+                                carouselImage.width = errW;
+                                carouselImage.height = errH;
+                                const ctx = carouselImage.getContext('2d');
+                                if (ctx) {
+                                    ctx.fillStyle = '#ddd';
+                                    ctx.fillRect(0, 0, errW, errH);
+                                    ctx.fillStyle = '#999';
+                                    ctx.font = '14px sans-serif';
+                                    ctx.textAlign = 'center';
+                                    ctx.fillText('Image not found', errW / 2, errH / 2);
+                                }
+                            });
+                    };
+
+                    prevBtn.addEventListener('click', () => {
+                        currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
+                        updateImage();
+                    });
+
+                    nextBtn.addEventListener('click', () => {
+                        currentImageIndex = (currentImageIndex + 1) % images.length;
+                        updateImage();
+                    });
+
+                    updateImage();
+                }
+            }
+
+            // 画像追加ボタンのイベントリスナを設定
+            const addImageBtn = document.getElementById('addImageBtn');
+            const imageFileInput = document.getElementById('imageFileInput');
+            if (addImageBtn && imageFileInput) {
+                addImageBtn.addEventListener('click', () => imageFileInput.click());
+                imageFileInput.addEventListener('change', async (event) => {
+                    const file = event.target.files[0];
+                    if (file) {
+                        await uploadCollectionImage(collection.indexData.systemData.id, file, loadCollectionDetails);
+                        event.target.value = '';
+                    }
+                });
+            }
+
+            // サムネイル設定ボタンのイベントリスナを設定
+            const setThumbnailBtn = document.getElementById('setThumbnailBtn');
+            if (setThumbnailBtn) {
+                setThumbnailBtn.addEventListener('click', async () => {
+                    if (images.length === 0) {
+                        alert(t('set-thumbnail-no-images'));
+                        return;
+                    }
+                    await setCollectionThumbnail(collection.indexData.systemData.id, images[currentImageIndex]);
+                });
+            }
+
+            // 画像削除ボタンのイベントリスナを設定
+            const deleteImageBtn = document.getElementById('deleteImageBtn');
+            if (deleteImageBtn) {
+                deleteImageBtn.addEventListener('click', async () => {
+                    if (images.length === 0) return;
+                    if (!confirm(t('delete-image-confirm'))) return;
+                    await deleteCollectionImage(collection.indexData.systemData.id, images[currentImageIndex], loadCollectionDetails);
+                });
+            }
+
+            // --- エリアB: 動画タブの内容を構築 ---
+            const videos = collection.videoFiles || [];
+            let currentVideoIndex = 0;
+            document.getElementById('videoTabContent').innerHTML = generateVideoTabHtml(collection, videos, currentVideoIndex);
+
+            // 動画がある場合はカルーセル制御を設定
+            if (videos.length > 0) {
+                const carouselVideo = document.getElementById('carouselVideo');
+                const videoCounter = document.getElementById('videoCounter');
+                const videoName = document.getElementById('videoName');
+                const prevVideoBtn = document.getElementById('prevVideo');
+                const nextVideoBtn = document.getElementById('nextVideo');
+
+                if (carouselVideo && videoCounter && videoName && prevVideoBtn && nextVideoBtn) {
+                    const updateVideo = () => {
+                        const collectionID = collection?.indexData?.systemData?.id;
+                        if (!collectionID) {
+                            console.error('Collection ID is missing.');
+                            return;
+                        }
+                        carouselVideo.src = `/api/File/${encodeURIComponent(collectionID)}/video/${encodeURIComponent(videos[currentVideoIndex])}`;
+                        videoCounter.textContent = `${currentVideoIndex + 1} / ${videos.length}`;
+                        videoName.textContent = videos[currentVideoIndex];
+                    };
+
+                    prevVideoBtn.addEventListener('click', () => {
+                        currentVideoIndex = (currentVideoIndex - 1 + videos.length) % videos.length;
+                        updateVideo();
+                    });
+
+                    nextVideoBtn.addEventListener('click', () => {
+                        currentVideoIndex = (currentVideoIndex + 1) % videos.length;
+                        updateVideo();
+                    });
+                }
+            }
+
+            // 動画追加ボタンのイベントリスナを設定
+            const addVideoBtn = document.getElementById('addVideoBtn');
+            const videoFileInput = document.getElementById('videoFileInput');
+            if (addVideoBtn && videoFileInput) {
+                addVideoBtn.addEventListener('click', () => videoFileInput.click());
+                videoFileInput.addEventListener('change', async (event) => {
+                    const file = event.target.files[0];
+                    if (file) {
+                        await uploadCollectionVideo(collection.indexData.systemData.id, file, loadCollectionDetails);
+                        event.target.value = '';
+                    }
+                });
+            }
+
+            // 動画削除ボタンのイベントリスナを設定
+            const deleteVideoBtn = document.getElementById('deleteVideoBtn');
+            if (deleteVideoBtn) {
+                deleteVideoBtn.addEventListener('click', async () => {
+                    if (videos.length === 0) return;
+                    if (!confirm(t('delete-video-confirm'))) return;
+                    await deleteCollectionVideo(collection.indexData.systemData.id, videos[currentVideoIndex], loadCollectionDetails);
+                });
+            }
+
+            // --- エリアB: 3Dデータタブの内容を構築 ---
+            const threeDFiles = collection.threeDFiles || [];
+            let currentThreeDIndex = 0;
+            document.getElementById('threeDTabContent').innerHTML = generate3DDataTabHtml(collection, threeDFiles, currentThreeDIndex);
+
+            // 3Dビューアを初期化（ファイルがない場合は既存ビューアを破棄）
+            if (threeDFiles.length > 0) {
+                init3DViewer(collection.indexData.systemData.id, threeDFiles, currentThreeDIndex);
+            } else {
+                dispose3DViewer();
+            }
+
+            // 全画面・リセットボタンのイベントリスナを設定
+            const fullscreen3DBtn = document.getElementById('fullscreen3DBtn');
+            if (fullscreen3DBtn) {
+                fullscreen3DBtn.addEventListener('click', () => {
+                    const threeDContainer = document.getElementById('threeDViewerContainer');
+                    if (threeDContainer?.requestFullscreen) threeDContainer.requestFullscreen();
+                    else if (threeDContainer?.webkitRequestFullscreen) threeDContainer.webkitRequestFullscreen();
+                });
+            }
+            const resetViewBtn = document.getElementById('resetViewBtn');
+            if (resetViewBtn) {
+                resetViewBtn.addEventListener('click', () => {
+                    if (threeDControls) threeDControls.reset();
+                });
+            }
+
+            // 3Dモデル切り替えヘルパー（カウンター・ファイル名表示を更新してモデルを読み込む）
+            const navigate3DTo = (newIndex) => {
+                currentThreeDIndex = newIndex;
+                const counter = document.getElementById('threeDCounter');
+                const nameEl = document.getElementById('threeDName');
+                if (counter) counter.textContent = `${currentThreeDIndex + 1} / ${threeDFiles.length}`;
+                if (nameEl) nameEl.textContent = threeDFiles[currentThreeDIndex];
+                load3DModel(collection.indexData.systemData.id, threeDFiles[currentThreeDIndex]);
+            };
+
+            // 3Dデータナビゲーションボタンのイベントリスナを設定
+            const prev3DBtn = document.getElementById('prev3D');
+            const next3DBtn = document.getElementById('next3D');
+            if (prev3DBtn && next3DBtn && threeDFiles.length > 0) {
+                prev3DBtn.addEventListener('click', () => navigate3DTo((currentThreeDIndex - 1 + threeDFiles.length) % threeDFiles.length));
+                next3DBtn.addEventListener('click', () => navigate3DTo((currentThreeDIndex + 1) % threeDFiles.length));
+            }
+
+            // 3Dデータ追加ボタンのイベントリスナを設定
+            const add3DBtn = document.getElementById('add3DBtn');
+            const threeDFileInput = document.getElementById('threeDFileInput');
+            if (add3DBtn && threeDFileInput) {
+                add3DBtn.addEventListener('click', () => threeDFileInput.click());
+                threeDFileInput.addEventListener('change', async (event) => {
+                    const file = event.target.files[0];
+                    if (file) {
+                        await uploadCollection3DFile(collection.indexData.systemData.id, file, loadCollectionDetails);
+                        event.target.value = '';
+                    }
+                });
+            }
+
+            // 3Dデータ削除ボタンのイベントリスナを設定
+            const delete3DBtn = document.getElementById('delete3DBtn');
+            if (delete3DBtn) {
+                delete3DBtn.addEventListener('click', async () => {
+                    if (threeDFiles.length === 0) return;
+                    if (!confirm(t('delete-3d-confirm'))) return;
+                    await deleteCollection3DFile(collection.indexData.systemData.id, threeDFiles[currentThreeDIndex], loadCollectionDetails);
+                });
+            }
+            
+            // --- エリアB: データファイルマネージャーを構築 ---
+            const dataTabContent = document.getElementById('dataTabContent');
+            if (!dataFileManager || dataFileManager.collectionId !== collection.indexData.systemData.id) {
+                dataFileManager = new DataFileManager(dataTabContent, collection.indexData.systemData.id);
+            }
+            dataFileManager.initialize(dataTabContent).catch(error => dataFileManager.showError(error));
+        }
+
+		// コレクションインデックス編集モーダルを開く関数
+        function openEditIndexModal(collection) {
+			// モーダルのインスタンスを取得または作成（既存インスタンスを再利用）
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editIndexModal'));
+            
+            // モーダルのタイトルとラベルを設定
+            document.getElementById('editIndexModalLabel').textContent = t('edit-index');
+            document.querySelector('label[for="editName"]').textContent = projectSettings.objectNameLabel || t('collection-name');
+            document.querySelector('label[for="editManagementCode"]').textContent = projectSettings.managementCodeName || t('management-code');
+            document.querySelector('label[for="editRegistrationDate"]').textContent = t('registration-date-label');
+            document.querySelector('label[for="editCategory"]').textContent = projectSettings.categoryName || t('category');
+            document.querySelector('label[for="editFirstTag"]').textContent = projectSettings.tag1Name || t('first-tag');
+            document.querySelector('label[for="editSecondTag"]').textContent = projectSettings.tag2Name || t('second-tag');
+            document.querySelector('label[for="editThirdTag"]').textContent = projectSettings.tag3Name || t('third-tag');
+            document.querySelector('label[for="editLocation"]').textContent = t('location');
+            
+            // ボタンのテキスト設定
+            document.querySelector('#editIndexModal .btn-secondary').textContent = t('cancel');
+            document.getElementById('saveIndexEdit').textContent = t('save');
+            
+            // 現在の値を表示
+            document.getElementById('editName').value = collection.indexData?.values?.name || '';
+            document.getElementById('editManagementCode').value = collection.indexData?.values?.managementCode || '';
+            // 登録日の処理（UTC ISO文字列をローカル日時に変換）
+            const registrationDate = collection.indexData?.values?.registrationDate;
+            if (registrationDate) {
+                try {
+                    const dateTime = new Date(registrationDate);
+                    // datetime-local用にローカル時刻でYYYY-MM-DDTHH:MM:SS形式に変換
+                    const year = dateTime.getFullYear();
+                    const month = String(dateTime.getMonth() + 1).padStart(2, '0');
+                    const day = String(dateTime.getDate()).padStart(2, '0');
+                    const hours = String(dateTime.getHours()).padStart(2, '0');
+                    const minutes = String(dateTime.getMinutes()).padStart(2, '0');
+                    const seconds = String(dateTime.getSeconds()).padStart(2, '0');
+                    document.getElementById('editRegistrationDate').value = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+                } catch (e) {
+                    document.getElementById('editRegistrationDate').value = '';
+                }
+            } else {
+                document.getElementById('editRegistrationDate').value = '';
+            }
+            document.getElementById('editCategory').value = collection.indexData?.values?.category || '';
+            document.getElementById('editFirstTag').value = collection.indexData?.values?.firstTag || '';
+            document.getElementById('editSecondTag').value = collection.indexData?.values?.secondTag || '';
+            document.getElementById('editThirdTag').value = collection.indexData?.values?.thirdTag || '';
+            document.getElementById('editLocation').value = collection.indexData?.values?.location || '';
+            
+            modal.show();
+            
+            // 保存ボタンのイベントリスナ
+            const saveButton = document.getElementById('saveIndexEdit');
+            saveButton.onclick = null;
+            saveButton.onclick = async () => {
+                const name = document.getElementById('editName').value;
+                const managementCode = document.getElementById('editManagementCode').value;
+                const registrationDateInput = document.getElementById('editRegistrationDate').value;
+                const category = document.getElementById('editCategory').value;
+                const firstTag = document.getElementById('editFirstTag').value;
+                const secondTag = document.getElementById('editSecondTag').value;
+                const thirdTag = document.getElementById('editThirdTag').value;
+                const location = document.getElementById('editLocation').value;
+                
+                // バリデーション: 名前は必須
+                if (!name || name.trim() === '') {
+                    alert(t('name-required'));
+                    return;
+                }
+                
+                // 日付をUTC ISO文字列に変換
+                let registrationDate = '';
+                if (registrationDateInput) {
+                    const date = new Date(registrationDateInput);
+                    if (isNaN(date.getTime())) {
+                        alert(t('invalid-date'));
+                        return;
+                    }
+                    registrationDate = date.toISOString();
+                }
+                
+                try {
+                    const response = await fetch(`/api/CollectionIndex/${encodeURIComponent(collection.indexData.systemData.id)}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            name: name,
+                            managementCode: managementCode,
+                            registrationDate: registrationDate,
+                            category: category,
+                            firstTag: firstTag,
+                            secondTag: secondTag,
+                            thirdTag: thirdTag,
+                            location: location
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        alert(t('edit-success'));
+                        modal.hide();
+                        // ページをリロードして最新の情報を表示
+                        loadCollectionDetails();
+                    } else {
+                        alert(t('edit-error'));
+                    }
+                } catch (error) {
+                    console.error('Error saving index:', error);
+                    alert(t('edit-error'));
+                }
+            };
+        }
+
+		// 在庫の概要を表示する関数
+        function displayInventorySummary(collection) {
+			// 在庫ステータスのテキストとバッジクラスを取得
+            const inventoryStatusText = getInventoryStatusText(
+                collection.collectionInventoryStatus,
+                collection.collectionCurrentInventory,
+                collection.inventoryData?.setting?.safetyStock,
+                collection.inventoryData?.setting?.reorderPoint,
+                collection.inventoryData?.setting?.maximumLevel
+            );
+            const inventoryBadgeClass = getInventoryStatusBadgeClass(collection.collectionInventoryStatus);
+
+            const inventorySummaryHtml = `
+                <div style="display: flex; gap: 0.5rem;">
+                    <div class="detail-section" style="flex: 1.5;">
+                        <h6>
+                            <p style="font-size: 1.5rem; font-weight: 600; margin: 0;">${t('inventory')}</p>
+                            <p style="font-size: 1.5rem; font-weight: 600; margin: 0;">${collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : t('not-set')}</p>
+                        </h6>
+                        <button id="inventoryOperationBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
+                            <i class="bi bi-pencil-square"></i> ${t('inventory-operation')}
+                        </button>
+                    </div>
+                        
+                    <div class="detail-section" style="flex: 1;">
+                        <h6>
+                            <p style="font-size: 1.5rem; font-weight: 600;">${t('inventory-status')}
+                            <p><span class="badge ${inventoryBadgeClass}">${inventoryStatusText}</span></p>
+                        </h6>
+                        <button id="inventoryManagementSettingsBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
+                            <i class="bi bi-pencil-square"></i> ${t('inventory-management-settings')}
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('inventorySummary').innerHTML = inventorySummaryHtml;
+
+            // 在庫操作ボタンのイベントリスナを設定
+            const inventoryOperationBtn = document.getElementById('inventoryOperationBtn');
+            if (inventoryOperationBtn) {
+                inventoryOperationBtn.addEventListener('click', () => openInventoryOperationModal(collection));
+            }
+
+            // 在庫管理設定ボタンのイベントリスナを設定
+            const inventoryManagementSettingsBtn = document.getElementById('inventoryManagementSettingsBtn');
+            if (inventoryManagementSettingsBtn) {
+                inventoryManagementSettingsBtn.addEventListener('click', () => openInventoryManagementSettingsModal(collection));
+            }
+        }
+
+		// 在庫操作の履歴を表示する関数
+        function displayInventoryHistory(collection) {
+			// タイトルを設定
+            document.getElementById('historyTitle').textContent = t('inventory-history');
+            
+            const operations = collection.inventoryData?.operations || [];
+            const historyContainer = document.getElementById('historyTableContainer');
+            
+            if (operations.length === 0) {
+                historyContainer.innerHTML = `
+                    <div class="no-history">
+                        <i class="bi bi-inbox" style="font-size: 3rem; color: #dee2e6;"></i>
+                        <p class="mt-3">${t('no-inventory-history')}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // 操作タイプを変換
+            function getOperationTypeText(operationType) {
+                const typeMap = {
+                    0: t('operation-entry'),    // 入庫
+                    1: t('operation-exit'),      // 出庫
+                    2: t('operation-stocktaking') // 棚卸し
+                };
+                return typeMap[operationType] || t('unknown');
+            }
+
+			// 操作タイプに応じたバッジクラスを取得
+            function getOperationTypeBadgeClass(operationType) {
+                const classMap = {
+                    0: 'operation-entry',
+                    1: 'operation-exit',
+                    2: 'operation-stocktaking'
+                };
+                return classMap[operationType] || '';
+            }
+
+            // 操作を日時の新しい順にソート
+            const sortedOperations = [...operations].reverse();
+
+            // テーブルのHTMLを生成
+            const tableHtml = `
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>${t('date-time')}</th>
+                            <th>${t('operation-type-header')}</th>
+                            <th>${t('quantity-header')}</th>
+                            <th>${t('comment-header')}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sortedOperations.map(op => `
+                            <tr>
+                                <td>${escapeHtml(formatUtcToLocal(op.dateTime))}</td>
+                                <td>
+                                    <span class="operation-badge ${getOperationTypeBadgeClass(op.operationType)}">
+                                        ${getOperationTypeText(op.operationType)}
+                                    </span>
+                                </td>
+                                <td>${op.quantity > 0 ? '+' : ''}${Number(op.quantity) || 0}</td>
+                                <td>${escapeHtml(op.note || '-')}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+			// 在庫操作履歴テーブルを更新
+            historyContainer.innerHTML = tableHtml;
+        }
+
+		// 在庫操作モーダルを開く関数
+        function openInventoryOperationModal(collection) {
+			// モーダルのインスタンスを取得または作成（既存インスタンスを再利用）
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('inventoryOperationModal'));
+            
+            // モーダルのタイトルとラベルを設定
+            document.getElementById('inventoryOperationModalLabel').textContent = t('inventory-operation-title');
+            document.querySelector('label[for="operationType"]').textContent = t('operation-type');
+            document.querySelector('label[for="operationQuantity"]').textContent = t('operation-quantity');
+            document.querySelector('label[for="operationComment"]').textContent = t('operation-comment');
+            
+            // ドロップダウンのオプション設定
+            const operationTypeSelect = document.getElementById('operationType');
+            operationTypeSelect.innerHTML = `
+                <option value="0">${t('operation-entry')}</option>
+                <option value="1">${t('operation-exit')}</option>
+                <option value="2">${t('operation-stocktaking')}</option>
+            `;
+            
+            // ボタンのテキスト設定
+            document.querySelector('#inventoryOperationModal .btn-secondary').textContent = t('cancel');
+            document.getElementById('saveInventoryOperation').textContent = t('save');
+            
+            // フォームをリセット
+            document.getElementById('operationQuantity').value = '';
+            document.getElementById('operationComment').value = '';
+            
+            modal.show();
+            
+            // 保存ボタンのイベントリスナ
+            document.getElementById('saveInventoryOperation').onclick = async () => {
+                const type = parseInt(document.getElementById('operationType').value);
+                const quantity = parseInt(document.getElementById('operationQuantity').value);
+                const comment = document.getElementById('operationComment').value;
+                
+                // バリデーション
+                if (isNaN(quantity)) {
+                    alert(t('invalid-number'));
+                    return;
+                }
+                
+                if (!Number.isSafeInteger(quantity)) {
+                    alert(t('quantity-validation-overflow'));
+                    return;
+                }
+                
+                if (type === 0 && quantity <= 0) {
+                    alert(t('quantity-validation-entry'));
+                    return;
+                }
+                
+                if (type === 1 && quantity >= 0) {
+                    alert(t('quantity-validation-exit'));
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/api/Inventory/${encodeURIComponent(collection.indexData.systemData.id)}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            operationType: type,
+                            quantity: quantity,
+                            note: comment
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        alert(t('operation-success'));
+                        modal.hide();
+                        // ページをリロードして最新の在庫を表示
+                        loadCollectionDetails();
+                    } else {
+                        alert(t('operation-error'));
+                    }
+                } catch (error) {
+                    console.error('Error saving inventory operation:', error);
+                    alert(t('operation-error'));
+                }
+            };
+        }
+
+		// 在庫管理設定モーダルを開く関数
+        function openInventoryManagementSettingsModal(collection) {
+			// モーダルのインスタンスを取得または作成（既存インスタンスを再利用）
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('inventoryManagementSettingsModal'));
+            
+            // モーダルのタイトルとラベルを設定
+            document.getElementById('inventoryManagementSettingsModalLabel').textContent = t('inventory-management-settings');
+            document.querySelector('label[for="safetyStock"]').textContent = t('safety-stock');
+            document.querySelector('label[for="reorderPoint"]').textContent = t('reorder-point');
+            document.querySelector('label[for="maximumLevel"]').textContent = t('maximum-level');
+            
+            // ボタンのテキスト設定
+            document.querySelector('#inventoryManagementSettingsModal .btn-secondary').textContent = t('cancel');
+            document.getElementById('saveInventoryManagementSettings').textContent = t('save');
+            
+            // 現在の設定値を表示
+            document.getElementById('safetyStock').value = collection.inventoryData?.setting?.safetyStock ?? '';
+            document.getElementById('reorderPoint').value = collection.inventoryData?.setting?.reorderPoint ?? '';
+            document.getElementById('maximumLevel').value = collection.inventoryData?.setting?.maximumLevel ?? '';
+            
+            modal.show();
+            
+            // 保存ボタンのイベントリスナ
+            document.getElementById('saveInventoryManagementSettings').onclick = async () => {
+                const safetyStock = document.getElementById('safetyStock').value;
+                const reorderPoint = document.getElementById('reorderPoint').value;
+                const maximumLevel = document.getElementById('maximumLevel').value;
+                
+                // 空文字列をnullに変換、それ以外は数値に変換
+                const safetyStockValue = safetyStock === '' ? null : Number(safetyStock);
+                const reorderPointValue = reorderPoint === '' ? null : Number(reorderPoint);
+                const maximumLevelValue = maximumLevel === '' ? null : Number(maximumLevel);
+                
+                // バリデーション
+                if ((safetyStockValue !== null && isNaN(safetyStockValue)) ||
+                    (reorderPointValue !== null && isNaN(reorderPointValue)) ||
+                    (maximumLevelValue !== null && isNaN(maximumLevelValue))) {
+                    alert(t('invalid-number'));
+                    return;
+                }
+                
+                if ((safetyStockValue !== null && !Number.isSafeInteger(safetyStockValue)) ||
+                    (reorderPointValue !== null && !Number.isSafeInteger(reorderPointValue)) ||
+                    (maximumLevelValue !== null && !Number.isSafeInteger(maximumLevelValue))) {
+                    alert(t('safe-integer-overflow'));
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/api/Inventory/Settings/${encodeURIComponent(collection.indexData.systemData.id)}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            safetyStock: safetyStockValue,
+                            reorderPoint: reorderPointValue,
+                            maximumLevel: maximumLevelValue
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        alert(t('operation-success'));
+                        modal.hide();
+                        // ページをリロードして最新の在庫状況を表示
+                        loadCollectionDetails();
+                    } else {
+                        alert(t('operation-error'));
+                    }
+                } catch (error) {
+                    console.error('Error saving inventory settings:', error);
+                    alert(t('operation-error'));
+                }
+            };
+        }
+
+        // 表示言語を切り替える関数
+        document.addEventListener('DOMContentLoaded', () => {
+			// 言語切り替えボタンのイベントリスナを設定
+            const languageToggle = document.getElementById('languageToggle');
+            if (languageToggle) {
+                languageToggle.addEventListener('hidden.bs.dropdown', () => {
+                    setTimeout(() => {
+                        // 再描画し、言語設定を反映
+                        if (currentCollection) {
+                            displayCollectionDetails(currentCollection);
+							displayInventorySummary(currentCollection);
+                            displayInventoryHistory(currentCollection);
+                        }
+                    }, 100);
+                });
+            }
+        });
+
+        // ページ読み込み時の処理
+        document.addEventListener('DOMContentLoaded', async () => {
+			// タイトルを読み込み中として設定
+            document.getElementById('collectionTitle').textContent = t('loading');
+            document.getElementById('historyTitle').textContent = t('loading');
+
+            // Bootstrap JS が読み込まれていない場合のタブ切り替えフォールバック
+            document.getElementById('collectionTabs').addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-bs-toggle="tab"]');
+                if (!btn) return;
+                // Bootstrap Tab コンポーネントが有効ならBootstrap側で処理されるため不要
+                if (typeof bootstrap !== 'undefined' && typeof bootstrap.Tab !== 'undefined') return;
+                const targetId = btn.getAttribute('data-bs-target');
+                // すべてのタブボタンを非アクティブに
+                document.querySelectorAll('#collectionTabs .nav-link').forEach(link => {
+                    link.classList.remove('active');
+                    link.setAttribute('aria-selected', 'false');
+                });
+                // クリックされたタブボタンをアクティブに
+                btn.classList.add('active');
+                btn.setAttribute('aria-selected', 'true');
+                // すべてのタブパネルを非表示に
+                document.querySelectorAll('#collectionTabContent .tab-pane').forEach(pane => {
+                    pane.classList.remove('show', 'active');
+                });
+                // 対象タブパネルを表示
+                const targetPane = document.querySelector(targetId);
+                if (targetPane) {
+                    targetPane.classList.add('show', 'active');
+                }
+            });
+
+            // プロジェクト設定を先に読み込んでからコレクション詳細を読み込む（競合状態の防止）
+            await loadProjectSettings();
+            await loadCollectionDetails();
+            // URLに ?edit=1 が含まれる場合は編集モーダルを自動で開く（リロード時に再度開かないようURLから edit フラグのみ除去）
+            if (new URLSearchParams(window.location.search).get('edit') === '1' && currentCollection) {
+                const url = new URL(window.location.href);
+                url.searchParams.delete('edit');
+                history.replaceState(null, '', url.toString());
+                openEditIndexModal(currentCollection);
+            }
+        });
+    </script>
+}
