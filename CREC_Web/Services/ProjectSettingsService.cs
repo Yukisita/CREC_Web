@@ -68,21 +68,21 @@ public class ProjectSettingsService
     /// <summary>
     /// プロジェクト設定をアプリケーションに反映する。
     /// </summary>
-    /// <param name="settings">アプリケーションに反映するプロジェクト設定。</param>
+    /// <param name="projectSettings">アプリケーションに反映するプロジェクト設定。</param>
     /// <param name="crecFilePath">プロジェクトファイルのパス。</param>
     /// <returns>なし。</returns>
-    public void ApplyProjectSettings(ProjectSettings settings, string crecFilePath)
+    public void ApplyProjectSettings(ProjectSettings projectSettings, string crecFilePath)
     {
-        _configuration["ProjectDataPath"] = settings.ProjectDataPath;
+        _configuration["ProjectDataPath"] = projectSettings.ProjectDataPath;
         _configuration["CrecFilePath"] = crecFilePath;
-        _configuration["ProjectName"] = settings.ProjectName;
-        _configuration["CollectionNameLabel"] = settings.CollectionNameLabel;
-        _configuration["UUIDLabel"] = settings.UUIDLabel;
-        _configuration["ManagementCodeLabel"] = settings.ManagementCodeLabel;
-        _configuration["CategoryLabel"] = settings.CategoryLabel;
-        _configuration["FirstTagLabel"] = settings.FirstTagLabel;
-        _configuration["SecondTagLabel"] = settings.SecondTagLabel;
-        _configuration["ThirdTagLabel"] = settings.ThirdTagLabel;
+        _configuration["ProjectName"] = projectSettings.ProjectName;
+        _configuration["CollectionNameLabel"] = projectSettings.CollectionNameLabel;
+        _configuration["UUIDLabel"] = projectSettings.UUIDLabel;
+        _configuration["ManagementCodeLabel"] = projectSettings.ManagementCodeLabel;
+        _configuration["CategoryLabel"] = projectSettings.CategoryLabel;
+        _configuration["FirstTagLabel"] = projectSettings.FirstTagLabel;
+        _configuration["SecondTagLabel"] = projectSettings.SecondTagLabel;
+        _configuration["ThirdTagLabel"] = projectSettings.ThirdTagLabel;
     }
 
     /// <summary>
