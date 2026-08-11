@@ -21,12 +21,20 @@ public class ProjectSettingsService
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
+    /// <summary>
+    /// プロジェクト設定サービスを初期化する。
+    /// </summary>
+    /// <param name="configuration">プロジェクト設定を反映するアプリケーション構成。</param>
     public ProjectSettingsService(IConfiguration configuration)
     {
         _configuration = configuration;
     }
 
-    /// <summary>JSON形式のプロジェクトファイルを読み込む。</summary>
+    /// <summary>
+    /// JSON形式のプロジェクトファイルを読み込む。
+    /// </summary>
+    /// <param name="crecFilePath">読み込むプロジェクトファイルのパス。</param>
+    /// <returns>読み込んだプロジェクト設定。読み込みに失敗した場合はnull。</returns>
     public ProjectSettings? LoadProjectSettings(string crecFilePath)
     {
         lock (_fileLock)
@@ -57,7 +65,12 @@ public class ProjectSettingsService
         }
     }
 
-    /// <summary>プロジェクト設定をアプリケーションに反映する。</summary>
+    /// <summary>
+    /// プロジェクト設定をアプリケーションに反映する。
+    /// </summary>
+    /// <param name="settings">アプリケーションに反映するプロジェクト設定。</param>
+    /// <param name="crecFilePath">プロジェクトファイルのパス。</param>
+    /// <returns>なし。</returns>
     public void ApplyProjectSettings(ProjectSettings settings, string crecFilePath)
     {
         _configuration["ProjectDataPath"] = settings.ProjectDataPath;
@@ -75,6 +88,9 @@ public class ProjectSettingsService
     /// <summary>
     /// CREC Webが編集する値だけを更新し、その他の設定やフラグはそのまま保存する。
     /// </summary>
+    /// <param name="request">プロジェクト設定の更新内容。</param>
+    /// <param name="message">更新結果を説明するメッセージ。</param>
+    /// <returns>更新に成功した場合はtrue、それ以外はfalse。</returns>
     public bool UpdateProjectSettings(UpdateProjectSettingsRequest request, out string message)
     {
         var crecFilePath = _configuration["CrecFilePath"];
@@ -140,12 +156,22 @@ public class ProjectSettingsService
         }
     }
 
+    /// <summary>
+    /// プロジェクトファイルをJSONオブジェクトとして読み込む。
+    /// </summary>
+    /// <param name="path">読み込むプロジェクトファイルのパス。</param>
+    /// <returns>プロジェクトファイルのルートJSONオブジェクト。</returns>
     private static JsonObject ReadProjectFile(string path)
     {
         return JsonNode.Parse(File.ReadAllText(path, Encoding.UTF8)) as JsonObject
             ?? throw new InvalidDataException("The project file root must be a JSON object.");
     }
 
+    /// <summary>
+    /// JSONオブジェクトからCREC Webが使用するプロジェクト設定を取得する。
+    /// </summary>
+    /// <param name="root">プロジェクトファイルのルートJSONオブジェクト。</param>
+    /// <returns>CREC Webが使用するプロジェクト設定。</returns>
     private static ProjectSettings ReadSettings(JsonObject root)
     {
         var defaults = new ProjectSettings();
@@ -172,12 +198,25 @@ public class ProjectSettingsService
         };
     }
 
+    /// <summary>
+    /// ラベル設定から表示名を取得する。
+    /// </summary>
+    /// <param name="labels">ラベル設定を保持するJSONオブジェクト。</param>
+    /// <param name="name">取得するラベル設定のプロパティ名。</param>
+    /// <param name="defaultValue">表示名が未設定の場合に使用する既定値。</param>
+    /// <returns>ラベルの表示名。</returns>
     private static string ReadLabel(JsonObject labels, string name, string defaultValue)
     {
         var displayName = GetObject(labels, name)["displayName"]?.GetValue<string>();
         return string.IsNullOrWhiteSpace(displayName) ? defaultValue : displayName;
     }
 
+    /// <summary>
+    /// 親JSONオブジェクトから指定した子JSONオブジェクトを取得する。
+    /// </summary>
+    /// <param name="parent">検索対象の親JSONオブジェクト。</param>
+    /// <param name="name">取得する子JSONオブジェクトのプロパティ名。</param>
+    /// <returns>指定した子JSONオブジェクト。</returns>
     private static JsonObject GetObject(JsonObject parent, string name)
     {
         return parent[name] as JsonObject
