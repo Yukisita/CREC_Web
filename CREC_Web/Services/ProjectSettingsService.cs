@@ -14,7 +14,10 @@ namespace CREC_Web.Services;
 public class ProjectSettingsService
 {
     private readonly IConfiguration _configuration;
-    private static readonly object _fileLock = new();
+
+    // Webプロセス内でプロジェクトファイルの読み込みと更新を直列化するためのロック
+    private static readonly object _fileLock = new object();
+
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
         WriteIndented = true,
