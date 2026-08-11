@@ -222,7 +222,6 @@ public class ProjectSettingsService
         return parent[name] as JsonObject
             ?? throw new InvalidDataException($"{name} must be a JSON object.");
     }
-
 }
 
 public class ProjectSettings
