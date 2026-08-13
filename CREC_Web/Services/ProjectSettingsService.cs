@@ -18,10 +18,11 @@ public class ProjectSettingsService
     // Webプロセス内でプロジェクトファイルの読み込みと更新を直列化するためのロック
     private static readonly object _fileLock = new object();
 
+    // プロジェクトファイルを読みやすいJSON形式で保存するためのシリアライズ設定
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
-        WriteIndented = true,
-        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        WriteIndented = true,// インデント付きで保存する
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping// 日本語などの非ASCII文字をエスケープせずに保存する
     };
 
     /// <summary>
