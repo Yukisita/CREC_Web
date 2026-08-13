@@ -47,7 +47,7 @@ public class ProjectSettingsService
             {
                 if (!File.Exists(crecFilePath))
                 {
-                    Console.WriteLine($"Error: .crec file not found: {crecFilePath}");
+                    Console.WriteLine($"Error: Project settings file not found: {crecFilePath}");
                     return null;
                 }
 
@@ -63,7 +63,7 @@ public class ProjectSettingsService
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error reading .crec JSON file: {ex.Message}");
+                Console.WriteLine($"Error reading project settings file: {ex.Message}");
                 return null;
             }
         }
