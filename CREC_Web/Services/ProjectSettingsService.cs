@@ -202,7 +202,9 @@ public class ProjectSettingsService
 
         return new ProjectSettings
         {
-            ProjectName = project["projectName"]?.GetValue<string>() ?? defaults.ProjectName,
+            ProjectName = project["projectName"]?.GetValue<string>() is string name && !string.IsNullOrWhiteSpace(name)
+                ? name
+                : defaults.ProjectName,
             ProjectDataPath = projectDataPath,
             CollectionNameLabel = ReadLabel(labels, "objectName", defaults.CollectionNameLabel),
             UUIDLabel = ReadLabel(labels, "id", defaults.UUIDLabel),
