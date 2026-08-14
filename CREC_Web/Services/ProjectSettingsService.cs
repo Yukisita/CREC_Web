@@ -104,6 +104,7 @@ public class ProjectSettingsService
             return false;
         }
 
+        // 更新リクエストの各ラベルと、プロジェクトファイル内のJSON項目名を対応付ける。
         var labelUpdates = new (string JsonName, string? Value)[]
         {
             ("objectName", request.CollectionNameLabel),
@@ -117,9 +118,14 @@ public class ProjectSettingsService
 
         try
         {
+            // 読み込みから保存までの間に、別のWebリクエストが同じファイルを更新しないようにする。
             lock (_fileLock)
             {
-                var root = ReadProjectFile(crecFilePath);// プロジェクトファイルをJSONオブジェクトとして読み込む
+                // プロジェクトファイル全体をJSONオブジェクトとして読み込む。
+                var root = ReadProjectFile(crecFilePath);
+
+                // projectとlabelsはroot内の子オブジェクトへの参照であり、コピーではない。
+                // そのため、これらを変更するとrootの内容も同時に変更される。
                 var project = GetObject(root, "projectSettings");
                 var labels = GetObject(root, "labelSettings");
 
@@ -137,11 +143,16 @@ public class ProjectSettingsService
                     }
                 }
 
-                var updatedSettings = ReadSettings(root);// JSONオブジェクトから更新後のプロジェクト設定を取得する
+                // 更新後のJSONを検証し、実行中のWebへ反映する設定を取得する。
+                var updatedSettings = ReadSettings(root);
+
+                // 未使用フラグや未知の項目を含むroot全体をプロジェクトファイルへ保存する。
                 File.WriteAllText(
                     crecFilePath,
                     root.ToJsonString(_jsonOptions),
                     new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+
+                // 保存した設定を、現在実行中のWebにも反映する。
                 ApplyProjectSettings(updatedSettings, crecFilePath);
             }
 
