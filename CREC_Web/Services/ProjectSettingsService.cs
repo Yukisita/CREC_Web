@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Unicode;
 
 namespace CREC_Web.Services;
 
@@ -18,11 +19,11 @@ public class ProjectSettingsService
     // Webプロセス内でプロジェクトファイルの読み込みと更新を直列化するためのロック
     private static readonly object _fileLock = new object();
 
-    // プロジェクトファイルを読みやすいJSON形式で保存するためのシリアライズ設定
+    // 日本語などのUnicode文字を直接保存しつつ、HTMLで意味を持つ文字はエスケープする設定
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
         WriteIndented = true,// インデント付きで保存する
-        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping// 日本語などの非ASCII文字をエスケープせずに保存する
+        Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
     };
 
     /// <summary>
