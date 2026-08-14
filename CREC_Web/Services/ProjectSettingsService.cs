@@ -119,7 +119,7 @@ public class ProjectSettingsService
         {
             lock (_fileLock)
             {
-                var root = ReadProjectFile(crecFilePath);
+                var root = ReadProjectFile(crecFilePath);// プロジェクトファイルをJSONオブジェクトとして読み込む
                 var project = GetObject(root, "projectSettings");
                 var labels = GetObject(root, "labelSettings");
 
@@ -137,7 +137,7 @@ public class ProjectSettingsService
                     }
                 }
 
-                var updatedSettings = ReadSettings(root);
+                var updatedSettings = ReadSettings(root);// JSONオブジェクトから更新後のプロジェクト設定を取得する
                 File.WriteAllText(
                     crecFilePath,
                     root.ToJsonString(_jsonOptions),
