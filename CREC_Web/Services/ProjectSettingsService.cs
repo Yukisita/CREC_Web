@@ -5,6 +5,10 @@ This software is released under the MIT License.
 */
 
 using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Unicode;
 
 namespace CREC_Web.Services;
 
@@ -12,19 +16,30 @@ public class ProjectSettingsService
 {
     private readonly IConfiguration _configuration;
 
-    // ファイルの読み込み・保存をスレッドセーフに行うためのロックオブジェクト
+    // Webプロセス内でプロジェクトファイルの読み込みと更新を直列化するためのロック
     private static readonly object _fileLock = new object();
 
+    // 日本語などのUnicode文字を直接保存しつつ、HTMLで意味を持つ文字はエスケープする設定
+    private static readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        WriteIndented = true,// インデント付きで保存する
+        Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
+    };
+
+    /// <summary>
+    /// プロジェクト設定サービスを初期化する。
+    /// </summary>
+    /// <param name="configuration">プロジェクト設定を反映するアプリケーション構成。</param>
     public ProjectSettingsService(IConfiguration configuration)
     {
         _configuration = configuration;
     }
 
     /// <summary>
-    /// プロジェクト設定ファイル読み込む
+    /// JSON形式のプロジェクトファイルを読み込む。
     /// </summary>
-    /// <param name="crecFilePath">プロジェクト設定ファイルのパス</param>
-    /// <returns>プロジェクト設定値</returns>
+    /// <param name="crecFilePath">読み込むプロジェクトファイルのパス。</param>
+    /// <returns>読み込んだプロジェクト設定。読み込みに失敗した場合はnull。</returns>
     public ProjectSettings? LoadProjectSettings(string crecFilePath)
     {
         lock (_fileLock)
@@ -33,94 +48,12 @@ public class ProjectSettingsService
             {
                 if (!File.Exists(crecFilePath))
                 {
-                    Console.WriteLine($"Error: .crec file not found: {crecFilePath}");
+                    Console.WriteLine($"Error: Project settings file not found: {crecFilePath}");
                     return null;
                 }
 
-                var settings = new ProjectSettings();
-                var lines = File.ReadAllLines(crecFilePath, Encoding.GetEncoding("UTF-8"));
-
-                Console.WriteLine($"Parsing .crec file with {lines.Length} lines...");
-
-                foreach (var line in lines)
-                {
-                    if (string.IsNullOrWhiteSpace(line)) continue;
-
-                    var cols = line.Split(',', 2);
-                    if (cols.Length < 2) continue;
-
-                    var key = cols[0].Trim();
-                    var value = cols[1].Trim();
-
-                    switch (key)
-                    {
-                        case "projectname":
-                            settings.ProjectName = value;
-                            Console.WriteLine($"  - Found projectname: {value}");
-                            break;
-                        case "projectlocation":
-                            settings.ProjectDataPath = value;
-                            Console.WriteLine($"  - Found projectlocation: {value}");
-                            break;
-                        case "ShowObjectNameLabel":
-                            if (!string.IsNullOrWhiteSpace(value))
-                            {
-                                settings.CollectionNameLabel = value;
-                                Console.WriteLine($"  - Found ShowObjectNameLabel: {value}");
-                            }
-                            break;
-                        case "ShowIDLabel":
-                            if (!string.IsNullOrWhiteSpace(value))
-                            {
-                                settings.UUIDLabel = value;
-                                Console.WriteLine($"  - Found ShowIDLabel: {value}");
-                            }
-                            break;
-                        case "ShowMCLabel":
-                            if (!string.IsNullOrWhiteSpace(value))
-                            {
-                                settings.ManagementCodeLabel = value;
-                                Console.WriteLine($"  - Found ShowMCLabel: {value}");
-                            }
-                            break;
-                        case "ShowCategoryLabel":
-                            if (!string.IsNullOrWhiteSpace(value))
-                            {
-                                settings.CategoryLabel = value;
-                                Console.WriteLine($"  - Found ShowCategoryLabel: {value}");
-                            }
-                            break;
-                        case "Tag1Name":
-                            if (!string.IsNullOrWhiteSpace(value))
-                            {
-                                settings.FirstTagLabel = value;
-                                Console.WriteLine($"  - Found Tag1Name: {value}");
-                            }
-                            break;
-                        case "Tag2Name":
-                            if (!string.IsNullOrWhiteSpace(value))
-                            {
-                                settings.SecondTagLabel = value;
-                                Console.WriteLine($"  - Found Tag2Name: {value}");
-                            }
-                            break;
-                        case "Tag3Name":
-                            if (!string.IsNullOrWhiteSpace(value))
-                            {
-                                settings.ThirdTagLabel = value;
-                                Console.WriteLine($"  - Found Tag3Name: {value}");
-                            }
-                            break;
-                    }
-                }
-
-                Console.WriteLine("Finished parsing .crec file");
-
-                if (string.IsNullOrEmpty(settings.ProjectDataPath))
-                {
-                    Console.WriteLine("Error: 'projectlocation' not found in .crec file");
-                    return null;
-                }
+                var settings = ReadSettings(ReadProjectFile(crecFilePath));
+                Console.WriteLine($"Loaded project settings: {settings.ProjectName}");
 
                 if (!Directory.Exists(settings.ProjectDataPath))
                 {
@@ -131,17 +64,18 @@ public class ProjectSettingsService
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error parsing .crec file: {ex.Message}");
+                Console.WriteLine($"Error reading project settings file: {ex.Message}");
                 return null;
             }
         }
     }
 
     /// <summary>
-    /// アプリケーションのプロジェクト設定値を更新
+    /// プロジェクト設定をアプリケーションに反映する。
     /// </summary>
-    /// <param name="projectSettings">プロジェクト設定値</param>
-    /// <param name="crecFilePath">プロジェクト設定ファイルのパス</param>
+    /// <param name="projectSettings">アプリケーションに反映するプロジェクト設定。</param>
+    /// <param name="crecFilePath">プロジェクトファイルのパス。</param>
+    /// <returns>なし。</returns>
     public void ApplyProjectSettings(ProjectSettings projectSettings, string crecFilePath)
     {
         _configuration["ProjectDataPath"] = projectSettings.ProjectDataPath;
@@ -157,11 +91,11 @@ public class ProjectSettingsService
     }
 
     /// <summary>
-    /// プロジェクト設定ファイルを更新する
+    /// CREC Webが編集する値だけを更新し、その他の設定やフラグはそのまま保存する。
     /// </summary>
-    /// <param name="request">更新リクエスト（設定値）</param>
-    /// <param name="message">更新時のメッセージ</param>
-    /// <returns>成功: true / 失敗: false</returns>
+    /// <param name="request">プロジェクト設定の更新内容。</param>
+    /// <param name="message">更新結果を説明するメッセージ。</param>
+    /// <returns>更新に成功した場合はtrue、それ以外はfalse。</returns>
     public bool UpdateProjectSettings(UpdateProjectSettingsRequest request, out string message)
     {
         var crecFilePath = _configuration["CrecFilePath"];
@@ -171,145 +105,140 @@ public class ProjectSettingsService
             return false;
         }
 
-        // 入力値に改行が含まれていないかをチェック
-        foreach (var (propertyName, value) in GetRequestStringValues(request))
+        // 更新リクエストの各ラベルと、プロジェクトファイル内のJSON項目名を対応付ける。
+        var labelUpdates = new (string JsonName, string? Value)[]
         {
-            if (ContainsNewLine(value))
-            {
-                message = $"{propertyName} cannot contain newline characters";
-                return false;
-            }
-        }
+            ("objectName", request.CollectionNameLabel),
+            ("id", request.UUIDLabel),
+            ("mc", request.ManagementCodeLabel),
+            ("category", request.CategoryLabel),
+            ("tag1", request.FirstTagLabel),
+            ("tag2", request.SecondTagLabel),
+            ("tag3", request.ThirdTagLabel)
+        };
 
         try
         {
+            // 読み込みから保存までの間に、別のWebリクエストが同じファイルを更新しないようにする。
             lock (_fileLock)
             {
-                var lines = File.ReadAllLines(crecFilePath, Encoding.UTF8);
-                var updatedLines = new List<string>();
-                var updatedKeys = new HashSet<string>();
+                // プロジェクトファイル全体をJSONオブジェクトとして読み込む。
+                var root = ReadProjectFile(crecFilePath);
 
-                foreach (var line in lines)
+                // projectとlabelsはroot内の子オブジェクトへの参照であり、コピーではない。
+                // そのため、これらを変更するとrootの内容も同時に変更される。
+                var project = GetObject(root, "projectSettings");
+                var labels = GetObject(root, "labelSettings");
+
+                if (request.ProjectName is not null)
                 {
-                    if (string.IsNullOrWhiteSpace(line))
-                    {
-                        updatedLines.Add(line);
-                        continue;
-                    }
+                    project["projectName"] = request.ProjectName;
+                }
 
-                    var cols = line.Split(',', 2);
-                    if (cols.Length < 2)
+                foreach (var update in labelUpdates)
+                {
+                    if (update.Value is not null)
                     {
-                        updatedLines.Add(line);
-                        continue;
-                    }
-
-                    var key = cols[0].Trim();
-                    switch (key)
-                    {
-                        case "projectname" when request.ProjectName != null:
-                            updatedLines.Add($"projectname,{request.ProjectName}");
-                            updatedKeys.Add(key);
-                            break;
-                        case "ShowObjectNameLabel" when request.CollectionNameLabel != null:
-                            updatedLines.Add($"ShowObjectNameLabel,{request.CollectionNameLabel}");
-                            updatedKeys.Add(key);
-                            break;
-                        case "ShowIDLabel" when request.UUIDLabel != null:
-                            updatedLines.Add($"ShowIDLabel,{request.UUIDLabel}");
-                            updatedKeys.Add(key);
-                            break;
-                        case "ShowMCLabel" when request.ManagementCodeLabel != null:
-                            updatedLines.Add($"ShowMCLabel,{request.ManagementCodeLabel}");
-                            updatedKeys.Add(key);
-                            break;
-                        case "ShowCategoryLabel" when request.CategoryLabel != null:
-                            updatedLines.Add($"ShowCategoryLabel,{request.CategoryLabel}");
-                            updatedKeys.Add(key);
-                            break;
-                        case "Tag1Name" when request.FirstTagLabel != null:
-                            updatedLines.Add($"Tag1Name,{request.FirstTagLabel}");
-                            updatedKeys.Add(key);
-                            break;
-                        case "Tag2Name" when request.SecondTagLabel != null:
-                            updatedLines.Add($"Tag2Name,{request.SecondTagLabel}");
-                            updatedKeys.Add(key);
-                            break;
-                        case "Tag3Name" when request.ThirdTagLabel != null:
-                            updatedLines.Add($"Tag3Name,{request.ThirdTagLabel}");
-                            updatedKeys.Add(key);
-                            break;
-                        default:
-                            updatedLines.Add(line);
-                            break;
+                        // displayNameだけを変更し、enabledフラグには触れない。
+                        GetObject(labels, update.JsonName)["displayName"] = update.Value;
                     }
                 }
 
-                if (request.ProjectName != null && !updatedKeys.Contains("projectname"))
-                    updatedLines.Add($"projectname,{request.ProjectName}");
-                if (request.CollectionNameLabel != null && !updatedKeys.Contains("ShowObjectNameLabel"))
-                    updatedLines.Add($"ShowObjectNameLabel,{request.CollectionNameLabel}");
-                if (request.UUIDLabel != null && !updatedKeys.Contains("ShowIDLabel"))
-                    updatedLines.Add($"ShowIDLabel,{request.UUIDLabel}");
-                if (request.ManagementCodeLabel != null && !updatedKeys.Contains("ShowMCLabel"))
-                    updatedLines.Add($"ShowMCLabel,{request.ManagementCodeLabel}");
-                if (request.CategoryLabel != null && !updatedKeys.Contains("ShowCategoryLabel"))
-                    updatedLines.Add($"ShowCategoryLabel,{request.CategoryLabel}");
-                if (request.FirstTagLabel != null && !updatedKeys.Contains("Tag1Name"))
-                    updatedLines.Add($"Tag1Name,{request.FirstTagLabel}");
-                if (request.SecondTagLabel != null && !updatedKeys.Contains("Tag2Name"))
-                    updatedLines.Add($"Tag2Name,{request.SecondTagLabel}");
-                if (request.ThirdTagLabel != null && !updatedKeys.Contains("Tag3Name"))
-                    updatedLines.Add($"Tag3Name,{request.ThirdTagLabel}");
+                // 更新後のJSONを検証し、実行中のWebへ反映する設定を取得する。
+                var updatedSettings = ReadSettings(root);
 
-                File.WriteAllLines(crecFilePath, updatedLines, Encoding.UTF8);
+                // 未使用フラグや未知の項目を含むroot全体をプロジェクトファイルへ保存する。
+                File.WriteAllText(
+                    crecFilePath,
+                    root.ToJsonString(_jsonOptions),
+                    new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
-                // アプリケーションのプロジェクト設定値を更新、Nullまたはホワイトスペースのみになっている値はデフォルト値を使用
-                var defaults = new ProjectSettings();
-                _configuration["ProjectName"] = GetValueOrDefault(request.ProjectName, defaults.ProjectName);
-                _configuration["CollectionNameLabel"] = GetValueOrDefault(request.CollectionNameLabel, defaults.CollectionNameLabel);
-                _configuration["UUIDLabel"] = GetValueOrDefault(request.UUIDLabel, defaults.UUIDLabel);
-                _configuration["ManagementCodeLabel"] = GetValueOrDefault(request.ManagementCodeLabel, defaults.ManagementCodeLabel);
-                _configuration["CategoryLabel"] = GetValueOrDefault(request.CategoryLabel, defaults.CategoryLabel);
-                _configuration["FirstTagLabel"] = GetValueOrDefault(request.FirstTagLabel, defaults.FirstTagLabel);
-                _configuration["SecondTagLabel"] = GetValueOrDefault(request.SecondTagLabel, defaults.SecondTagLabel);
-                _configuration["ThirdTagLabel"] = GetValueOrDefault(request.ThirdTagLabel, defaults.ThirdTagLabel);
+                // 保存した設定を、現在実行中のWebにも反映する。
+                ApplyProjectSettings(updatedSettings, crecFilePath);
             }
 
             message = "Project settings updated successfully";
             return true;
         }
-        catch(Exception ex)
+        catch (Exception ex) when (ex is JsonException or InvalidDataException or InvalidOperationException)
+        {
+            message = "Invalid project file format: " + ex.Message;
+            return false;
+        }
+        catch (Exception ex)
         {
             message = "Failed to update project settings: " + ex.Message;
             return false;
         }
     }
 
-    // UpdateProjectSettingsRequestのstringプロパティとその値を列挙するヘルパーメソッド
-    private static IEnumerable<(string PropertyName, string? Value)> GetRequestStringValues(UpdateProjectSettingsRequest request)
+    /// <summary>
+    /// プロジェクトファイルをJSONオブジェクトとして読み込む。
+    /// </summary>
+    /// <param name="path">読み込むプロジェクトファイルのパス。</param>
+    /// <returns>プロジェクトファイルのルートJSONオブジェクト。</returns>
+    private static JsonObject ReadProjectFile(string path)
     {
-        foreach (var property in typeof(UpdateProjectSettingsRequest).GetProperties())
+        return JsonNode.Parse(File.ReadAllText(path, Encoding.UTF8)) as JsonObject
+            ?? throw new InvalidDataException("The project file root must be a JSON object.");
+    }
+
+    /// <summary>
+    /// JSONオブジェクトからCREC Webが使用するプロジェクト設定を取得する。
+    /// </summary>
+    /// <param name="root">プロジェクトファイルのルートJSONオブジェクト。</param>
+    /// <returns>CREC Webが使用するプロジェクト設定。</returns>
+    private static ProjectSettings ReadSettings(JsonObject root)
+    {
+        var defaults = new ProjectSettings();
+        var project = GetObject(root, "projectSettings");
+        var labels = GetObject(root, "labelSettings");
+        var projectDataPath = project["projectLocation"]?.GetValue<string>();
+
+        if (string.IsNullOrWhiteSpace(projectDataPath))
         {
-            if (property.PropertyType != typeof(string))
-            {
-                continue;
-            }
-
-            yield return (property.Name, property.GetValue(request) as string);
+            throw new InvalidDataException("projectSettings.projectLocation is required.");
         }
+
+        return new ProjectSettings
+        {
+            ProjectName = project["projectName"]?.GetValue<string>() is string name && !string.IsNullOrWhiteSpace(name)
+                ? name
+                : defaults.ProjectName,
+            ProjectDataPath = projectDataPath,
+            CollectionNameLabel = ReadLabel(labels, "objectName", defaults.CollectionNameLabel),
+            UUIDLabel = ReadLabel(labels, "id", defaults.UUIDLabel),
+            ManagementCodeLabel = ReadLabel(labels, "mc", defaults.ManagementCodeLabel),
+            CategoryLabel = ReadLabel(labels, "category", defaults.CategoryLabel),
+            FirstTagLabel = ReadLabel(labels, "tag1", defaults.FirstTagLabel),
+            SecondTagLabel = ReadLabel(labels, "tag2", defaults.SecondTagLabel),
+            ThirdTagLabel = ReadLabel(labels, "tag3", defaults.ThirdTagLabel)
+        };
     }
 
-    // 文字列に改行が含まれているかをチェックするヘルパーメソッド
-    private static bool ContainsNewLine(string? value)
+    /// <summary>
+    /// ラベル設定から表示名を取得する。
+    /// </summary>
+    /// <param name="labels">ラベル設定を保持するJSONオブジェクト。</param>
+    /// <param name="name">取得するラベル設定のプロパティ名。</param>
+    /// <param name="defaultValue">表示名が未設定の場合に使用する既定値。</param>
+    /// <returns>ラベルの表示名。</returns>
+    private static string ReadLabel(JsonObject labels, string name, string defaultValue)
     {
-        return value?.IndexOfAny(new[] {'\r', '\n'}) >= 0;
+        var displayName = GetObject(labels, name)["displayName"]?.GetValue<string>();
+        return string.IsNullOrWhiteSpace(displayName) ? defaultValue : displayName;
     }
 
-    // 値がNullまたはホワイトスペースのみの場合はデフォルト値を返すヘルパーメソッド
-    private static string GetValueOrDefault(string? value, string defaultValue)
+    /// <summary>
+    /// 親JSONオブジェクトから指定した子JSONオブジェクトを取得する。
+    /// </summary>
+    /// <param name="parent">検索対象の親JSONオブジェクト。</param>
+    /// <param name="name">取得する子JSONオブジェクトのプロパティ名。</param>
+    /// <returns>指定した子JSONオブジェクト。</returns>
+    private static JsonObject GetObject(JsonObject parent, string name)
     {
-        return string.IsNullOrWhiteSpace(value) ? defaultValue : value;
+        return parent[name] as JsonObject
+            ?? throw new InvalidDataException($"{name} must be a JSON object.");
     }
 }
 

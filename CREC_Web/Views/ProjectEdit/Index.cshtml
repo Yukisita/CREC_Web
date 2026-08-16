@@ -177,6 +177,8 @@
                     }
 
                     alert(t('edit-project-success'));
+                    // サーバー側で補われたデフォルト値を入力欄へ反映するため、設定を読み込み直す
+                    window.location.reload();
                 } catch (error) {
                     console.error('Error saving project settings:', error);
                     alert(t('edit-project-error') + ': ' + error.message);
