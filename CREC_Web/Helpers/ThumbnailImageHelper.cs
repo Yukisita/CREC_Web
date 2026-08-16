@@ -26,27 +26,36 @@ namespace CREC_Web.Helpers
             using var managedStream = new SKManagedStream(sourceStream);
             using var codec = SKCodec.Create(managedStream) ?? throw new InvalidOperationException("Unsupported image format");
             using var sourceBitmap = SKBitmap.Decode(codec) ?? throw new InvalidOperationException("Failed to decode image");
+            using var orientedBitmap = ApplyEncodedOrigin(sourceBitmap, codec.EncodedOrigin);
+            var processingSourceBitmap = orientedBitmap ?? sourceBitmap;
 
             // 元画像が指定された最大サイズを超える場合は、アスペクト比を維持できるリサイズを算出する
-            if (sourceBitmap.Width <= 0 || sourceBitmap.Height <= 0)
+            if (processingSourceBitmap.Width <= 0 || processingSourceBitmap.Height <= 0)
             {
                 throw new InvalidOperationException("Invalid image size");
             }
-            var targetWidth = sourceBitmap.Width;
-            var targetHeight = sourceBitmap.Height;
-            if (sourceBitmap.Width > MaxWidth || sourceBitmap.Height > MaxHeight)
+            var targetWidth = processingSourceBitmap.Width;
+            var targetHeight = processingSourceBitmap.Height;
+            if (processingSourceBitmap.Width > MaxWidth || processingSourceBitmap.Height > MaxHeight)
             {
-                var scale = Math.Min((double)MaxWidth / sourceBitmap.Width, (double)MaxHeight / sourceBitmap.Height);
-                targetWidth = Math.Max(1, (int)Math.Round(sourceBitmap.Width * scale));
-                targetHeight = Math.Max(1, (int)Math.Round(sourceBitmap.Height * scale));
+                var scale = Math.Min((double)MaxWidth / processingSourceBitmap.Width, (double)MaxHeight / processingSourceBitmap.Height);
+                targetWidth = Math.Max(1, (int)Math.Round(processingSourceBitmap.Width * scale));
+                targetHeight = Math.Max(1, (int)Math.Round(processingSourceBitmap.Height * scale));
             }
 
             // リサイズが必要な場合はリサイズしてからPNGエンコードする。リサイズが不要な場合は元のビットマップをそのまま使用する。
-            using var resizedBitmap = targetWidth == sourceBitmap.Width && targetHeight == sourceBitmap.Height
+            using var resizedBitmap = targetWidth == processingSourceBitmap.Width && targetHeight == processingSourceBitmap.Height
                 ? null
-                : sourceBitmap.Resize(new SKImageInfo(targetWidth, targetHeight), SKSamplingOptions.Default)
+                : processingSourceBitmap.Resize(
+                    new SKImageInfo(
+                        targetWidth,
+                        targetHeight,
+                        processingSourceBitmap.ColorType,
+                        processingSourceBitmap.AlphaType,
+                        processingSourceBitmap.ColorSpace),
+                    SKSamplingOptions.Default)
                     ?? throw new InvalidOperationException("Failed to resize image");
-            using var image = SKImage.FromBitmap(resizedBitmap ?? sourceBitmap)
+            using var image = SKImage.FromBitmap(resizedBitmap ?? processingSourceBitmap)
                 ?? throw new InvalidOperationException("Failed to create image from bitmap");
 
             // PNG形式でエンコードする
@@ -56,6 +65,82 @@ namespace CREC_Web.Helpers
             // エンコードされたPNGデータをファイルに保存する
             await using var destinationStream = System.IO.File.Create(destinationPngPath);
             encoded.SaveTo(destinationStream);
+        }
+
+        /// <summary>
+        /// EXIF Orientation に相当する向きを画素へ適用する。
+        /// </summary>
+        /// <returns>補正が不要な場合は <see langword="null"/>。</returns>
+        private static SKBitmap? ApplyEncodedOrigin(SKBitmap sourceBitmap, SKEncodedOrigin encodedOrigin)
+        {
+            if (encodedOrigin == SKEncodedOrigin.TopLeft)
+            {
+                return null;
+            }
+
+            var swapsDimensions = encodedOrigin is SKEncodedOrigin.LeftTop
+                or SKEncodedOrigin.RightTop
+                or SKEncodedOrigin.RightBottom
+                or SKEncodedOrigin.LeftBottom;
+            var orientedWidth = swapsDimensions ? sourceBitmap.Height : sourceBitmap.Width;
+            var orientedHeight = swapsDimensions ? sourceBitmap.Width : sourceBitmap.Height;
+
+            var orientedBitmap = new SKBitmap(new SKImageInfo(
+                orientedWidth,
+                orientedHeight,
+                sourceBitmap.ColorType,
+                sourceBitmap.AlphaType,
+                sourceBitmap.ColorSpace));
+
+            using var canvas = new SKCanvas(orientedBitmap);
+            canvas.SetMatrix(CreateEncodedOriginMatrix(
+                encodedOrigin,
+                sourceBitmap.Width,
+                sourceBitmap.Height));
+            canvas.DrawBitmap(sourceBitmap, 0, 0);
+            canvas.Flush();
+
+            return orientedBitmap;
+        }
+
+        private static SKMatrix CreateEncodedOriginMatrix(
+            SKEncodedOrigin encodedOrigin,
+            int sourceWidth,
+            int sourceHeight)
+        {
+            return encodedOrigin switch
+            {
+                SKEncodedOrigin.TopRight => CreateMatrix(-1, 0, sourceWidth, 0, 1, 0),
+                SKEncodedOrigin.BottomRight => CreateMatrix(-1, 0, sourceWidth, 0, -1, sourceHeight),
+                SKEncodedOrigin.BottomLeft => CreateMatrix(1, 0, 0, 0, -1, sourceHeight),
+                SKEncodedOrigin.LeftTop => CreateMatrix(0, 1, 0, 1, 0, 0),
+                SKEncodedOrigin.RightTop => CreateMatrix(0, -1, sourceHeight, 1, 0, 0),
+                SKEncodedOrigin.RightBottom => CreateMatrix(0, -1, sourceHeight, -1, 0, sourceWidth),
+                SKEncodedOrigin.LeftBottom => CreateMatrix(0, 1, 0, -1, 0, sourceWidth),
+                _ => SKMatrix.Identity
+            };
+        }
+
+        private static SKMatrix CreateMatrix(
+            float scaleX,
+            float skewX,
+            float transX,
+            float skewY,
+            float scaleY,
+            float transY)
+        {
+            return new SKMatrix
+            {
+                ScaleX = scaleX,
+                SkewX = skewX,
+                TransX = transX,
+                SkewY = skewY,
+                ScaleY = scaleY,
+                TransY = transY,
+                Persp0 = 0,
+                Persp1 = 0,
+                Persp2 = 1
+            };
         }
     }
 }
