@@ -97,8 +97,7 @@ namespace CREC_Web.Helpers
                 sourceBitmap.AlphaType,
                 sourceBitmap.ColorSpace));
 
-            // EXIF Orientation に対応する回転・反転の座標変換を設定し、
-            // 元の画素を変換後の位置へ描画することで、向きを画素データへ確定させる。
+            // EXIF Orientation に対応する回転・反転の座標変換を設定し、 元の画素を変換後の位置へ描画することで、向きを画素データへ確定させる。
             using var canvas = new SKCanvas(orientedBitmap);
             canvas.SetMatrix(CreateEncodedOriginMatrix(
                 encodedOrigin,
