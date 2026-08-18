@@ -70,14 +70,18 @@ namespace CREC_Web.Helpers
         /// <summary>
         /// EXIF Orientation に相当する向きを画素へ適用する。
         /// </summary>
+        /// <param name="sourceBitmap">画像ファイルからデコードした、向き補正前のビットマップ。</param>
+        /// <param name="encodedOrigin">画像ファイルのEXIF Orientationに対応する向き情報。</param>
         /// <returns>補正が不要な場合は <see langword="null"/>。</returns>
         private static SKBitmap? ApplyEncodedOrigin(SKBitmap sourceBitmap, SKEncodedOrigin encodedOrigin)
         {
+            // TopLeft は画素が既に正しい向きで格納されているため、コピーを作成せず元画像を使用する。
             if (encodedOrigin == SKEncodedOrigin.TopLeft)
             {
                 return null;
             }
 
+            // 90度または270度回転する向きでは、補正後の画像サイズの幅と高さが入れ替わる。
             var swapsDimensions = encodedOrigin is SKEncodedOrigin.LeftTop
                 or SKEncodedOrigin.RightTop
                 or SKEncodedOrigin.RightBottom
@@ -85,6 +89,7 @@ namespace CREC_Web.Helpers
             var orientedWidth = swapsDimensions ? sourceBitmap.Height : sourceBitmap.Width;
             var orientedHeight = swapsDimensions ? sourceBitmap.Width : sourceBitmap.Height;
 
+            // 元画像の色形式、透明度、色空間を維持した補正後の描画先を作成する。
             var orientedBitmap = new SKBitmap(new SKImageInfo(
                 orientedWidth,
                 orientedHeight,
@@ -92,6 +97,8 @@ namespace CREC_Web.Helpers
                 sourceBitmap.AlphaType,
                 sourceBitmap.ColorSpace));
 
+            // EXIF Orientation に対応する回転・反転の座標変換を設定し、
+            // 元の画素を変換後の位置へ描画することで、向きを画素データへ確定させる。
             using var canvas = new SKCanvas(orientedBitmap);
             canvas.SetMatrix(CreateEncodedOriginMatrix(
                 encodedOrigin,
@@ -103,6 +110,13 @@ namespace CREC_Web.Helpers
             return orientedBitmap;
         }
 
+        /// <summary>
+        /// EXIF Orientation が表す回転・反転を、元画像から補正後画像への座標変換行列に変換する。
+        /// </summary>
+        /// <param name="encodedOrigin">画像ファイルのEXIF Orientationに対応する向き情報。</param>
+        /// <param name="sourceWidth">向き補正前の画像の幅。</param>
+        /// <param name="sourceHeight">向き補正前の画像の高さ。</param>
+        /// <returns>元画像の座標を補正後画像の座標へ変換する行列。</returns>
         private static SKMatrix CreateEncodedOriginMatrix(
             SKEncodedOrigin encodedOrigin,
             int sourceWidth,
@@ -110,17 +124,34 @@ namespace CREC_Web.Helpers
         {
             return encodedOrigin switch
             {
+                // 左右反転
                 SKEncodedOrigin.TopRight => CreateMatrix(-1, 0, sourceWidth, 0, 1, 0),
+                // 180度回転
                 SKEncodedOrigin.BottomRight => CreateMatrix(-1, 0, sourceWidth, 0, -1, sourceHeight),
+                // 上下反転
                 SKEncodedOrigin.BottomLeft => CreateMatrix(1, 0, 0, 0, -1, sourceHeight),
+                // 左上・右下を結ぶ軸で反転
                 SKEncodedOrigin.LeftTop => CreateMatrix(0, 1, 0, 1, 0, 0),
+                // 時計回りに90度回転
                 SKEncodedOrigin.RightTop => CreateMatrix(0, -1, sourceHeight, 1, 0, 0),
+                // 右上・左下を結ぶ軸で反転
                 SKEncodedOrigin.RightBottom => CreateMatrix(0, -1, sourceHeight, -1, 0, sourceWidth),
+                // 反時計回りに90度回転
                 SKEncodedOrigin.LeftBottom => CreateMatrix(0, 1, 0, -1, 0, sourceWidth),
                 _ => SKMatrix.Identity
             };
         }
 
+        /// <summary>
+        /// アフィン変換に使用する3×3行列を作成する。
+        /// </summary>
+        /// <param name="scaleX">入力X座標を出力X座標へ反映する係数。</param>
+        /// <param name="skewX">入力Y座標を出力X座標へ反映する係数。</param>
+        /// <param name="transX">出力X座標の移動量。</param>
+        /// <param name="skewY">入力X座標を出力Y座標へ反映する係数。</param>
+        /// <param name="scaleY">入力Y座標を出力Y座標へ反映する係数。</param>
+        /// <param name="transY">出力Y座標の移動量。</param>
+        /// <returns>指定された係数と移動量を持つ3×3行列。</returns>
         private static SKMatrix CreateMatrix(
             float scaleX,
             float skewX,
