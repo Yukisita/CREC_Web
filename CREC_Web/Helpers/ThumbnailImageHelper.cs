@@ -12,6 +12,8 @@ namespace CREC_Web.Helpers
     {
         private const int MaxWidth = 1920;
         private const int MaxHeight = 1080;
+        private const long MaxInputPixels = 200_000_000;
+        private const int MaxInputDimension = 32_768;
 
         /// <summary>
         /// サムネイル画像への変換用ヘルパー
@@ -25,9 +27,57 @@ namespace CREC_Web.Helpers
             await using var sourceStream = System.IO.File.OpenRead(sourcePath);
             using var managedStream = new SKManagedStream(sourceStream);
             using var codec = SKCodec.Create(managedStream) ?? throw new InvalidOperationException("Unsupported image format");
-            using var sourceBitmap = SKBitmap.Decode(codec) ?? throw new InvalidOperationException("Failed to decode image");
-            using var orientedBitmap = ApplyEncodedOrigin(sourceBitmap, codec.EncodedOrigin);
-            var processingSourceBitmap = orientedBitmap ?? sourceBitmap;
+            ValidateInputDimensions(codec.Info.Width, codec.Info.Height);
+
+            // 向き補正後に最大サイズへ収まる縮小率を、デコード前の座標系で算出する。
+            var swapsDimensions = SwapsDimensions(codec.EncodedOrigin);
+            var decodeMaxWidth = swapsDimensions ? MaxHeight : MaxWidth;
+            var decodeMaxHeight = swapsDimensions ? MaxWidth : MaxHeight;
+            var decodeTargetSize = CalculateTargetSize(
+                codec.Info.Width,
+                codec.Info.Height,
+                decodeMaxWidth,
+                decodeMaxHeight);
+            var desiredDecodeScale = Math.Min(
+                (float)decodeTargetSize.Width / codec.Info.Width,
+                (float)decodeTargetSize.Height / codec.Info.Height);
+            var scaledDecodeSize = codec.GetScaledDimensions(desiredDecodeScale);
+            if (scaledDecodeSize.Width <= 0 || scaledDecodeSize.Height <= 0)
+            {
+                throw new InvalidOperationException("Invalid scaled image size");
+            }
+
+            // コーデックが対応する縮小サイズで直接デコードし、フルサイズの画素バッファ確保を可能な限り避ける。
+            var scaledDecodeInfo = new SKImageInfo(
+                scaledDecodeSize.Width,
+                scaledDecodeSize.Height,
+                codec.Info.ColorType,
+                codec.Info.AlphaType,
+                codec.Info.ColorSpace);
+            using var decodedBitmap = SKBitmap.Decode(codec, scaledDecodeInfo)
+                ?? throw new InvalidOperationException("Failed to decode image");
+
+            // 縮小デコードの粒度が粗い形式や、縮小デコード非対応の形式は、回転用バッファを作る前に縮小する。
+            var preOrientationTargetSize = CalculateTargetSize(
+                decodedBitmap.Width,
+                decodedBitmap.Height,
+                decodeMaxWidth,
+                decodeMaxHeight);
+            using var preOrientationResizedBitmap =
+                preOrientationTargetSize.Width == decodedBitmap.Width && preOrientationTargetSize.Height == decodedBitmap.Height
+                    ? null
+                    : decodedBitmap.Resize(
+                        new SKImageInfo(
+                            preOrientationTargetSize.Width,
+                            preOrientationTargetSize.Height,
+                            decodedBitmap.ColorType,
+                            decodedBitmap.AlphaType,
+                            decodedBitmap.ColorSpace),
+                        SKSamplingOptions.Default)
+                        ?? throw new InvalidOperationException("Failed to resize image before orientation correction");
+            var orientationSourceBitmap = preOrientationResizedBitmap ?? decodedBitmap;
+            using var orientedBitmap = ApplyEncodedOrigin(orientationSourceBitmap, codec.EncodedOrigin);
+            var processingSourceBitmap = orientedBitmap ?? orientationSourceBitmap;
 
             // 元画像が指定された最大サイズを超える場合は、アスペクト比を維持できるリサイズを算出する
             if (processingSourceBitmap.Width <= 0 || processingSourceBitmap.Height <= 0)
@@ -68,6 +118,50 @@ namespace CREC_Web.Helpers
         }
 
         /// <summary>
+        /// デコード前に画像寸法を検証し、過大な画素バッファの確保を防止する。
+        /// </summary>
+        private static void ValidateInputDimensions(int width, int height)
+        {
+            if (width <= 0 || height <= 0)
+            {
+                throw new InvalidOperationException("Invalid image size");
+            }
+
+            var pixelCount = checked((long)width * height);
+            if (width > MaxInputDimension || height > MaxInputDimension || pixelCount > MaxInputPixels)
+            {
+                throw new InvalidOperationException("Image dimensions are too large");
+            }
+        }
+
+        /// <summary>
+        /// アスペクト比を維持し、指定された最大サイズに収まる寸法を算出する。
+        /// </summary>
+        private static SKSizeI CalculateTargetSize(int width, int height, int maxWidth, int maxHeight)
+        {
+            if (width <= maxWidth && height <= maxHeight)
+            {
+                return new SKSizeI(width, height);
+            }
+
+            var scale = Math.Min((double)maxWidth / width, (double)maxHeight / height);
+            return new SKSizeI(
+                Math.Max(1, (int)Math.Round(width * scale)),
+                Math.Max(1, (int)Math.Round(height * scale)));
+        }
+
+        /// <summary>
+        /// 向き補正によって幅と高さが入れ替わるかを判定する。
+        /// </summary>
+        private static bool SwapsDimensions(SKEncodedOrigin encodedOrigin)
+        {
+            return encodedOrigin is SKEncodedOrigin.LeftTop
+                or SKEncodedOrigin.RightTop
+                or SKEncodedOrigin.RightBottom
+                or SKEncodedOrigin.LeftBottom;
+        }
+
+        /// <summary>
         /// EXIF Orientation に相当する向きを画素へ適用する。
         /// </summary>
         /// <param name="sourceBitmap">画像ファイルからデコードした、向き補正前のビットマップ。</param>
@@ -82,10 +176,7 @@ namespace CREC_Web.Helpers
             }
 
             // 90度または270度回転する向きでは、補正後の画像サイズの幅と高さが入れ替わる。
-            var swapsDimensions = encodedOrigin is SKEncodedOrigin.LeftTop
-                or SKEncodedOrigin.RightTop
-                or SKEncodedOrigin.RightBottom
-                or SKEncodedOrigin.LeftBottom;
+            var swapsDimensions = SwapsDimensions(encodedOrigin);
             var orientedWidth = swapsDimensions ? sourceBitmap.Height : sourceBitmap.Width;
             var orientedHeight = swapsDimensions ? sourceBitmap.Width : sourceBitmap.Height;
 
