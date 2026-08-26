@@ -125,6 +125,8 @@ namespace CREC_Web.Helpers
         /// <summary>
         /// デコード前に画像寸法を検証し、過大な画素バッファの確保を防止する。
         /// </summary>
+        /// <param name="width">デコード前の画像の幅。</param>
+        /// <param name="height">デコード前の画像の高さ。</param>
         private static void ValidateInputDimensions(int width, int height)
         {
             if (width <= 0 || height <= 0)
@@ -142,6 +144,11 @@ namespace CREC_Web.Helpers
         /// <summary>
         /// アスペクト比を維持し、指定された最大サイズに収まる寸法を算出する。
         /// </summary>
+        /// <param name="width">変換元画像の幅。</param>
+        /// <param name="height">変換元画像の高さ。</param>
+        /// <param name="maxWidth">変換後に許容する最大幅。</param>
+        /// <param name="maxHeight">変換後に許容する最大高さ。</param>
+        /// <returns>アスペクト比を維持し、最大サイズに収めた画像寸法。</returns>
         private static SKSizeI CalculateTargetSize(int width, int height, int maxWidth, int maxHeight)
         {
             if (width <= maxWidth && height <= maxHeight)
@@ -158,6 +165,8 @@ namespace CREC_Web.Helpers
         /// <summary>
         /// 向き補正によって幅と高さが入れ替わるかを判定する。
         /// </summary>
+        /// <param name="encodedOrigin">画像ファイルのEXIF Orientationに対応する向き情報。</param>
+        /// <returns>向き補正によって幅と高さが入れ替わる場合は <see langword="true"/>。</returns>
         private static bool SwapsDimensions(SKEncodedOrigin encodedOrigin)
         {
             return encodedOrigin is SKEncodedOrigin.LeftTop
