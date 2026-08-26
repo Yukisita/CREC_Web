@@ -14,6 +14,7 @@ namespace CREC_Web.Helpers
         private const int MaxHeight = 1080;
         private const long MaxInputPixels = 200_000_000;
         private const int MaxInputDimension = 32_768;
+        private const long MaxDecodeBytes = 2L * 1024 * 1024 * 1024;
 
         /// <summary>
         /// サムネイル画像への変換用ヘルパー
@@ -54,6 +55,10 @@ namespace CREC_Web.Helpers
                 codec.Info.ColorType,
                 codec.Info.AlphaType,
                 codec.Info.ColorSpace);
+            if (scaledDecodeInfo.BytesSize64 >= MaxDecodeBytes)
+            {
+                throw new InvalidOperationException("The image requires too much memory to decode");
+            }
             using var decodedBitmap = SKBitmap.Decode(codec, scaledDecodeInfo)
                 ?? throw new InvalidOperationException("Failed to decode image");
 
