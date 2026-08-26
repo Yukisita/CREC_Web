@@ -213,6 +213,15 @@ registerTranslations('ja', {
     'tag2-label': 'タグ2ラベル',
     'tag3-label': 'タグ3ラベル',
     'edit-project-success': 'プロジェクト設定を保存しました',
-    'edit-project-error': 'プロジェクト設定の保存に失敗しました'
+    'edit-project-error': 'プロジェクト設定の保存に失敗しました',
+    'chat-title': 'AIアシスタント',
+    'chat-placeholder': 'メッセージを入力...',
+    'chat-welcome': 'こんにちは！CREC Webのサポートアシスタントです。使い方に関するご質問や操作の依頼があればお気軽にどうぞ。',
+    'chat-thinking': '考え中...',
+    'chat-error': 'エラーが発生しました。もう一度お試しください。',
+    'chat-error-empty-response': '応答が空でした。もう一度お試しください。',
+    'chat-error-network': 'AIサーバーに接続できませんでした。ネットワーク接続を確認してください。',
+    'chat-error-server': 'AIサーバーでエラーが発生しました。しばらく待ってからもう一度お試しください。',
+    'chat-error-timeout': 'AIの応答がタイムアウトしました。もう一度お試しください。'
 });
 

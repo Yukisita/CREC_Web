@@ -715,6 +715,8 @@
         function createCollectionCard(collection) {
             const colDiv = document.createElement('div');
             colDiv.className = 'col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 mb-4';
+            colDiv.dataset.collectionId = collection.indexData?.systemData?.id || '';
+            colDiv.dataset.collectionName = collection.indexData?.values?.name || '';
 
             const inventoryStatusText = getInventoryStatusText(
                 collection.collectionInventoryStatus,
@@ -827,6 +829,8 @@
                 alert(t('error-loading') + ': ' + error.message);
             }
         }
+        // Expose to chat.js (AI chat panel openCollectionByName / showCollectionPanel actions)
+        window.showCollectionOverview = showCollectionOverview;
 
         /**
          * コレクションの概要パネルに情報を表示する
