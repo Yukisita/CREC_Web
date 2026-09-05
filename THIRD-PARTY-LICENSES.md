@@ -88,8 +88,12 @@ SOFTWARE.
 ## jsQR
 
 **Version:** 1.4.0  
-**Source:** https://github.com/cozmo/jsQR  
-**CDN URL:** https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js  
+**Source Repository:** https://github.com/cozmo/jsQR<br>
+**Source Commit:** https://github.com/cozmo/jsQR/commit/49a9633931fb8030ac2fc9cecc121d6e5a19f9a3<br>
+**npm Metadata:** https://registry.npmjs.org/jsqr/1.4.0<br>
+**npm Tarball:** https://registry.npmjs.org/jsqr/-/jsqr-1.4.0.tgz<br>
+**Bundled JavaScript:** `package/dist/jsQR.js` → `CREC_Web/wwwroot/lib/jsqr/1.4.0/jsQR.js`<br>
+**Bundled License:** `package/LICENSE` → `CREC_Web/wwwroot/lib/jsqr/1.4.0/LICENSE`<br>
 **License:** Apache License 2.0  
 **Copyright:** Copyright (c) 2018 Cozmo, Inc.
 
