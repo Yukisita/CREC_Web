@@ -1225,6 +1225,12 @@
             statusElement.style.display = 'block';
             errorElement.style.display = 'none';
 
+            // QRコード読取ライブラリの読み込みをチェック
+            if (typeof window.jsQR !== 'function') {
+                showQrScannerError(t('qr-scanner-error-library'));
+                return;
+            }
+
             // カメラサポートをチェック
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 // HTTPSチェック（カメラAPIはセキュアコンテキストが必要）
@@ -1357,19 +1363,25 @@
                 // 画像データを取得
                 const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
 
-                // jsQRでQRコードを検出
-                if (typeof jsQR !== 'undefined') {
-                    const qrCode = jsQR(imageData.data, imageData.width, imageData.height, {
-                        inversionAttempts: 'dontInvert'
-                    });
+                // スキャン中にライブラリが利用できなくなった場合は停止する
+                if (typeof window.jsQR !== 'function') {
+                    showQrScannerError(t('qr-scanner-error-library'));
+                    clearInterval(qrTask);
+                    qrTask = null;
+                    return;
+                }
 
-                    if (qrCode && qrCode.data) {
-                        // QRコードが検出された
-                        handleQrCodeDetected(qrCode.data);
-                        clearInterval(qrTask); // スキャンを停止
-                        qrTask = null; // タスクをクリア
-                        return;
-                    }
+                // jsQRでQRコードを検出
+                const qrCode = window.jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: 'dontInvert'
+                });
+
+                if (qrCode && qrCode.data) {
+                    // QRコードが検出された
+                    handleQrCodeDetected(qrCode.data);
+                    clearInterval(qrTask); // スキャンを停止
+                    qrTask = null; // タスクをクリア
+                    return;
                 }
             }
 

@@ -111,6 +111,7 @@ registerTranslations('ja', {
     'qr-scanner-error-permission': 'カメラへのアクセスが拒否されました',
     'qr-scanner-error-not-supported': 'お使いのブラウザはカメラをサポートしていません',
     'qr-scanner-error-https': 'カメラを使用するにはHTTPS接続が必要です',
+    'qr-scanner-error-library': 'QRコード読取機能を読み込めませんでした。ページを再読み込みしてください',
     'project-overview': 'プロジェクト概要',
     'third-party-licenses': 'サードパーティライブラリ',
     'inventory-operation': '在庫操作',
