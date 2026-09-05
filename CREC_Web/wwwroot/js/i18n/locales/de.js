@@ -111,6 +111,7 @@ registerTranslations('de', {
     'qr-scanner-error-permission': 'Kamerazugriff verweigert',
     'qr-scanner-error-not-supported': 'Ihr Browser unterstützt keinen Kamerazugriff',
     'qr-scanner-error-https': 'HTTPS-Verbindung erforderlich für Kamerazugriff',
+    'qr-scanner-error-library': 'Der QR-Code-Leser konnte nicht geladen werden. Bitte laden Sie die Seite neu',
     'project-overview': 'Projektübersicht',
     'third-party-licenses': 'Drittanbieter-Lizenzen',
     'inventory-operation': 'Bestandsoperation',

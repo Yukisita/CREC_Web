@@ -111,6 +111,7 @@ registerTranslations('en', {
     'qr-scanner-error-permission': 'Camera access denied',
     'qr-scanner-error-not-supported': 'Your browser does not support camera access',
     'qr-scanner-error-https': 'HTTPS connection is required to use the camera',
+    'qr-scanner-error-library': 'The QR code reader could not be loaded. Please reload the page',
     'project-overview': 'Project Overview',
     'third-party-licenses': 'Third-Party Licenses',
     'inventory-operation': 'Inventory Operation',

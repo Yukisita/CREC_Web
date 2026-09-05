@@ -1,0 +1,3 @@
+# Preserve vendored jsQR artifacts byte-for-byte so SRI remains valid.
+/CREC_Web/wwwroot/lib/jsqr/1.4.0/jsQR.js -text
+/CREC_Web/wwwroot/lib/jsqr/1.4.0/LICENSE -text
