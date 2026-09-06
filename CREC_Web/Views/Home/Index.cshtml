@@ -633,9 +633,9 @@
             thumbnailPlaceholder.style.display = 'flex';
             thumbnailPlaceholder.innerHTML = '<i class="bi bi-image"></i>';
 
-            drawUrlToCanvas(thumbnailUrl, thumbnailCanvas, 'cover').then(() => {
-                thumbnailCanvas.style.display = 'block';
-                thumbnailPlaceholder.style.display = 'none';
+            drawUrlToCanvas(thumbnailUrl, thumbnailCanvas, 'cover').then(drawn => {
+                thumbnailCanvas.style.display = drawn ? 'block' : 'none';
+                thumbnailPlaceholder.style.display = drawn ? 'none' : 'flex';
             }).catch(() => {
                 thumbnailCanvas.style.display = 'none';
                 thumbnailPlaceholder.style.display = 'flex';
@@ -760,9 +760,9 @@
             thumbnailContainer.appendChild(thumbnailCanvas);
             thumbnailContainer.appendChild(thumbnailPlaceholder);
 
-            drawUrlToCanvas(thumbnailUrl, thumbnailCanvas).then(() => {
-                thumbnailCanvas.style.display = 'block';
-                thumbnailPlaceholder.style.display = 'none';
+            drawUrlToCanvas(thumbnailUrl, thumbnailCanvas).then(drawn => {
+                thumbnailCanvas.style.display = drawn ? 'block' : 'none';
+                thumbnailPlaceholder.style.display = drawn ? 'none' : 'flex';
             }).catch(() => {
                 thumbnailCanvas.style.display = 'none';
                 thumbnailPlaceholder.style.display = 'flex';

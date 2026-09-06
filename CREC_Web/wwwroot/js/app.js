@@ -43,16 +43,18 @@ const MIN_COLUMN_WIDTH = (() => {
  * @param {string} url
  * @param {HTMLCanvasElement} canvas
  * @param {'cover'|'natural'} [fit='natural']
- * @returns {Promise<void>}
+ * @returns {Promise<boolean>} 描画できた場合はtrue、画像なし（204）の場合はfalse。
  */
 function drawUrlToCanvas(url, canvas, fit) {
     return fetch(url)
         .then(r => { 
             if (!r.ok) throw new Error(`HTTP ${r.status}`); 
+            if (r.status === 204) return null;
             return r.blob(); 
         })
-        .then(blob => createImageBitmap(blob))
+        .then(blob => blob === null ? null : createImageBitmap(blob))
         .then(bitmap => {
+            if (bitmap === null) return false;
             const ctx = canvas.getContext('2d');
             if (!ctx) { 
                 bitmap.close(); 
@@ -73,6 +75,7 @@ function drawUrlToCanvas(url, canvas, fit) {
             } finally {
                 bitmap.close();
             }
+            return true;
         });
 }
 

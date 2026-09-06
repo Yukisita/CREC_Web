@@ -616,7 +616,8 @@ namespace CREC_Web.Controllers
 
                 if (thumbnailPath == null)
                 {
-                    return NotFound($"Thumbnail not found for collection '{collectionId}'");
+                    Response.Headers["Cache-Control"] = "no-store";
+                    return NoContent();
                 }
 
                 if (!string.Equals(thumbnailExtension, ".png", StringComparison.OrdinalIgnoreCase))
@@ -673,7 +674,8 @@ namespace CREC_Web.Controllers
 
                     if (thumbnailPath == null)
                     {
-                        return NotFound($"Thumbnail not found for collection '{collectionId}'");
+                        Response.Headers["Cache-Control"] = "no-store";
+                        return NoContent();
                     }
                 }
 
