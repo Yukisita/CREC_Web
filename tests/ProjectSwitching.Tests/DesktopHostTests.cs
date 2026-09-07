@@ -33,7 +33,8 @@ internal static class DesktopHostTests
             client.DefaultRequestHeaders.Add("Cookie", cookie.Name + "=" + cookie.Value);
             client.DefaultRequestHeaders.Add("X-CREC-Request", "1");
             var listing = (await client.GetFromJsonAsync<JsonObject>("/api/projects"))!;
-            var target = listing["projects"]!.AsArray().Single(p => p!["name"]!.GetValue<string>() == "Desktop B")!;
+            var targetLocation = Path.GetFileName(root) + "/Desktop B.crec";
+            var target = listing["projects"]!.AsArray().Single(p => p!["location"]!.GetValue<string>() == targetLocation)!;
             var current = (await client.GetFromJsonAsync<JsonObject>("/api/projects/status"))!;
             var switched = await client.PostAsJsonAsync("/api/projects/switch", new {
                 id = target["id"]!.GetValue<string>(), revision = current["revision"]!.GetValue<string>()
@@ -54,6 +55,20 @@ internal static class DesktopHostTests
             await host.StopAsync();
             if (host.CurrentProject?.Name != "Desktop B") throw new Exception("Missing final shutdown state");
             Console.WriteLine("PASS: final desktop state retained after server shutdown");
+            using (var occupied = new TcpListener(IPAddress.Any, port))
+            {
+                occupied.Start();
+                try
+                {
+                    await host.StartAsync(new(finalProject.FilePath, port, false));
+                    throw new Exception("Expected occupied-port startup failure");
+                }
+                catch (InvalidOperationException) { }
+            }
+            var recovered = await host.StartAsync(new(finalProject.FilePath, port, false));
+            await host.CreateAdministratorSessionAsync(recovered.FrontendUri);
+            await host.StopAsync();
+            Console.WriteLine("PASS: desktop host recovers after failed server startup");
         }
         finally
         {

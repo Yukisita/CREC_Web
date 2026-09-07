@@ -37,6 +37,7 @@ internal sealed class WebServerHost
         {
             exitedProcess.Dispose();
             _process = null;
+            await StopStateChannelAsync();
         }
 
         // すでに起動中の場合は例外をスローする
@@ -68,22 +69,18 @@ internal sealed class WebServerHost
         process.StartInfo.Environment["CREC_ADMIN_TOKEN"] = _adminToken;
         process.StartInfo.Environment["CREC_DESKTOP_PIPE"] = pipeName;
 
-        if (!process.Start())
-        {
-            process.Dispose();
-            throw new InvalidOperationException("Failed to start the CREC Web server process.");
-        }
-
-        _process = process;
-
         try
         {
+            if (!process.Start())
+                throw new InvalidOperationException("Failed to start the CREC Web server process.");
+            _process = process;
             await WaitForServerAsync(process, port, cancellationToken);
             return new WebServerSession(port, new Uri($"http://localhost:{port}", UriKind.Absolute));
         }
         catch
         {
             await StopAsync();
+            process.Dispose();
             throw;
         }
     }
@@ -99,6 +96,7 @@ internal sealed class WebServerHost
 
         if (process is null)
         {
+            await StopStateChannelAsync();
             return;
         }
 
@@ -125,20 +123,26 @@ internal sealed class WebServerHost
         }
         finally
         {
-            // EOF follows the final state after graceful shutdown. Read it before restarting.
-            if (_stateReader is not null)
-            {
-                try { await _stateReader.WaitAsync(TimeSpan.FromSeconds(5)); }
-                catch (TimeoutException) { _stateCancellation?.Cancel(); }
-            }
-            _stateCancellation?.Cancel();
-            _statePipe?.Dispose();
-            _stateCancellation?.Dispose();
-            _statePipe = null;
-            _stateCancellation = null;
-            _stateReader = null;
+            await StopStateChannelAsync();
             process.Dispose();
         }
+    }
+
+    private async Task StopStateChannelAsync()
+    {
+        // EOF follows the final state after graceful shutdown. Read it before restarting.
+        if (_statePipe?.IsConnected != true) _stateCancellation?.Cancel();
+        if (_stateReader is not null)
+        {
+            try { await _stateReader.WaitAsync(TimeSpan.FromSeconds(5)); }
+            catch (TimeoutException) { _stateCancellation?.Cancel(); }
+        }
+        _stateCancellation?.Cancel();
+        _statePipe?.Dispose();
+        _stateCancellation?.Dispose();
+        _statePipe = null;
+        _stateCancellation = null;
+        _stateReader = null;
     }
 
     private async Task ReadProjectStatesAsync(NamedPipeServerStream pipe, CancellationToken cancellationToken)
@@ -220,9 +224,10 @@ internal sealed class WebServerHost
     /// <returns></returns>
     /// <exception cref="InvalidOperationException"></exception>
     /// <exception cref="TimeoutException"></exception>
-    private static async Task WaitForServerAsync(Process process, int port, CancellationToken cancellationToken)
+    private async Task WaitForServerAsync(Process process, int port, CancellationToken cancellationToken)
     {
         var timeoutAt = DateTime.UtcNow.AddSeconds(30);// 30 秒以内に接続可能にならなければタイムアウトとする
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(1) };
 
         while (DateTime.UtcNow < timeoutAt)
         {
@@ -233,9 +238,17 @@ internal sealed class WebServerHost
                 throw new InvalidOperationException("The CREC Web server exited before startup completed.");
             }
 
-            if (await IsPortOpenAsync(port, cancellationToken))// 指定したポートで接続可能になった場合は待機を終了する
+            // Verify the revision received over private IPC before sending any administrator
+            // credential. An unrelated process listening on the requested port is not readiness.
+            if (CurrentProject is { } expected)
             {
-                return;
+                try
+                {
+                    var status = await client.GetFromJsonAsync<DesktopServerStatus>(
+                        $"http://127.0.0.1:{port}/api/projects/status", cancellationToken);
+                    if (status?.Revision == expected.Revision) return;
+                }
+                catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException) { }
             }
 
             await Task.Delay(250, cancellationToken);// 250 ミリ秒ごとに接続確認を行う
@@ -255,26 +268,6 @@ internal sealed class WebServerHost
         var exitTask = process.WaitForExitAsync();
         var completedTask = await Task.WhenAny(exitTask, Task.Delay(timeout));
         return completedTask == exitTask;
-    }
-
-    /// <summary>
-    /// 指定したポートが開いているかどうかをTCPで確認する
-    /// </summary>
-    /// <param name="port">確認するポート番号</param>
-    /// <param name="cancellationToken">キャンセルトークン</param>
-    /// <returns>ポートが開いている場合は true、それ以外の場合は false</returns>
-    private static async Task<bool> IsPortOpenAsync(int port, CancellationToken cancellationToken)
-    {
-        try
-        {
-            using var client = new TcpClient();
-            await client.ConnectAsync("127.0.0.1", port, cancellationToken);
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
     }
 
     /// <summary>
@@ -312,3 +305,4 @@ internal sealed record DesktopLaunchSettings(string ProjectFilePath, int Port, b
 internal sealed record WebServerSession(int Port, Uri FrontendUri);
 
 internal sealed record DesktopProjectState(string Revision, string FilePath, string Name);
+internal sealed record DesktopServerStatus(string Revision);
