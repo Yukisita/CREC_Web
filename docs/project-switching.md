@@ -29,8 +29,16 @@ Web 単体版では、起動コンソールに表示される管理者トーク�
 
 Issue #196 は同じ `Projects` へプロジェクトとデータを保存し、`ProjectCatalogService` が返す識別子を `ProjectRuntime.SwitchAsync` に渡すことで共通の検証・切り替え処理を利用できます。呼び出し元が通常のリクエストリースを保持したまま `SwitchAsync` を待つと自分自身の完了待ちになるため、作成エンドポイントからは保存完了後に別の切り替え要求を行ってください。
 
+## アプリケーションの更新
+
+アプリケーションを停止し、新しい配布物を別のフォルダへ展開してから、PowerShell 7 で `./scripts/Update-Crec.ps1 -SourcePackage <展開先> -InstallDirectory <インストール先>` を実行します。`-WhatIf` でコピー対象を確認できます。このスクリプトは各階層の `Projects` をコピー対象から除外し、既存ファイルを再帰削除しません。Web 単体の `Projects` とデスクトップ版の `web/Projects` の両方を維持します。インストール先全体の削除やミラー同期による更新は行わないでください。
+
+ビルド・発行の入力にもユーザーデータを含めず、Web のビルド出力からデスクトップへコピーするときも `Projects` を除外します。
+
 ## 回帰テスト
 
 `dotnet run --project tests/ProjectSwitching.Tests` で探索、検証、A→B→A、キャッシュ破棄、排他制御、失敗時維持、更新の世代確認、管理者認証、外部 Origin 拒否を実行します。HTTP の統合テストと、デスクトップホストが起動する実際の子プロセスを使った IPC・再起動のテストも含みます。後者には ASP.NET Core の開発用 HTTPS 証明書が必要です。テスト用データは一時ディレクトリおよびテスト出力の `web/Projects/host-tests-*` に作成して削除します。
 
 `node tests/project-session.test.cjs` は古い画面の通信拒否、破棄確認のキャンセル、世代付きメディア URL、3言語の翻訳キーを検証します。
+
+`pwsh -File tests/update-installation.Tests.ps1` で更新時のユーザーデータ保護を検証します。
