@@ -19,7 +19,7 @@ namespace CREC_Web.Services
     public class CrecDataService
     {
         private readonly ILogger<CrecDataService> _logger;
-        private readonly string _dataFolderPath;
+        private string _dataFolderPath;
         private readonly List<CollectionData> _collectionsCache = new();
         private DateTime _lastCacheUpdate = DateTime.MinValue;
         private readonly TimeSpan _cacheExpiry = TimeSpan.FromMinutes(5);
@@ -30,6 +30,17 @@ namespace CREC_Web.Services
         {
             PropertyNameCaseInsensitive = true
         };
+
+        // Called only after ProjectRuntime has drained every project request.
+        public void ResetProject(string dataFolderPath)
+        {
+            lock (_cacheLock)
+            {
+                _dataFolderPath = dataFolderPath;
+                _collectionsCache.Clear();
+                _lastCacheUpdate = DateTime.MinValue;
+            }
+        }
 
         public CrecDataService(ILogger<CrecDataService> logger, IConfiguration configuration)
         {

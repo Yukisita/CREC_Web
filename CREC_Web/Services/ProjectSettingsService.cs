@@ -14,6 +14,16 @@ namespace CREC_Web.Services;
 
 public class ProjectSettingsService
 {
+    public static readonly string[] ConfigurationKeys = ["ProjectDataPath", "CrecFilePath", "ProjectName",
+        "CollectionNameLabel", "UUIDLabel", "ManagementCodeLabel", "CategoryLabel", "FirstTagLabel", "SecondTagLabel", "ThirdTagLabel"];
+
+    public static ProjectSettings ReadValidatedSettings(string path)
+    {
+        var settings = ReadSettings(ReadProjectFile(path));
+        settings.ProjectDataPath = Path.GetFullPath(settings.ProjectDataPath, Path.GetDirectoryName(Path.GetFullPath(path))!);
+        return settings;
+    }
+
     private readonly IConfiguration _configuration;
 
     // Webプロセス内でプロジェクトファイルの読み込みと更新を直列化するためのロック
@@ -52,7 +62,7 @@ public class ProjectSettingsService
                     return null;
                 }
 
-                var settings = ReadSettings(ReadProjectFile(crecFilePath));
+                var settings = ReadValidatedSettings(crecFilePath);
                 Console.WriteLine($"Loaded project settings: {settings.ProjectName}");
 
                 if (!Directory.Exists(settings.ProjectDataPath))
@@ -146,6 +156,7 @@ public class ProjectSettingsService
 
                 // 更新後のJSONを検証し、実行中のWebへ反映する設定を取得する。
                 var updatedSettings = ReadSettings(root);
+                updatedSettings.ProjectDataPath = Path.GetFullPath(updatedSettings.ProjectDataPath, Path.GetDirectoryName(Path.GetFullPath(crecFilePath))!);
 
                 // 未使用フラグや未知の項目を含むroot全体をプロジェクトファイルへ保存する。
                 File.WriteAllText(
