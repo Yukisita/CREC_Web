@@ -50,7 +50,13 @@ public sealed class ProjectCatalogService
             var isLink = attributes.HasFlag(FileAttributes.ReparsePoint);
             if (isDirectory && !isLink)
             {
-                Visit(entry, currentPath, candidates);
+                try { Visit(entry, currentPath, candidates); }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    var inaccessibleLocation = Path.GetRelativePath(ProjectsRoot, entry).Replace('\\', '/');
+                    candidates.Add(new(GetId(inaccessibleLocation), Path.GetFileName(entry), inaccessibleLocation,
+                        false, "projects-data-unavailable"));
+                }
                 continue;
             }
             if (!isDirectory && !entry.EndsWith(".crec", StringComparison.OrdinalIgnoreCase)) continue;

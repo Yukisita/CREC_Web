@@ -61,6 +61,14 @@ function session() {
     busy.response(() => new Response('{"code":"projects-busy"}', { status: 503 }));
     await assert.rejects(busy.window.fetch('/api/collections', { method: 'POST' }), /projects-busy/);
     assert.equal(busy.calls.length, 1, 'busy operation is not automatically replayed');
+    const upload = session();
+    upload.window.ProjectSession.beginUpload();
+    upload.window.ProjectSession.reload();
+    assert.equal(upload.confirmCount(), 1);
+    assert.equal(upload.destination(), undefined, 'upload stays on page when discard canceled');
+    upload.window.ProjectSession.endUpload();
+    upload.window.ProjectSession.reload();
+    assert.equal(upload.destination(), '/');
     const dictionaries = {};
     for (const language of ['ja', 'en', 'de']) {
         vm.runInNewContext(fs.readFileSync(path.join(__dirname, `../CREC_Web/wwwroot/js/i18n/locales/${language}.js`), 'utf8'), {

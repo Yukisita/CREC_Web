@@ -21,6 +21,7 @@ registerTranslations('en', {
     'projects-already-current': 'This project is already open.',
     'projects-missing': 'The server’s Projects folder does not exist. The current project is unchanged.',
     'projects-empty': 'No projects were found in Projects. The current project is unchanged.',
+    'projects-no-selectable': 'No other selectable projects are available. Check the reasons shown in the list.',
     'projects-list-failed': 'Could not load the project list. Refresh the list to try again.',
     'projects-invalid': 'The project file format or required fields are invalid.',
     'projects-data-unavailable': 'The project file or data folder is missing or inaccessible.',

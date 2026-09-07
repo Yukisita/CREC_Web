@@ -21,6 +21,7 @@ registerTranslations('de', {
     'projects-already-current': 'Dieses Projekt ist bereits geöffnet.',
     'projects-missing': 'Der Ordner Projects auf dem Server fehlt. Das aktuelle Projekt bleibt geöffnet.',
     'projects-empty': 'Keine Projekte in Projects gefunden. Das aktuelle Projekt bleibt geöffnet.',
+    'projects-no-selectable': 'Es gibt keine anderen auswählbaren Projekte. Prüfen Sie die Hinweise in der Liste.',
     'projects-list-failed': 'Die Projektliste konnte nicht geladen werden. Aktualisieren Sie die Liste und versuchen Sie es erneut.',
     'projects-invalid': 'Das Dateiformat oder erforderliche Felder des Projekts sind ungültig.',
     'projects-data-unavailable': 'Die Projektdatei oder der Datenordner fehlt oder ist nicht zugänglich.',

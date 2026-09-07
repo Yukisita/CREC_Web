@@ -27,7 +27,8 @@
                 if (!response.ok) throw new Error('projects-list-failed');
                 const result = await response.json();
                 if (result.errorCode) { showStatus(result.errorCode); return; }
-                showStatus(result.projects.length ? null : 'projects-empty');
+                showStatus(!result.projects.length ? 'projects-empty'
+                    : result.projects.every(project => project.errorCode || project.isCurrent) ? 'projects-no-selectable' : null);
                 for (const project of result.projects) {
                     const row = document.createElement('div');
                     row.className = 'border rounded p-3 mb-2';
@@ -98,7 +99,7 @@
                 if (result.code === 'projects-already-current') { showStatus(result.code); return; }
                 ProjectSession.navigateAfterSwitch();
             } catch (error) {
-                status.textContent = ProjectSession.isStale() ? t('projects-stale') : error.message;
+                showStatus(ProjectSession.isStale() ? 'projects-stale' : error.projectCode || 'projects-switch-failed');
             } finally {
                 submitting = false;
                 modalElement.querySelectorAll('button').forEach(button => { button.disabled = false; });

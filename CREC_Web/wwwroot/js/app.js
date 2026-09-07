@@ -565,7 +565,7 @@ async function setCollectionThumbnail(collectionId, fileName) {
         const baseUrl = `/api/Files/thumbnail/${encodeURIComponent(collectionId)}`;
         const cacheBustedUrl = `${baseUrl}?t=${Date.now()}`;
         document.querySelectorAll(`img[src^="${baseUrl}"]`).forEach(img => {
-            img.src = cacheBustedUrl;
+            img.src = ProjectSession.url(cacheBustedUrl);
         });
 
         alert(t('set-thumbnail-success'));

@@ -58,7 +58,11 @@
         if (!response.ok && (response.status === 409 || response.status === 503)) {
             const problem = await response.clone().json().catch(() => null);
             if (problem?.code === 'projects-stale') markStale();
-            if (problem?.code?.startsWith('projects-')) throw new Error(message(problem.code));
+            if (problem?.code?.startsWith('projects-')) {
+                const error = new Error(message(problem.code));
+                error.projectCode = problem.code;
+                throw error;
+            }
         }
         if (stale && !management) throw new Error(message('projects-stale'));
         return response;

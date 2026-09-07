@@ -119,6 +119,18 @@ internal static class HttpTests
         client.DefaultRequestHeaders.Add("X-CREC-Project", betaRevision);
         Check((await client.GetStringAsync("/api/collections")).Contains("Beta collection"), "same collection ID resolves to Beta");
         Check(await client.GetStringAsync(download) == "Beta", "same attachment name resolves to Beta");
+        var originalAlphaIndex = await File.ReadAllTextAsync(Path.Combine(root, "Alpha", collectionId, "SystemData", "index.json"));
+        Check((await client.PostAsJsonAsync($"/api/CollectionIndex/{collectionId}", new { name = "Edited Beta" })).IsSuccessStatusCode, "edit Beta collection");
+        Check((await client.PostAsJsonAsync($"/api/Inventory/{collectionId}", new { operationType = 0, quantity = 7, note = "Beta stock" })).IsSuccessStatusCode, "update Beta inventory");
+        using (var upload = new MultipartFormDataContent())
+        {
+            upload.Add(new StringContent("Beta uploaded attachment"), "file", "uploaded.txt");
+            Check((await client.PostAsync($"/api/collections/{collectionId}/data/files", upload)).IsSuccessStatusCode, "upload Beta attachment");
+        }
+        Check(await File.ReadAllTextAsync(Path.Combine(root, "Alpha", collectionId, "SystemData", "index.json")) == originalAlphaIndex
+            && !File.Exists(Path.Combine(root, "Alpha", collectionId, "SystemData", "inventory.json"))
+            && !File.Exists(Path.Combine(root, "Alpha", collectionId, "data", "uploaded.txt")), "Beta edits, stock and upload never modify Alpha");
+        Check((await client.GetStringAsync("/api/collections")).Contains("Edited Beta"), "Beta cache refreshed after edits");
         Check((await GetObject("/api/ProjectSettings"))["objectNameLabel"]!.GetValue<string>() == "Beta objectName", "Beta labels reflected");
         Check((await client.GetAsync(download)).Headers.CacheControl?.NoStore == true, "project responses are not cached");
         using (var hostile = new HttpRequestMessage(HttpMethod.Post, "/api/projects/switch") {

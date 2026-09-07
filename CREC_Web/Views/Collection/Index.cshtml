@@ -851,12 +851,12 @@
                 threeDCurrentMesh = null;
             }
 
-            const url = `/api/File/${encodeURIComponent(collectionId)}/3ddata/${encodeURIComponent(fileName)}`;
+            const url = ProjectSession.url(`/api/File/${encodeURIComponent(collectionId)}/3ddata/${encodeURIComponent(fileName)}`);
             const loader = new ThreeDLoaderClass();
             loader.load(
                 url,
                 (geometry) => {
-                    if (!threeDScene || !threeDCamera || !threeDControls) return;
+                    if (!threeDScene || !threeDCamera || !threeDControls || ProjectSession.isStale()) { geometry.dispose(); return; }
                     geometry.computeBoundingBox();
                     geometry.computeVertexNormals();
 

@@ -21,6 +21,7 @@ registerTranslations('ja', {
     'projects-already-current': 'このプロジェクトはすでに開いています。',
     'projects-missing': 'サーバーの Projects フォルダが存在しません。現在のプロジェクトを維持します。',
     'projects-empty': 'Projects 内にプロジェクトがありません。現在のプロジェクトを維持します。',
+    'projects-no-selectable': '現在のプロジェクト以外に選択可能な候補がありません。一覧の理由を確認してください。',
     'projects-list-failed': 'プロジェクト一覧を取得できませんでした。一覧を更新して再試行してください。',
     'projects-invalid': 'プロジェクトファイルの形式または必須項目が不正です。',
     'projects-data-unavailable': 'プロジェクトファイルまたはデータフォルダが存在しないか、アクセスできません。',

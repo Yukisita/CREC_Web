@@ -74,6 +74,8 @@ try
     Check((await runtime.SwitchAsync(aId, runtime.Current.Revision, default)).Code == "projects-switched", "B to A");
     Check((await data.GetAllCollectionsAsync()).Count == 1, "A cache refreshed on return");
     Check(File.ReadAllBytes(a).SequenceEqual(initialBytes), "switch leaves original project unchanged");
+    await LinkTests.Run(fixture, root, a);
+    await RollbackTests.Run(configuration, catalog, bId);
     File.WriteAllText(b, "{}");
     Check((await runtime.SwitchAsync(bId, runtime.Current.Revision, default)).Code == "projects-invalid", "selection revalidated after file changed");
     File.Delete(b);
