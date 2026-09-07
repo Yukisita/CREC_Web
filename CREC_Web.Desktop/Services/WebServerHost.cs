@@ -2,12 +2,25 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Net.Sockets;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.IO.Pipes;
+using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace CREC_Web.Desktop.Services;
 
 internal sealed class WebServerHost
 {
     private Process? _process;// Web サーバー子プロセスの参照
+    private NamedPipeServerStream? _statePipe;
+    private CancellationTokenSource? _stateCancellation;
+    private Task? _stateReader;
+    private string? _adminToken;
+    private DesktopProjectState? _currentState;
+    public DesktopProjectState? CurrentProject => Volatile.Read(ref _currentState);
+    public event Action<DesktopProjectState>? ProjectChanged;
     public bool IsRunning => _process is { HasExited: false };// サーバの起動状態を確認するためのプロパティ
 
     /// <summary>
@@ -40,11 +53,20 @@ internal sealed class WebServerHost
 
         var webAppDirectory = ResolveWebAppDirectory();
         var port = settings.Port;
+        var pipeName = "crec-desktop-" + Guid.NewGuid().ToString("N");
+        _statePipe = new NamedPipeServerStream(pipeName, PipeDirection.In, 1,
+            PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+        _stateCancellation = new CancellationTokenSource();
+        _stateReader = ReadProjectStatesAsync(_statePipe, _stateCancellation.Token);
+        _adminToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+        Volatile.Write(ref _currentState, null);
         var process = new Process
         {
             StartInfo = CreateStartInfo(webAppDirectory, projectFilePath, port, settings.PublishToNetwork),
             EnableRaisingEvents = true
         };
+        process.StartInfo.Environment["CREC_ADMIN_TOKEN"] = _adminToken;
+        process.StartInfo.Environment["CREC_DESKTOP_PIPE"] = pipeName;
 
         if (!process.Start())
         {
@@ -94,7 +116,7 @@ internal sealed class WebServerHost
                     // 標準入力に送れない場合は強制終了のフォールバックを行う
                 }
 
-                if (!await WaitForExitAsync(process, TimeSpan.FromSeconds(5)))
+                if (!await WaitForExitAsync(process, TimeSpan.FromSeconds(35)))
                 {
                     process.Kill(entireProcessTree: true);
                     await process.WaitForExitAsync();
@@ -103,8 +125,51 @@ internal sealed class WebServerHost
         }
         finally
         {
+            // EOF follows the final state after graceful shutdown. Read it before restarting.
+            if (_stateReader is not null)
+            {
+                try { await _stateReader.WaitAsync(TimeSpan.FromSeconds(5)); }
+                catch (TimeoutException) { _stateCancellation?.Cancel(); }
+            }
+            _stateCancellation?.Cancel();
+            _statePipe?.Dispose();
+            _stateCancellation?.Dispose();
+            _statePipe = null;
+            _stateCancellation = null;
+            _stateReader = null;
             process.Dispose();
         }
+    }
+
+    private async Task ReadProjectStatesAsync(NamedPipeServerStream pipe, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await pipe.WaitForConnectionAsync(cancellationToken);
+            using var reader = new StreamReader(pipe);
+            while (await reader.ReadLineAsync(cancellationToken) is { } line)
+            {
+                var state = JsonSerializer.Deserialize<DesktopProjectState>(line);
+                if (state is null || !Path.IsPathFullyQualified(state.FilePath)) continue;
+                Volatile.Write(ref _currentState, state);
+                ProjectChanged?.Invoke(state);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or OperationCanceledException or ObjectDisposedException)
+        {
+            // Server shutdown or canceled startup closes the private channel.
+        }
+    }
+
+    public async Task<Cookie> CreateAdministratorSessionAsync(Uri frontendUri)
+    {
+        var cookies = new CookieContainer();
+        using var handler = new HttpClientHandler { CookieContainer = cookies };
+        using var client = new HttpClient(handler) { BaseAddress = frontendUri };
+        client.DefaultRequestHeaders.Add("X-CREC-Request", "1");
+        using var response = await client.PostAsJsonAsync("/api/projects/login", new { token = _adminToken });
+        response.EnsureSuccessStatusCode();
+        return cookies.GetCookies(new Uri(frontendUri, "/api/projects")).Cast<Cookie>().Single();
     }
 
     /// <summary>
@@ -245,3 +310,5 @@ internal sealed record DesktopLaunchSettings(string ProjectFilePath, int Port, b
 /// <param name="Port">使用するポート番号</param>
 /// <param name="FrontendUri">フロントエンドの URI</param>
 internal sealed record WebServerSession(int Port, Uri FrontendUri);
+
+internal sealed record DesktopProjectState(string Revision, string FilePath, string Name);

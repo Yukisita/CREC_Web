@@ -91,6 +91,7 @@ try
     Check(resumed is not null && resumedError is null, "cancellation resumes request admission");
     await RequestTests.Run(runtime);
     await HttpTests.Run(fixture, args.Contains("--serve"));
+    if (!args.Contains("--serve")) await DesktopHostTests.Run();
     Console.WriteLine("All project switching regression tests passed.");
 }
 finally

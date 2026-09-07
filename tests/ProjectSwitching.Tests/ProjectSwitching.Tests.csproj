@@ -7,5 +7,12 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../CREC_Web/CREC_Web.csproj" />
+    <Compile Include="../../CREC_Web.Desktop/Services/WebServerHost.cs" Link="Desktop/WebServerHost.cs" />
   </ItemGroup>
+  <Target Name="CopyWebAppForHostTests" AfterTargets="Build">
+    <ItemGroup>
+      <HostTestWebFiles Include="../../CREC_Web/bin/$(Configuration)/net8.0/**/*" Exclude="../../CREC_Web/bin/$(Configuration)/net8.0/Projects/**/*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(HostTestWebFiles)" DestinationFiles="@(HostTestWebFiles->'$(OutDir)web/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

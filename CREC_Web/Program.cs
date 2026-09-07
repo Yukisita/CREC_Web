@@ -342,7 +342,21 @@ else
     });
 }
 
-app.Run();
+var desktopPipeName = Environment.GetEnvironmentVariable("CREC_DESKTOP_PIPE");
+await using var desktopPublisher = string.IsNullOrWhiteSpace(desktopPipeName)
+    ? null : await DesktopStatePublisher.ConnectAsync(desktopPipeName);
+using var desktopPublisherStop = new CancellationTokenSource();
+var desktopPublisherTask = desktopPublisher?.RunAsync(
+    app.Services.GetRequiredService<ProjectRuntime>(), desktopPublisherStop.Token);
+try
+{
+    app.Run();
+}
+finally
+{
+    desktopPublisherStop.Cancel();
+    if (desktopPublisherTask is not null) await desktopPublisherTask;
+}
 
 static bool ArePortsAvailable(int port)
 {

@@ -34,6 +34,12 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        _webServerHost.ProjectChanged += state => Dispatcher.InvokeAsync(() =>
+        {
+            if (_closeRequested) return;
+            _currentProjectPath = state.FilePath;
+            Title = $"CREC Desktop - {state.Name}";
+        });
 
         _startupProjectPath = Array.Find(
             Environment.GetCommandLineArgs(),
@@ -130,7 +136,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        await OpenProjectAsync(_currentProjectPath);
+        await OpenProjectAsync(_currentProjectPath, preserveCurrentProject: true);
     }
 
     /// <summary>
@@ -138,7 +144,7 @@ public partial class MainWindow : Window
     /// </summary>
     /// <param name="projectPath"></param>
     /// <returns></returns>
-    private async Task OpenProjectAsync(string projectPath)
+    private async Task OpenProjectAsync(string projectPath, bool preserveCurrentProject = false)
     {
         try
         {
@@ -166,12 +172,20 @@ public partial class MainWindow : Window
             if (_webServerHost.IsRunning)
             {
                 await _webServerHost.StopAsync();
+                if (preserveCurrentProject && _webServerHost.CurrentProject is { } finalState)
+                    fullProjectPath = finalState.FilePath;
             }
 
             var session = await _webServerHost.StartAsync(new DesktopLaunchSettings(fullProjectPath, port, PublishCheckBox.IsChecked == true));
 
             await Browser.EnsureCoreWebView2Async();
             InitializeBrowser();
+            var sessionCookie = await _webServerHost.CreateAdministratorSessionAsync(session.FrontendUri);
+            var cookie = Browser.CoreWebView2.CookieManager.CreateCookie(
+                sessionCookie.Name, sessionCookie.Value, session.FrontendUri.Host, sessionCookie.Path);
+            cookie.IsHttpOnly = true;
+            cookie.SameSite = CoreWebView2CookieSameSiteKind.Strict;
+            Browser.CoreWebView2.CookieManager.AddOrUpdateCookie(cookie);
 
             if (_closeRequested)
             {
@@ -181,9 +195,9 @@ public partial class MainWindow : Window
             Browser.Source = session.FrontendUri;
             BrowserHost.Visibility = Visibility.Visible;
             LoadingHost.Visibility = Visibility.Collapsed;
-            _currentProjectPath = fullProjectPath;
+            _currentProjectPath = _webServerHost.CurrentProject?.FilePath ?? fullProjectPath;
             _currentPublishToNetwork = PublishCheckBox.IsChecked == true;
-            Title = $"CREC Desktop - {Path.GetFileNameWithoutExtension(fullProjectPath)}";
+            Title = $"CREC Desktop - {_webServerHost.CurrentProject?.Name ?? Path.GetFileNameWithoutExtension(fullProjectPath)}";
         }
         catch (Exception ex)
         {
