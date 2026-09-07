@@ -5,6 +5,8 @@ This software is released under the MIT License.
 */
 
 using System.Net;
+using System.Security.Cryptography;
+using CREC_Web.Middleware;
 using CREC_Web.Services;
 using Microsoft.Extensions.FileProviders;
 
@@ -93,7 +95,7 @@ if (projectSettings != null)
 }
 else
 {
-    Console.WriteLine("Warning: Failed to parse .crec file or extract project settings");
+    throw new InvalidOperationException("Failed to load the startup project settings.");
 }
 
 // wwwrootフォルダのパスを設定
@@ -109,6 +111,19 @@ builder.Services.AddSingleton(projectSettingsService);
 // Add CREC data service
 builder.Services.AddSingleton<CrecDataService>();
 builder.Services.AddSingleton<DataFileManagerService>();
+builder.Services.AddSingleton<ProjectCatalogService>();
+builder.Services.AddSingleton<ProjectRuntime>();
+var adminToken = Environment.GetEnvironmentVariable("CREC_ADMIN_TOKEN");
+if (string.IsNullOrWhiteSpace(adminToken))
+{
+    adminToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+    Console.WriteLine($"Project administrator token (valid for this server session): {adminToken}");
+}
+else if (adminToken.Length < 32)
+{
+    throw new InvalidOperationException("CREC_ADMIN_TOKEN must contain at least 32 characters.");
+}
+builder.Services.AddSingleton(new ProjectAdminService(adminToken));
 
 // Add CORS for browser access
 builder.Services.AddCors(options =>
@@ -216,8 +231,6 @@ builder.WebHost.UseUrls($"http://{bindHost}:{port}", $"https://{bindHost}:{port 
 
 var app = builder.Build();
 
-app.UseCors();
-
 // Configure static files middleware
 if (Directory.Exists(webRootPath))
 {
@@ -228,6 +241,8 @@ if (Directory.Exists(webRootPath))
 }
 
 app.UseRouting();
+app.UseMiddleware<ProjectRequestMiddleware>();
+app.UseCors();
 
 app.MapControllers();
 app.MapControllerRoute(
