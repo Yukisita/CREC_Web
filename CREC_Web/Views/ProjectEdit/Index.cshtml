@@ -177,6 +177,7 @@
                     }
 
                     alert(t('edit-project-success'));
+                    ProjectSession.saved();
                     // サーバー側で補われたデフォルト値を入力欄へ反映するため、設定を読み込み直す
                     window.location.reload();
                 } catch (error) {

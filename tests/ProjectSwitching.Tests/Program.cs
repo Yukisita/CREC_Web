@@ -90,6 +90,7 @@ try
     using var resumed = runtime.TryEnter(runtime.Current.Revision, true, out var resumedError);
     Check(resumed is not null && resumedError is null, "cancellation resumes request admission");
     await RequestTests.Run(runtime);
+    await HttpTests.Run(fixture, args.Contains("--serve"));
     Console.WriteLine("All project switching regression tests passed.");
 }
 finally

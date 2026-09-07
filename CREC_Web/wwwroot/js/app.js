@@ -453,6 +453,9 @@ function uploadWithProgress(url, formData, progressBar, progressContainer) {
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', url);
+        xhr.setRequestHeader('X-CREC-Project', ProjectSession.revision);
+        ProjectSession.beginUpload();
+        xhr.addEventListener('loadend', () => ProjectSession.endUpload());
 
         xhr.upload.addEventListener('progress', (event) => {
             if (event.lengthComputable && progressBar) {
@@ -465,6 +468,10 @@ function uploadWithProgress(url, formData, progressBar, progressContainer) {
         });
 
         xhr.addEventListener('load', () => {
+            if (xhr.status === 409) {
+                try { if (JSON.parse(xhr.responseText).code === 'projects-stale') ProjectSession.markStale(); } catch { }
+            }
+            if (ProjectSession.isStale()) { reject(new Error(t('projects-stale'))); return; }
             if (progressBar) {
                 progressBar.style.width = '100%';
                 progressBar.textContent = '100%';
@@ -473,7 +480,7 @@ function uploadWithProgress(url, formData, progressBar, progressContainer) {
             if (xhr.status >= 200 && xhr.status < 300) {
                 resolve();
             } else {
-                reject(new Error(`HTTP error! status: ${xhr.status}`));
+                reject(new Error(xhr.status === 503 ? t('projects-busy') : `HTTP error! status: ${xhr.status}`));
             }
         });
 

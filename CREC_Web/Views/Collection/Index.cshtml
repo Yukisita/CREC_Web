@@ -644,7 +644,7 @@
                 ? `
                     <div class="video-carousel">
                         <video id="carouselVideo"
-                               src="/api/File/${encodeURIComponent(collection.indexData.systemData.id)}/video/${encodeURIComponent(videos[currentVideoIndex])}"
+                               src="${ProjectSession.url(`/api/File/${encodeURIComponent(collection.indexData.systemData.id)}/video/${encodeURIComponent(videos[currentVideoIndex])}`)}"
                                class="detail-video"
                                controls
                                preload="metadata">
@@ -1046,7 +1046,7 @@
                             console.error('Collection ID is missing.');
                             return;
                         }
-                        carouselVideo.src = `/api/File/${encodeURIComponent(collectionID)}/video/${encodeURIComponent(videos[currentVideoIndex])}`;
+                        carouselVideo.src = ProjectSession.url(`/api/File/${encodeURIComponent(collectionID)}/video/${encodeURIComponent(videos[currentVideoIndex])}`);
                         videoCounter.textContent = `${currentVideoIndex + 1} / ${videos.length}`;
                         videoName.textContent = videos[currentVideoIndex];
                     };
