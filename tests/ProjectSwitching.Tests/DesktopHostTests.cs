@@ -6,9 +6,10 @@ using CREC_Web.Desktop.Services;
 
 internal static class DesktopHostTests
 {
-    public static async Task Run()
+    public static async Task Run(string fixture)
     {
         var root = Path.Combine(AppContext.BaseDirectory, "web", "Projects", "host-tests-" + Guid.NewGuid().ToString("N"));
+        var dataRoot = Path.Combine(fixture, "DesktopExternalData");
         Directory.CreateDirectory(root);
         var host = new WebServerHost();
         var notifications = new List<DesktopProjectState>();
@@ -18,13 +19,14 @@ internal static class DesktopHostTests
             var webDirectory = Path.GetFullPath(Path.Combine(root, "../.."));
             foreach (var name in new[] { "Desktop A", "Desktop B" })
             {
-                Directory.CreateDirectory(Path.Combine(root, name));
+                Directory.CreateDirectory(Path.Combine(dataRoot, name));
                 var labels = new JsonObject();
                 foreach (var key in new[] { "objectName", "id", "mc", "category", "tag1", "tag2", "tag3" })
                     labels[key] = new JsonObject { ["displayName"] = key };
                 File.WriteAllText(Path.Combine(root, name + ".crec"), new JsonObject {
                     ["projectSettings"] = new JsonObject { ["projectName"] = name,
-                        ["projectLocation"] = Path.GetRelativePath(webDirectory, Path.Combine(root, name)) },
+                        ["projectLocation"] = name == "Desktop A" ? Path.Combine(dataRoot, name)
+                            : Path.GetRelativePath(webDirectory, Path.Combine(dataRoot, name)) },
                     ["labelSettings"] = labels
                 }.ToJsonString());
             }
@@ -47,7 +49,7 @@ internal static class DesktopHostTests
             var target = listing["projects"]!.AsArray().Single(p => p!["location"]!.GetValue<string>() == targetLocation)!;
             var current = (await client.GetFromJsonAsync<JsonObject>("/api/projects/status"))!;
             var startupSettings = (await client.GetFromJsonAsync<JsonObject>("/api/ProjectSettings"))!;
-            if (Path.GetFullPath(startupSettings["projectDataPath"]!.GetValue<string>(), webDirectory) != Path.Combine(root, "Desktop A"))
+            if (Path.GetFullPath(startupSettings["projectDataPath"]!.GetValue<string>(), webDirectory) != Path.Combine(dataRoot, "Desktop A"))
                 throw new Exception("Startup changed the relative data location");
             var switched = await client.PostAsJsonAsync("/api/projects/switch", new {
                 id = target["id"]!.GetValue<string>(), revision = current["revision"]!.GetValue<string>()
@@ -55,7 +57,7 @@ internal static class DesktopHostTests
             switched.EnsureSuccessStatusCode();
             var switchedSettings = (await client.GetFromJsonAsync<JsonObject>("/api/ProjectSettings"))!;
             var switchedDataPath = Path.GetFullPath(switchedSettings["projectDataPath"]!.GetValue<string>(), webDirectory);
-            if (switchedDataPath != Path.Combine(root, "Desktop B")) throw new Exception("Switch changed the relative data location");
+            if (switchedDataPath != Path.Combine(dataRoot, "Desktop B")) throw new Exception("Switch changed the relative data location");
             var timeout = DateTime.UtcNow.AddSeconds(5);
             while (host.CurrentProject?.Name != "Desktop B" && DateTime.UtcNow < timeout) await Task.Delay(50);
             if (host.CurrentProject?.FilePath != Path.Combine(root, "Desktop B.crec")) throw new Exception("Desktop IPC did not synchronize project path");
@@ -70,7 +72,7 @@ internal static class DesktopHostTests
             var restartedSettings = (await restartedClient.GetFromJsonAsync<JsonObject>("/api/ProjectSettings"))!;
             if (Path.GetFullPath(restartedSettings["projectDataPath"]!.GetValue<string>(), webDirectory) != switchedDataPath)
                 throw new Exception("Restart changed the relative data location");
-            Console.WriteLine("PASS: startup, switching and restart resolve relative data paths from the same working directory");
+            Console.WriteLine("PASS: external absolute/relative data paths work across desktop startup, switching and restart");
             Console.WriteLine("PASS: public restart preserves switched project and HTTP/HTTPS port pair");
             await host.StopAsync();
             if (host.CurrentProject?.Name != "Desktop B") throw new Exception("Missing final shutdown state");

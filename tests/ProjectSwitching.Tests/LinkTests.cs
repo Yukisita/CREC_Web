@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json.Nodes;
 using CREC_Web.Services;
 
 internal static class LinkTests
@@ -52,5 +53,40 @@ internal static class LinkTests
             Console.WriteLine("PASS: linked Projects root rejected");
         }
         finally { Directory.Delete(rootLink); }
+
+        var externalData = Path.Combine(fixture, "ExternalLinkData");
+        var externalProject = Path.Combine(root, "ExternalLinks.crec");
+        Directory.CreateDirectory(externalData);
+        var externalJson = JsonNode.Parse(File.ReadAllText(project))!;
+        externalJson["projectSettings"]!["projectLocation"] = externalData;
+        File.WriteAllText(externalProject, externalJson.ToJsonString());
+        try
+        {
+            var externalId = catalog.List(project).Projects.Single(p => p.Location == "ExternalLinks.crec").Id;
+            var externalLink = Path.Combine(externalData, "linked-child");
+            await MakeDirectoryLink(externalLink, root);
+            try
+            {
+                CatalogTests.ExpectRejected(() => catalog.Resolve(externalId), "projects-link");
+                Console.WriteLine("PASS: external data subtree links added after listing are rejected");
+            }
+            finally { Directory.Delete(externalLink); }
+
+            var dataRootLink = Path.Combine(fixture, "ExternalDataRootLink");
+            await MakeDirectoryLink(dataRootLink, externalData);
+            try
+            {
+                externalJson["projectSettings"]!["projectLocation"] = dataRootLink;
+                File.WriteAllText(externalProject, externalJson.ToJsonString());
+                CatalogTests.ExpectRejected(() => catalog.Resolve(externalId), "projects-link");
+                Console.WriteLine("PASS: external data root junction is rejected");
+            }
+            finally { Directory.Delete(dataRootLink); }
+        }
+        finally
+        {
+            File.Delete(externalProject);
+            Directory.Delete(externalData);
+        }
     }
 }

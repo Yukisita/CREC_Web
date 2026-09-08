@@ -31,13 +31,15 @@ try
     Directory.CreateDirectory(Path.Combine(root, "a", "same-id"));
     var a = CreateProject("A", Path.Combine(root, "a"));
     var b = CreateProject("B", Path.Combine(root, "b"));
-    var outside = CreateProject("Outside", fixture);
+    var externalData = Path.Combine(fixture, "ExternalData");
+    Directory.CreateDirectory(externalData);
+    var outside = CreateProject("Outside", externalData);
     File.WriteAllText(Path.Combine(root, "invalid.crec"), "{}");
     var initialBytes = File.ReadAllBytes(a);
     var listing = catalog.List(a);
     Check(listing.Projects.Count == 4, "invalid projects remain visible");
     Check(listing.Projects.Single(p => p.Name == "A").IsCurrent, "current project marker");
-    Check(listing.Projects.Single(p => p.Location == "Outside.crec").ErrorCode == "projects-outside-root", "external data rejected");
+    Check(listing.Projects.Single(p => p.Location == "Outside.crec").ErrorCode is null, "external data allowed for a project file inside Projects");
     Check(listing.Projects.Single(p => p.Location == "invalid.crec").ErrorCode == "projects-invalid", "format rejected");
     foreach (var path in new[] { Path.Combine(root, "..", "escape.crec"), Path.Combine(fixture, "Projects-evil", "x.crec") })
     {
@@ -76,6 +78,16 @@ try
     Check((await runtime.SwitchAsync(aId, runtime.Current.Revision, default)).Code == "projects-switched", "B to A");
     Check((await data.GetAllCollectionsAsync()).Count == 1, "A cache refreshed on return");
     Check(File.ReadAllBytes(a).SequenceEqual(initialBytes), "switch leaves original project unchanged");
+    var outsideId = listing.Projects.Single(p => p.Location == "Outside.crec").Id;
+    var outsideBytes = File.ReadAllBytes(outside);
+    Check((await runtime.SwitchAsync(outsideId, runtime.Current.Revision, default)).Code == "projects-switched"
+        && configuration["ProjectDataPath"] == externalData, "switch to external data folder");
+    Check((await data.GetAllCollectionsAsync()).Count == 0 && File.ReadAllBytes(outside).SequenceEqual(outsideBytes),
+        "external data switch clears cache without rewriting project path");
+    Check((await runtime.SwitchAsync(aId, runtime.Current.Revision, default)).Code == "projects-switched", "return from external data project");
+    Directory.Delete(externalData);
+    Check((await runtime.SwitchAsync(outsideId, runtime.Current.Revision, default)).Code == "projects-data-unavailable"
+        && runtime.Current.FilePath == a, "missing external data preserves current project");
     await LinkTests.Run(fixture, root, a);
     CatalogTests.Run(fixture);
     await SettingsCompatibilityTests.Run(fixture);
@@ -97,7 +109,7 @@ try
     Check(resumed is not null && resumedError is null, "cancellation resumes request admission");
     await RequestTests.Run(runtime);
     await HttpTests.Run(fixture, args.Contains("--serve"));
-    if (!args.Contains("--serve")) await DesktopHostTests.Run();
+    if (!args.Contains("--serve")) await DesktopHostTests.Run(fixture);
     Console.WriteLine("All project switching regression tests passed.");
 }
 finally

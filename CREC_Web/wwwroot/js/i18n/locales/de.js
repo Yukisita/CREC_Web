@@ -22,7 +22,7 @@ registerTranslations('de', {
     'projects-list-failed': 'Die Projektliste konnte nicht geladen werden. Aktualisieren Sie die Liste und versuchen Sie es erneut.',
     'projects-invalid': 'Das Dateiformat oder erforderliche Felder des Projekts sind ungültig.',
     'projects-data-unavailable': 'Die Projektdatei oder der Datenordner fehlt oder ist nicht zugänglich.',
-    'projects-outside-root': 'Dieses Projekt verweist auf einen Ort außerhalb von Projects und kann nicht ausgewählt werden.',
+    'projects-outside-root': 'Die Projektdatei liegt außerhalb des Ordners Projects und kann nicht ausgewählt werden.',
     'projects-link': 'Dieses Projekt enthält einen symbolischen Link oder eine Junction und kann nicht ausgewählt werden.',
     'projects-not-found': 'Das ausgewählte Projekt wurde nicht gefunden. Aktualisieren Sie die Liste.',
     'projects-busy': 'Ein anderer Projektwechsel läuft. Prüfen Sie die Anzeige danach. Der Vorgang wird nicht automatisch wiederholt.',

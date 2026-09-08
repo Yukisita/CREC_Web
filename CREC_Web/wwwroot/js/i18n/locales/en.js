@@ -22,7 +22,7 @@ registerTranslations('en', {
     'projects-list-failed': 'Could not load the project list. Refresh the list to try again.',
     'projects-invalid': 'The project file format or required fields are invalid.',
     'projects-data-unavailable': 'The project file or data folder is missing or inaccessible.',
-    'projects-outside-root': 'This project references a location outside Projects and cannot be selected.',
+    'projects-outside-root': 'The project file is outside the Projects folder and cannot be selected.',
     'projects-link': 'This project contains a symbolic link or junction and cannot be selected.',
     'projects-not-found': 'The selected project could not be found. Refresh the list.',
     'projects-busy': 'Another switch is in progress. Check the screen when it completes. Your operation will not be retried automatically.',

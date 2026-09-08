@@ -99,9 +99,10 @@ public sealed class ProjectCatalogService
             if (!filePath.EndsWith(".crec", StringComparison.OrdinalIgnoreCase) || !File.Exists(filePath))
                 throw new ProjectAccessException("projects-not-found");
             var settings = ProjectSettingsService.ReadValidatedSettings(filePath);
-            // Use the same base as startup and existing file APIs before checking containment.
+            // Data may live outside Projects; only the server-listed .crec file is confined to it.
+            // Keep the same relative-path base as startup and existing file APIs.
             settings.ProjectDataPath = Path.GetFullPath(settings.ProjectDataPath);
-            EnsureSafePath(settings.ProjectDataPath);
+            EnsureNoLinks(settings.ProjectDataPath);
             if (!Directory.Exists(settings.ProjectDataPath)) throw new ProjectAccessException("projects-data-unavailable");
             ValidateDataTree(settings.ProjectDataPath);
             return new(filePath, settings);
@@ -134,7 +135,12 @@ public sealed class ProjectCatalogService
         var relative = Path.GetRelativePath(ProjectsRoot, fullPath);
         if (Path.IsPathRooted(relative) || relative == ".." || relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal))
             throw new ProjectAccessException("projects-outside-root");
-        // Inspect all existing ancestors, including Projects itself, without following links.
+        EnsureNoLinks(fullPath);
+    }
+
+    private static void EnsureNoLinks(string fullPath)
+    {
+        // Inspect each existing ancestor without following links.
         for (var current = fullPath; current is not null; current = Path.GetDirectoryName(current))
         {
             try

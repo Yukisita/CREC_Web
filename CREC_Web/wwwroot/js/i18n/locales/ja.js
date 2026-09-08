@@ -22,7 +22,7 @@ registerTranslations('ja', {
     'projects-list-failed': 'プロジェクト一覧を取得できませんでした。一覧を更新して再試行してください。',
     'projects-invalid': 'プロジェクトファイルの形式または必須項目が不正です。',
     'projects-data-unavailable': 'プロジェクトファイルまたはデータフォルダが存在しないか、アクセスできません。',
-    'projects-outside-root': 'Projects の範囲外を参照しているため選択できません。',
+    'projects-outside-root': 'プロジェクトファイルが Projects の範囲外にあるため選択できません。',
     'projects-link': 'シンボリックリンクまたはジャンクションを含むため選択できません。',
     'projects-not-found': '選択したプロジェクトが見つかりません。一覧を更新してください。',
     'projects-busy': '別の切り替えが進行中です。完了後に画面を確認してください。操作は自動再送されません。',

@@ -25,10 +25,14 @@ internal static class CatalogTests
         ExpectRejected(() => catalog.Resolve(addedId), "projects-not-found");
         if (catalog.Resolve(id).FilePath != path) throw new Exception("Original selection lost");
         Console.WriteLine("PASS: resolving a selection does not rediscover unrelated candidates");
-        json["projectSettings"]!["projectLocation"] = fixture;
+        var externalData = Path.Combine(fixture, "CatalogExternalData");
+        Directory.CreateDirectory(externalData);
+        json["projectSettings"]!["projectLocation"] = externalData;
         File.WriteAllText(path, json.ToJsonString());
-        ExpectRejected(() => catalog.Resolve(id), "projects-outside-root");
-        Console.WriteLine("PASS: selected data path revalidated after listing");
+        if (catalog.Resolve(id).Settings.ProjectDataPath != externalData) throw new Exception("Changed data path was not reloaded");
+        Directory.Delete(externalData);
+        ExpectRejected(() => catalog.Resolve(id), "projects-data-unavailable");
+        Console.WriteLine("PASS: external data location and availability revalidated after listing");
         File.Delete(path);
         catalog.List(path);
         ExpectRejected(() => catalog.Resolve(id), "projects-not-found");
