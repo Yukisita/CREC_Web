@@ -19,9 +19,8 @@ public class ProjectSettingsService
 
     public static ProjectSettings ReadValidatedSettings(string path)
     {
-        var settings = ReadSettings(ReadProjectFile(path));
-        settings.ProjectDataPath = Path.GetFullPath(settings.ProjectDataPath, Path.GetDirectoryName(Path.GetFullPath(path))!);
-        return settings;
+        // Preserve the existing projectLocation value. Relative paths use the process working directory.
+        return ReadSettings(ReadProjectFile(path));
     }
 
     private readonly IConfiguration _configuration;
@@ -156,7 +155,6 @@ public class ProjectSettingsService
 
                 // 更新後のJSONを検証し、実行中のWebへ反映する設定を取得する。
                 var updatedSettings = ReadSettings(root);
-                updatedSettings.ProjectDataPath = Path.GetFullPath(updatedSettings.ProjectDataPath, Path.GetDirectoryName(Path.GetFullPath(crecFilePath))!);
 
                 // 未使用フラグや未知の項目を含むroot全体をプロジェクトファイルへ保存する。
                 File.WriteAllText(

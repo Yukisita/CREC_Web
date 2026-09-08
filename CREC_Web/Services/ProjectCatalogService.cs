@@ -99,7 +99,8 @@ public sealed class ProjectCatalogService
             if (!filePath.EndsWith(".crec", StringComparison.OrdinalIgnoreCase) || !File.Exists(filePath))
                 throw new ProjectAccessException("projects-not-found");
             var settings = ProjectSettingsService.ReadValidatedSettings(filePath);
-            settings.ProjectDataPath = Path.GetFullPath(settings.ProjectDataPath, Path.GetDirectoryName(filePath)!);
+            // Use the same base as startup and existing file APIs before checking containment.
+            settings.ProjectDataPath = Path.GetFullPath(settings.ProjectDataPath);
             EnsureSafePath(settings.ProjectDataPath);
             if (!Directory.Exists(settings.ProjectDataPath)) throw new ProjectAccessException("projects-data-unavailable");
             ValidateDataTree(settings.ProjectDataPath);

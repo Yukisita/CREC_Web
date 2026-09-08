@@ -38,7 +38,7 @@ internal static class HttpTests
             foreach (var key in new[] { "objectName", "id", "mc", "category", "tag1", "tag2", "tag3" })
                 labels[key] = new JsonObject { ["displayName"] = name + " " + key };
             File.WriteAllText(Path.Combine(root, name + ".crec"), new JsonObject {
-                ["projectSettings"] = new JsonObject { ["projectName"] = name, ["projectLocation"] = name },
+                ["projectSettings"] = new JsonObject { ["projectName"] = name, ["projectLocation"] = dataPath },
                 ["labelSettings"] = labels
             }.ToJsonString());
         }

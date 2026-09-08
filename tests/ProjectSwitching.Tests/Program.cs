@@ -29,8 +29,8 @@ try
     Directory.CreateDirectory(Path.Combine(root, "a"));
     Directory.CreateDirectory(Path.Combine(root, "b"));
     Directory.CreateDirectory(Path.Combine(root, "a", "same-id"));
-    var a = CreateProject("A", "a");
-    var b = CreateProject("B", "b");
+    var a = CreateProject("A", Path.Combine(root, "a"));
+    var b = CreateProject("B", Path.Combine(root, "b"));
     var outside = CreateProject("Outside", fixture);
     File.WriteAllText(Path.Combine(root, "invalid.crec"), "{}");
     var initialBytes = File.ReadAllBytes(a);
@@ -78,6 +78,7 @@ try
     Check(File.ReadAllBytes(a).SequenceEqual(initialBytes), "switch leaves original project unchanged");
     await LinkTests.Run(fixture, root, a);
     CatalogTests.Run(fixture);
+    await SettingsCompatibilityTests.Run(fixture);
     await RollbackTests.Run(configuration, catalog, bId);
     File.WriteAllText(b, "{}");
     Check((await runtime.SwitchAsync(bId, runtime.Current.Revision, default)).Code == "projects-invalid", "selection revalidated after file changed");

@@ -94,6 +94,7 @@ if (projectSettings != null)
 }
 else
 {
+    // ProjectRuntime requires a loaded project; do not start against the working-directory fallback.
     throw new InvalidOperationException("Failed to load the startup project settings.");
 }
 
