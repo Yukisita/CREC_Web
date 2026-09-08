@@ -4,7 +4,7 @@
     const revision = document.querySelector('meta[name="crec-project-revision"]').content;
     const originalFetch = window.fetch.bind(window);
     let stale = false;
-    let dirty = false;
+    const dirtyInputs = new Set();
     let leaving = false;
     let uploads = 0;
     const message = key => typeof t === 'function' ? t(key) : key;
@@ -17,7 +17,16 @@
     }
 
     function confirmDiscard() {
-        return (!dirty && uploads === 0) || window.confirm(message('projects-discard'));
+        for (const input of dirtyInputs) {
+            if (!input.isConnected || (input.type === 'file' && input.files.length === 0)) dirtyInputs.delete(input);
+        }
+        return (dirtyInputs.size === 0 && uploads === 0) || window.confirm(message('projects-discard'));
+    }
+
+    function saved(scope) {
+        for (const input of dirtyInputs) {
+            if (scope?.contains(input)) dirtyInputs.delete(input);
+        }
     }
 
     function reload() {
@@ -36,7 +45,7 @@
     window.ProjectSession = Object.freeze({
         revision, url, markStale, confirmDiscard, reload,
         isStale: () => stale,
-        saved: () => { dirty = false; },
+        saved,
         beginUpload: () => { uploads++; },
         endUpload: () => { uploads--; },
         navigateAfterSwitch: () => { leaving = true; window.location.assign('/'); }
@@ -70,15 +79,15 @@
 
     document.addEventListener('input', event => {
         if (event.target.matches('input, textarea, select') && !event.target.readOnly
-            && !event.target.closest('#projectSwitchModal, .search-filters')) dirty = true;
+            && !event.target.closest('#projectSwitchModal, .search-filters')) dirtyInputs.add(event.target);
     });
     document.addEventListener('change', event => {
         if (event.target.matches('select, input[type="file"], input[type="checkbox"]')
-            && !event.target.closest('#projectSwitchModal, .search-filters')) dirty = true;
+            && !event.target.closest('#projectSwitchModal, .search-filters')) dirtyInputs.add(event.target);
     });
-    window.addEventListener('beforeunload', event => {
-        if (!leaving && (dirty || uploads > 0)) { event.preventDefault(); event.returnValue = ''; }
-    });
+    // These editors discard/reset their contents when dismissed. Ordinary navigation is unchanged.
+    document.addEventListener('hidden.bs.modal', event => saved(event.target));
+    document.addEventListener('reset', event => saved(event.target));
 
     async function checkProject() {
         if (stale || leaving) return;

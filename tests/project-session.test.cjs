@@ -39,7 +39,8 @@ function session() {
     assert.equal(s.calls[0].options.headers.get('Content-Type'), 'application/json');
     assert.equal(s.calls[0].options.cache, 'no-store');
     assert.match(s.window.ProjectSession.url('/api/File/id/video/a.mp4'), /projectRevision=revision-a/);
-    s.events.input({ target: { matches: () => true, closest: () => null, readOnly: false } });
+    s.events.input({ target: { matches: () => true, closest: () => null, readOnly: false, isConnected: true } });
+    assert.equal(s.windowEvents.beforeunload, undefined, 'ordinary navigation has no discard guard');
     s.window.ProjectSession.markStale();
     assert.equal(s.notice.hidden, false);
     s.window.ProjectSession.reload();
@@ -69,6 +70,28 @@ function session() {
     upload.window.ProjectSession.endUpload();
     upload.window.ProjectSession.reload();
     assert.equal(upload.destination(), '/');
+    const edits = session();
+    const field = () => ({ matches: () => true, closest: () => null, readOnly: false, isConnected: true });
+    const collection = field();
+    const inventory = field();
+    edits.events.input({ target: collection });
+    edits.events.input({ target: inventory });
+    assert.equal(edits.window.ProjectSession.confirmDiscard(), false, 'pending or failed saves keep discard confirmation');
+    edits.window.ProjectSession.saved({ contains: input => input === collection });
+    assert.equal(edits.window.ProjectSession.confirmDiscard(), false, 'saving one editor preserves other unsaved input');
+    edits.window.ProjectSession.saved({ contains: input => input === inventory });
+    assert.equal(edits.window.ProjectSession.confirmDiscard(), true, 'successfully saved editors need no confirmation');
+    edits.events.input({ target: collection });
+    edits.events['hidden.bs.modal']({ target: { contains: input => input === collection } });
+    assert.equal(edits.window.ProjectSession.confirmDiscard(), true, 'dismissed editor is no longer unsaved');
+    edits.events.input({ target: inventory });
+    inventory.isConnected = false;
+    assert.equal(edits.window.ProjectSession.confirmDiscard(), true, 'replaced editor is no longer unsaved');
+    const file = { ...field(), type: 'file', files: [{}] };
+    edits.events.change({ target: file });
+    assert.equal(edits.window.ProjectSession.confirmDiscard(), false, 'selected file is retained');
+    file.files = [];
+    assert.equal(edits.window.ProjectSession.confirmDiscard(), true, 'cleared upload input needs no confirmation');
     const dictionaries = {};
     for (const language of ['ja', 'en', 'de']) {
         vm.runInNewContext(fs.readFileSync(path.join(__dirname, `../CREC_Web/wwwroot/js/i18n/locales/${language}.js`), 'utf8'), {
@@ -77,5 +100,5 @@ function session() {
     }
     const keys = Object.keys(dictionaries.en).filter(key => key.startsWith('projects-')).sort();
     for (const language of ['ja', 'de']) assert.deepEqual(Object.keys(dictionaries[language]).filter(key => key.startsWith('projects-')).sort(), keys);
-    console.log('PASS: browser project revisions, stale responses, canceled discard, uploads, no automatic replay, and translation coverage');
+    console.log('PASS: browser revisions, stale responses, scoped discard confirmation, saved editors, uploads, no automatic replay, and translations');
 })().catch(error => { console.error(error); process.exitCode = 1; });

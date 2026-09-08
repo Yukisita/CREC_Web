@@ -1265,6 +1265,7 @@
                     
                     if (response.ok) {
                         alert(t('edit-success'));
+                        ProjectSession.saved(document.getElementById('editIndexModal'));
                         modal.hide();
                         // ページをリロードして最新の情報を表示
                         loadCollectionDetails();
@@ -1472,6 +1473,7 @@
                     
                     if (response.ok) {
                         alert(t('operation-success'));
+                        ProjectSession.saved(document.getElementById('inventoryOperationModal'));
                         modal.hide();
                         // ページをリロードして最新の在庫を表示
                         loadCollectionDetails();
@@ -1548,6 +1550,7 @@
                     
                     if (response.ok) {
                         alert(t('operation-success'));
+                        ProjectSession.saved(document.getElementById('inventoryManagementSettingsModal'));
                         modal.hide();
                         // ページをリロードして最新の在庫状況を表示
                         loadCollectionDetails();

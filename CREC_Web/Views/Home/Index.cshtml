@@ -1515,6 +1515,7 @@
         function closeInventoryOperationModal() {
             const modal = document.getElementById('inventoryOperationModal');
             const overlay = document.getElementById('inventoryOperationOverlay');
+            ProjectSession.saved(modal);
 
             if (modal) modal.classList.remove('show');
             if (overlay) overlay.classList.remove('show');
@@ -1589,6 +1590,7 @@
                     throw new Error(errorText || `HTTP error! status: ${response.status}`);
                 }
 
+                ProjectSession.saved(document.getElementById('inventoryOperationForm'));
                 // 概要パネルを再読み込み
                 await showCollectionOverview(currentInventoryCollectionId);
 
@@ -1766,6 +1768,7 @@
          * 在庫管理設定モーダルを閉じる
          */
         function closeInventoryManagementSettingsModal() {
+            ProjectSession.saved(document.getElementById('inventoryManagementSettingsForm'));
             const modal = document.getElementById('inventoryManagementSettingsModal');
             const overlay = document.getElementById('inventoryManagementSettingsOverlay');
             const form = document.getElementById('inventoryManagementSettingsForm');
@@ -1930,6 +1933,7 @@
                     throw new Error(errorText || `HTTP error! status: ${response.status}`);
                 }
 
+                ProjectSession.saved(document.getElementById('inventoryManagementSettingsForm'));
                 // 概要パネルを再読み込み
                 await showCollectionOverview(currentInventoryCollectionId);
 
