@@ -6,21 +6,13 @@ namespace CREC_Web.Controllers;
 [ApiController]
 [Route("api/projects")]
 public sealed class ProjectsController(ProjectRuntime runtime, ProjectCatalogService catalog,
-    ProjectAdminService admin, ILogger<ProjectsController> logger) : ControllerBase
+    ILogger<ProjectsController> logger) : ControllerBase
 {
     [HttpGet("status")]
     public IActionResult Status()
     {
         var state = runtime.Current;
         return Ok(new { state.Revision, state.Name });
-    }
-
-    [HttpPost("login")]
-    public IActionResult Login([FromBody] ProjectLoginRequest request)
-    {
-        if (!admin.ValidateToken(request.Token)) return Unauthorized(new { code = "projects-unauthorized" });
-        admin.SignIn(HttpContext);
-        return NoContent();
     }
 
     [HttpGet]
@@ -52,5 +44,4 @@ public sealed class ProjectsController(ProjectRuntime runtime, ProjectCatalogSer
     }
 }
 
-public sealed record ProjectLoginRequest(string Token);
 public sealed record SwitchProjectRequest(string Id, string Revision);

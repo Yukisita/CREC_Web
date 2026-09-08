@@ -28,9 +28,7 @@ internal static class DesktopHostTests
             }
             var port = FreePortPair();
             var session = await host.StartAsync(new(Path.Combine(root, "Desktop A.crec"), port, false));
-            var cookie = await host.CreateAdministratorSessionAsync(session.FrontendUri);
             using var client = new HttpClient { BaseAddress = session.FrontendUri };
-            client.DefaultRequestHeaders.Add("Cookie", cookie.Name + "=" + cookie.Value);
             client.DefaultRequestHeaders.Add("X-CREC-Request", "1");
             var listing = (await client.GetFromJsonAsync<JsonObject>("/api/projects"))!;
             var targetLocation = Path.GetFileName(root) + "/Desktop B.crec";
@@ -66,7 +64,8 @@ internal static class DesktopHostTests
                 catch (InvalidOperationException) { }
             }
             var recovered = await host.StartAsync(new(finalProject.FilePath, port, false));
-            await host.CreateAdministratorSessionAsync(recovered.FrontendUri);
+            using var recoveredClient = new HttpClient { BaseAddress = recovered.FrontendUri };
+            (await recoveredClient.GetAsync("/api/projects")).EnsureSuccessStatusCode();
             await host.StopAsync();
             Console.WriteLine("PASS: desktop host recovers after failed server startup");
         }

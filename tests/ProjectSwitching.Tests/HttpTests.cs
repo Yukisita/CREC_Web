@@ -59,8 +59,6 @@ internal static class HttpTests
         builder.Services.AddSingleton<DataFileManagerService>();
         builder.Services.AddSingleton(new ProjectCatalogService(root));
         builder.Services.AddSingleton<ProjectRuntime>();
-        const string token = "test-only-administrator-token-00000000";
-        builder.Services.AddSingleton(new ProjectAdminService(token));
         builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
         await using var app = builder.Build();
         app.UseStaticFiles();
@@ -90,10 +88,9 @@ internal static class HttpTests
         var revision = initial["revision"]!.GetValue<string>();
         var html = await client.GetStringAsync("/");
         Check(html.Contains(revision) && html.Contains("openProjectBtn"), "layout binds revision and exposes project picker");
-        Check((await client.GetAsync("/api/projects")).StatusCode == HttpStatusCode.Unauthorized, "anonymous listing denied");
+        Check(!html.Contains("projectAdminLogin"), "project picker does not require login");
+        Check((await client.GetAsync("/api/projects")).IsSuccessStatusCode, "listing available without authentication");
         client.DefaultRequestHeaders.Add("X-CREC-Request", "1");
-        var login = await client.PostAsJsonAsync("/api/projects/login", new { token });
-        Check(login.IsSuccessStatusCode, "administrator session login");
         var list = await GetObject("/api/projects");
         string Id(string name) => list["projects"]!.AsArray().Single(p => p!["name"]!.GetValue<string>() == name)!["id"]!.GetValue<string>();
         client.DefaultRequestHeaders.Add("X-CREC-Project", revision);

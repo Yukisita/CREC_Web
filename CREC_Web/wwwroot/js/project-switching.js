@@ -5,8 +5,6 @@
         const modal = new bootstrap.Modal(modalElement);
         const list = document.getElementById('projectCandidates');
         const status = document.getElementById('projectSwitchStatus');
-        const login = document.getElementById('projectAdminLogin');
-        const token = document.getElementById('projectAdminToken');
         const confirmPanel = document.getElementById('projectSwitchConfirmation');
         const confirmName = document.getElementById('projectSwitchTarget');
         const switchButton = document.getElementById('confirmProjectSwitchBtn');
@@ -20,10 +18,8 @@
             resetSelection();
             list.replaceChildren();
             showStatus('loading');
-            login.hidden = true;
             try {
                 const response = await fetch('/api/projects');
-                if (response.status === 401) { login.hidden = false; showStatus('projects-auth-help'); return; }
                 if (!response.ok) throw new Error('projects-list-failed');
                 const result = await response.json();
                 if (result.errorCode) { showStatus(result.errorCode); return; }
@@ -64,22 +60,7 @@
         document.getElementById('refreshProjectsBtn').addEventListener('click', load);
         document.getElementById('cancelProjectSelectionBtn').addEventListener('click', resetSelection);
         modalElement.addEventListener('hide.bs.modal', event => { if (submitting) event.preventDefault(); });
-        modalElement.addEventListener('hidden.bs.modal', () => { resetSelection(); token.value = ''; });
-        login.addEventListener('submit', async event => {
-            event.preventDefault();
-            const button = login.querySelector('button');
-            button.disabled = true;
-            try {
-                const response = await fetch('/api/projects/login', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token: token.value.trim() })
-                });
-                token.value = '';
-                if (!response.ok) { showStatus('projects-unauthorized'); return; }
-                await load();
-            } catch { showStatus('projects-list-failed'); }
-            finally { button.disabled = false; }
-        });
+        modalElement.addEventListener('hidden.bs.modal', resetSelection);
         switchButton.addEventListener('click', async () => {
             if (!selected || submitting || !ProjectSession.confirmDiscard()) return;
             submitting = true;
@@ -92,7 +73,6 @@
                 });
                 const result = await response.json();
                 if (!response.ok) {
-                    if (response.status === 401) login.hidden = false;
                     showStatus(result.code || 'projects-switch-failed');
                     return;
                 }

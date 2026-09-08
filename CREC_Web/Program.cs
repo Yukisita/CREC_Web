@@ -5,7 +5,6 @@ This software is released under the MIT License.
 */
 
 using System.Net;
-using System.Security.Cryptography;
 using CREC_Web.Middleware;
 using CREC_Web.Services;
 using Microsoft.Extensions.FileProviders;
@@ -113,17 +112,6 @@ builder.Services.AddSingleton<CrecDataService>();
 builder.Services.AddSingleton<DataFileManagerService>();
 builder.Services.AddSingleton<ProjectCatalogService>();
 builder.Services.AddSingleton<ProjectRuntime>();
-var adminToken = Environment.GetEnvironmentVariable("CREC_ADMIN_TOKEN");
-if (string.IsNullOrWhiteSpace(adminToken))
-{
-    adminToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
-    Console.WriteLine($"Project administrator token (valid for this server session): {adminToken}");
-}
-else if (adminToken.Length < 32)
-{
-    throw new InvalidOperationException("CREC_ADMIN_TOKEN must contain at least 32 characters.");
-}
-builder.Services.AddSingleton(new ProjectAdminService(adminToken));
 
 // Add CORS for browser access
 builder.Services.AddCors(options =>

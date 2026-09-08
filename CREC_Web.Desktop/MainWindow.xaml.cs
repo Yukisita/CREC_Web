@@ -180,12 +180,6 @@ public partial class MainWindow : Window
 
             await Browser.EnsureCoreWebView2Async();
             InitializeBrowser();
-            var sessionCookie = await _webServerHost.CreateAdministratorSessionAsync(session.FrontendUri);
-            var cookie = Browser.CoreWebView2.CookieManager.CreateCookie(
-                sessionCookie.Name, sessionCookie.Value, session.FrontendUri.Host, sessionCookie.Path);
-            cookie.IsHttpOnly = true;
-            cookie.SameSite = CoreWebView2CookieSameSiteKind.Strict;
-            Browser.CoreWebView2.CookieManager.AddOrUpdateCookie(cookie);
 
             if (_closeRequested)
             {

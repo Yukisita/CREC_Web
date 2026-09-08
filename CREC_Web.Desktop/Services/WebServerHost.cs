@@ -1,12 +1,9 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.Net.Sockets;
-using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.IO.Pipes;
-using System.Security.Cryptography;
 using System.Text.Json;
 
 namespace CREC_Web.Desktop.Services;
@@ -17,7 +14,6 @@ internal sealed class WebServerHost
     private NamedPipeServerStream? _statePipe;
     private CancellationTokenSource? _stateCancellation;
     private Task? _stateReader;
-    private string? _adminToken;
     private DesktopProjectState? _currentState;
     public DesktopProjectState? CurrentProject => Volatile.Read(ref _currentState);
     public event Action<DesktopProjectState>? ProjectChanged;
@@ -59,14 +55,12 @@ internal sealed class WebServerHost
             PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
         _stateCancellation = new CancellationTokenSource();
         _stateReader = ReadProjectStatesAsync(_statePipe, _stateCancellation.Token);
-        _adminToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
         Volatile.Write(ref _currentState, null);
         var process = new Process
         {
             StartInfo = CreateStartInfo(webAppDirectory, projectFilePath, port, settings.PublishToNetwork),
             EnableRaisingEvents = true
         };
-        process.StartInfo.Environment["CREC_ADMIN_TOKEN"] = _adminToken;
         process.StartInfo.Environment["CREC_DESKTOP_PIPE"] = pipeName;
 
         try
@@ -165,17 +159,6 @@ internal sealed class WebServerHost
         }
     }
 
-    public async Task<Cookie> CreateAdministratorSessionAsync(Uri frontendUri)
-    {
-        var cookies = new CookieContainer();
-        using var handler = new HttpClientHandler { CookieContainer = cookies };
-        using var client = new HttpClient(handler) { BaseAddress = frontendUri };
-        client.DefaultRequestHeaders.Add("X-CREC-Request", "1");
-        using var response = await client.PostAsJsonAsync("/api/projects/login", new { token = _adminToken });
-        response.EnsureSuccessStatusCode();
-        return cookies.GetCookies(new Uri(frontendUri, "/api/projects")).Cast<Cookie>().Single();
-    }
-
     /// <summary>
     /// Web サーバー子プロセスの起動情報を作成する
     /// </summary>
@@ -238,8 +221,8 @@ internal sealed class WebServerHost
                 throw new InvalidOperationException("The CREC Web server exited before startup completed.");
             }
 
-            // Verify the revision received over private IPC before sending any administrator
-            // credential. An unrelated process listening on the requested port is not readiness.
+            // Verify the revision received over private IPC before opening the browser.
+            // An unrelated process listening on the requested port is not readiness.
             if (CurrentProject is { } expected)
             {
                 try
