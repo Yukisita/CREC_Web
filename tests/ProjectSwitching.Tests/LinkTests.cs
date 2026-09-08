@@ -33,12 +33,13 @@ internal static class LinkTests
         finally { Directory.Delete(link); }
 
         var dataLink = Path.Combine(root, "a", "linked-data");
+        var projectId = catalog.List(project).Projects.Single(p => p.IsCurrent).Id;
         await MakeDirectoryLink(dataLink, fixture);
         try
         {
-            try { catalog.Validate(project); throw new Exception("Linked data accepted"); }
+            try { catalog.Resolve(projectId); throw new Exception("Linked data accepted"); }
             catch (ProjectAccessException ex) when (ex.Code == "projects-link") { }
-            Console.WriteLine("PASS: data subtree junction rejected");
+            Console.WriteLine("PASS: data subtree junction added after listing rejected");
         }
         finally { Directory.Delete(dataLink); }
 

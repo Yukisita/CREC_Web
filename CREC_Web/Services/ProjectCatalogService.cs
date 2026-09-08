@@ -15,6 +15,8 @@ public sealed class ProjectAccessException(string code) : Exception(code)
 /// <summary>Lists server-owned project identifiers without accepting paths from clients.</summary>
 public sealed class ProjectCatalogService
 {
+    // Replace the map after each listing; never cache validation results.
+    private Dictionary<string, string> _locations = new();
     public string ProjectsRoot { get; }
     private static StringComparison PathComparison => OperatingSystem.IsWindows()
         ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
@@ -28,16 +30,23 @@ public sealed class ProjectCatalogService
         try
         {
             EnsureSafePath(ProjectsRoot);
-            if (!Directory.Exists(ProjectsRoot)) return new("projects-missing", []);
+            if (!Directory.Exists(ProjectsRoot)) return FailedListing("projects-missing");
             var candidates = new List<ProjectCandidate>();
             Visit(ProjectsRoot, currentPath, candidates);
+            Volatile.Write(ref _locations, candidates.ToDictionary(p => p.Id, p => p.Location));
             return new(null, candidates.OrderBy(p => p.Location, StringComparer.OrdinalIgnoreCase).ToArray());
         }
-        catch (ProjectAccessException ex) { return new(ex.Code, []); }
+        catch (ProjectAccessException ex) { return FailedListing(ex.Code); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return new("projects-list-failed", []);
+            return FailedListing("projects-list-failed");
         }
+    }
+
+    private ProjectListing FailedListing(string code)
+    {
+        Volatile.Write(ref _locations, new());
+        return new(code, []);
     }
 
     private void Visit(string directory, string currentPath, List<ProjectCandidate> candidates)
@@ -73,15 +82,12 @@ public sealed class ProjectCatalogService
         }
     }
 
-    public ValidatedProject Resolve(string id, string currentPath)
+    public ValidatedProject Resolve(string id)
     {
-        var listing = List(currentPath);
-        if (listing.ErrorCode is not null) throw new ProjectAccessException(listing.ErrorCode);
-        var candidate = listing.Projects.SingleOrDefault(p => p.Id == id)
-            ?? throw new ProjectAccessException("projects-not-found");
-        if (candidate.ErrorCode is not null) throw new ProjectAccessException(candidate.ErrorCode);
-        // Reopen and validate after selection; the listing is never a validation cache.
-        return Validate(Path.Combine(ProjectsRoot, candidate.Location));
+        if (!Volatile.Read(ref _locations).TryGetValue(id, out var location))
+            throw new ProjectAccessException("projects-not-found");
+        // Reopen only the selected project, including its data tree and link checks.
+        return Validate(Path.Combine(ProjectsRoot, location));
     }
 
     public ValidatedProject Validate(string filePath)

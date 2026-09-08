@@ -67,7 +67,7 @@ public sealed class ProjectRuntime
         {
             await wait.WaitAsync(cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            var target = _catalog.Resolve(id, Current.FilePath);
+            var target = _catalog.Resolve(id);
             if (target.FilePath.Equals(Current.FilePath, OperatingSystem.IsWindows()
                 ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
                 return new("projects-already-current", Current);
