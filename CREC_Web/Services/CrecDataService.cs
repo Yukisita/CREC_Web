@@ -19,7 +19,7 @@ namespace CREC_Web.Services
     public class CrecDataService
     {
         private readonly ILogger<CrecDataService> _logger;
-        private string _dataFolderPath;
+        private string _dataFolderPath;// 現在の実データ参照先。切り替え時は処理中の要求がなくなってから変更する。
         private readonly List<CollectionData> _collectionsCache = new();
         private DateTime _lastCacheUpdate = DateTime.MinValue;
         private readonly TimeSpan _cacheExpiry = TimeSpan.FromMinutes(5);
@@ -31,7 +31,10 @@ namespace CREC_Web.Services
             PropertyNameCaseInsensitive = true
         };
 
-        // Called only after ProjectRuntime has drained every project request.
+        /// <summary>参照先を更新し、以前のプロジェクトのコレクションキャッシュを破棄する。</summary>
+        /// <param name="dataFolderPath">切り替え後、または失敗時の復元先となるデータフォルダ。</param>
+        /// <returns>なし。</returns>
+        /// <remarks>ProjectRuntime がすべての処理中リクエストの完了を待った後で呼び出す。</remarks>
         public void ResetProject(string dataFolderPath)
         {
             lock (_cacheLock)
