@@ -12,18 +12,18 @@ namespace CREC_Web.Desktop.Services;
 internal sealed class WebServerHost
 {
     private Process? _process;// Web サーバー子プロセスの参照
-    private NamedPipeServerStream? _statePipe;// 同じ OS ユーザーの子プロセスから状態を受け取る専用経路。
-    private CancellationTokenSource? _stateCancellation;// 起動失敗や受信待ちのタイムアウト時に監視を中止する。
-    private Task? _stateReader;// 最終通知を読み切ってから再起動するために保持する受信タスク。
-    private DesktopProjectState? _currentState;// 停止後も残し、次回起動で最後のプロジェクトを再利用する。
+    private NamedPipeServerStream? _statePipe;// 同じ OS ユーザー専用の通知経路。
+    private CancellationTokenSource? _stateCancellation;// 受信待ちの中止用。
+    private Task? _stateReader;// 再起動前に最終通知を読み切るための待機対象。
+    private DesktopProjectState? _currentState;// 停止後も保持し、再起動先に使う。
 
     /// <summary>子プロセスから最後に受信したプロジェクト状態。初回受信前は null。</summary>
     public DesktopProjectState? CurrentProject => Volatile.Read(ref _currentState);
 
-    /// <summary>新しい状態を受信したときに通知する。UI の更新は受信側で UI スレッドへ渡す。</summary>
+    /// <summary>状態の受信通知。UI 更新は購読側で UI スレッドへ渡す。</summary>
     public event Action<DesktopProjectState>? ProjectChanged;
 
-    /// <summary>管理している Web 子プロセスが稼働しているかどうか。</summary>
+    /// <summary>子プロセスが稼働中か。</summary>
     public bool IsRunning => _process is { HasExited: false };
 
     /// <summary>子サーバーを起動し、接続可能になるまで待つ。</summary>
@@ -42,18 +42,20 @@ internal sealed class WebServerHost
         }
 
         if (IsRunning)
-        {
             throw new InvalidOperationException("The web server is already running.");
-        }
         var projectFilePath = Path.GetFullPath(settings.ProjectFilePath);
         if (!File.Exists(projectFilePath))
-        {
             throw new FileNotFoundException("The selected .crec project file was not found.", projectFilePath);
-        }
 
         var webAppDirectory = ResolveWebAppDirectory();
         var port = settings.Port;
-        var pipeName = StartStateChannel();
+        // 起動ごとに専用パイプを作り、HTTP の応答元との照合に使う。
+        var pipeName = "crec-desktop-" + Guid.NewGuid().ToString("N");
+        _statePipe = new NamedPipeServerStream(pipeName, PipeDirection.In, 1,
+            PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+        _stateCancellation = new CancellationTokenSource();
+        _stateReader = ReadProjectStatesAsync(_statePipe, _stateCancellation.Token);
+        Volatile.Write(ref _currentState, null);
         var process = new Process
         {
             StartInfo = CreateStartInfo(webAppDirectory, projectFilePath, port, settings.PublishToNetwork),
@@ -64,9 +66,7 @@ internal sealed class WebServerHost
         try
         {
             if (!process.Start())
-            {
                 throw new InvalidOperationException("Failed to start the CREC Web server process.");
-            }
             _process = process;
             await WaitForServerAsync(process, port, cancellationToken);
             return new WebServerSession(port, new Uri($"http://localhost:{port}", UriKind.Absolute));
@@ -80,82 +80,49 @@ internal sealed class WebServerHost
         }
     }
 
-    /// <summary>子サーバーを停止し、最終通知を受け取る。</summary>
-    /// <returns>プロセスの停止と通知用パイプの終了を待つタスク。</returns>
+    /// <summary>子サーバーを停止する。35秒を超えたら強制終了する。</summary>
+    /// <returns>停止と最終通知の受信完了。</returns>
     public async Task StopAsync()
     {
         var process = _process;
         _process = null;
 
-        if (process is null)
-        {
-            await StopStateChannelAsync();
-            return;
-        }
-
         try
         {
-            await StopProcessAsync(process);
+            if (process is null || process.HasExited) return;
+
+            try
+            {
+                // 保存中の要求を完了させるため、まず通常終了を依頼する。
+                await process.StandardInput.WriteLineAsync("shutdown");
+                await process.StandardInput.FlushAsync();
+            }
+            catch
+            {
+                // 入力が閉じられていても終了を待つ。
+            }
+
+            var exitTask = process.WaitForExitAsync();
+            if (await Task.WhenAny(exitTask, Task.Delay(TimeSpan.FromSeconds(35))) == exitTask)
+                return;
+
+            process.Kill(entireProcessTree: true);
+            await process.WaitForExitAsync();
         }
         finally
         {
             await StopStateChannelAsync();
-            process.Dispose();
+            process?.Dispose();
         }
-    }
-
-    /// <summary>通常終了を要求し、35秒以内に終了しなければ子プロセスごと強制終了する。</summary>
-    /// <param name="process">停止する Web サーバー子プロセス。</param>
-    /// <returns>プロセスの終了を待つタスク。</returns>
-    private static async Task StopProcessAsync(Process process)
-    {
-        if (process.HasExited)
-        {
-            return;
-        }
-
-        try
-        {
-            // 通常終了では保存中の要求と最終通知を完了できるため、まず標準入力で停止を依頼する。
-            await process.StandardInput.WriteLineAsync("shutdown");
-            await process.StandardInput.FlushAsync();
-        }
-        catch
-        {
-            // 入力が既に閉じられている場合も、終了待ちと強制終了の手順へ進む。
-        }
-
-        if (await WaitForExitAsync(process, TimeSpan.FromSeconds(35)))
-        {
-            return;
-        }
-
-        process.Kill(entireProcessTree: true);
-        await process.WaitForExitAsync();
-    }
-
-    /// <summary>子プロセス専用の通知パイプを開く。</summary>
-    /// <returns>子プロセスへ渡す固有のパイプ名。</returns>
-    private string StartStateChannel()
-    {
-        var pipeName = "crec-desktop-" + Guid.NewGuid().ToString("N");
-        _statePipe = new NamedPipeServerStream(pipeName, PipeDirection.In, 1,
-            PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
-        _stateCancellation = new CancellationTokenSource();
-        _stateReader = ReadProjectStatesAsync(_statePipe, _stateCancellation.Token);
-        Volatile.Write(ref _currentState, null);
-        return pipeName;
     }
 
     /// <summary>最終通知を読み切り、通知パイプを閉じる。</summary>
-    /// <returns>受信処理の完了を最大5秒待ち、解放を終えるタスク。</returns>
+    /// <returns>受信終了と解放の完了。最大5秒待機。</returns>
     private async Task StopStateChannelAsync()
     {
-        // 正常終了では最終状態の後に EOF が届く。未接続のままなら読み取り待ちを直ちに中止する。
+        // 接続済みなら最終通知と EOF を待つ。未接続なら中止する。
         if (_statePipe?.IsConnected != true)
-        {
             _stateCancellation?.Cancel();
-        }
         if (_stateReader is not null)
         {
             try
@@ -176,9 +143,9 @@ internal sealed class WebServerHost
     }
 
     /// <summary>子プロセスの最新状態を受信し、購読先へ通知する。</summary>
-    /// <param name="pipe">今回の子プロセス専用の受信パイプ。</param>
-    /// <param name="cancellationToken">接続待ち・読み取り待ちを中止するトークン。</param>
-    /// <returns>EOF またはキャンセルまで継続する受信タスク。</returns>
+    /// <param name="pipe">状態の受信パイプ。</param>
+    /// <param name="cancellationToken">受信の中止通知。</param>
+    /// <returns>EOF または中止までの受信タスク。</returns>
     private async Task ReadProjectStatesAsync(NamedPipeServerStream pipe, CancellationToken cancellationToken)
     {
         try
@@ -189,16 +156,14 @@ internal sealed class WebServerHost
             {
                 var state = JsonSerializer.Deserialize<DesktopProjectState>(line);
                 if (state is null || !Path.IsPathFullyQualified(state.FilePath))
-                {
                     continue;
-                }
                 Volatile.Write(ref _currentState, state);
                 ProjectChanged?.Invoke(state);
             }
         }
         catch (Exception ex) when (ex is IOException or OperationCanceledException or ObjectDisposedException)
         {
-            // サーバー停止や起動中止で専用パイプが閉じられる場合は、通常の監視終了として扱う。
+            // 停止・起動中止によるパイプの切断は正常終了とする。
         }
     }
 
@@ -256,9 +221,7 @@ internal sealed class WebServerHost
             cancellationToken.ThrowIfCancellationRequested();
 
             if (process.HasExited)
-            {
                 throw new InvalidOperationException("The CREC Web server exited before startup completed.");
-            }
 
             if (await IsServerReadyAsync(client, port, cancellationToken))
             {
@@ -275,18 +238,16 @@ internal sealed class WebServerHost
     /// <param name="client">起動確認用の HTTP クライアント。</param>
     /// <param name="port">子プロセスへ指定した HTTP ポート。</param>
     /// <param name="cancellationToken">起動確認の中止を通知するトークン。</param>
-    /// <returns>パイプと HTTP の両方で同じ世代を確認できた場合は true。</returns>
+    /// <returns>パイプと HTTP の世代が一致すれば true。</returns>
     private async Task<bool> IsServerReadyAsync(HttpClient client, int port, CancellationToken cancellationToken)
     {
         var expectedState = CurrentProject;
         if (expectedState is null)
-        {
             return false;
-        }
 
         try
         {
-            // 他のプロセスが同じポートで応答していても、起動完了としてブラウザを開かない。
+            // 別プロセスの応答を起動完了と誤認しない。
             var status = await client.GetFromJsonAsync<DesktopServerStatus>(
                 $"http://127.0.0.1:{port}/api/projects/status", cancellationToken);
             return status?.Revision == expectedState.Revision;
@@ -298,17 +259,6 @@ internal sealed class WebServerHost
         }
     }
 
-    /// <summary>Web サーバー子プロセスが終了するまで待機する</summary>
-    /// <param name="process">Web サーバー子プロセス</param>
-    /// <param name="timeout">プロセスの終了を待つ上限時間。</param>
-    /// <returns>時間内に終了した場合は true。</returns>
-    private static async Task<bool> WaitForExitAsync(Process process, TimeSpan timeout)
-    {
-        var exitTask = process.WaitForExitAsync();
-        var completedTask = await Task.WhenAny(exitTask, Task.Delay(timeout));
-        return completedTask == exitTask;
-    }
-
     /// <summary>Web アプリケーションのディレクトリを解決する</summary>
     /// <returns>デスクトップ実行ファイルの隣にある web フォルダの絶対パス。</returns>
     /// <exception cref="DirectoryNotFoundException">Web アプリケーションの DLL が配置されていない場合。</exception>
@@ -318,9 +268,7 @@ internal sealed class WebServerHost
         var webAppAssemblyPath = Path.Combine(webAppDirectory, "CREC_Web.dll");
 
         if (!File.Exists(webAppAssemblyPath))
-        {
             throw new DirectoryNotFoundException("The packaged CREC Web files were not found. Build the desktop project after the web project so the web output is copied to the desktop app.");
-        }
 
         return webAppDirectory;
     }

@@ -145,20 +145,15 @@ public partial class MainWindow : Window
     }
 
     /// <summary>プロジェクトを起動し、WebView2 に表示する。</summary>
-    /// <param name="projectPath">起動する .crec ファイルのパス。相対パスも受け付ける。</param>
-    /// <param name="preserveCurrentProject">公開設定の変更時に、停止直前のプロジェクトを引き継ぐかどうか。</param>
-    /// <returns>サーバー起動と画面表示、またはエラー表示を終えるタスク。</returns>
+    /// <param name="projectPath">起動する .crec のパス。</param>
+    /// <param name="preserveCurrentProject">停止直前のプロジェクトを引き継ぐか。</param>
+    /// <returns>起動・画面表示の完了。</returns>
     private async Task OpenProjectAsync(string projectPath, bool preserveCurrentProject = false)
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(projectPath))
-            {
-                MessageBox.Show(this, "起動する .crec ファイルを指定してください。", "CREC Desktop", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            var fullProjectPath = Path.GetFullPath(projectPath.Trim());
+            var fullProjectPath = string.IsNullOrWhiteSpace(projectPath)
+                ? string.Empty : Path.GetFullPath(projectPath.Trim());
             if (!File.Exists(fullProjectPath))
             {
                 MessageBox.Show(this, "起動する .crec ファイルを指定してください。", "CREC Desktop", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -172,7 +167,13 @@ public partial class MainWindow : Window
 
             ShowLoadingState(fullProjectPath);
 
-            fullProjectPath = await StopServerForProjectAsync(fullProjectPath, preserveCurrentProject);
+            if (_webServerHost.IsRunning)
+            {
+                // 停止待ちの間に切り替わる場合もあるため、最終通知を受けてから起動先を選ぶ。
+                await _webServerHost.StopAsync();
+                if (preserveCurrentProject && _webServerHost.CurrentProject is { } finalState)
+                    fullProjectPath = finalState.FilePath;
+            }
 
             var launchSettings = new DesktopLaunchSettings(fullProjectPath, port, PublishCheckBox.IsChecked == true);
             var session = await _webServerHost.StartAsync(launchSettings);
@@ -207,27 +208,6 @@ public partial class MainWindow : Window
         {
             HideLoadingState();
         }
-    }
-
-    /// <summary>サーバーを停止し、次の起動先を確定する。</summary>
-    /// <param name="projectPath">画面で指定された .crec ファイルの絶対パス。</param>
-    /// <param name="preserveCurrentProject">停止直前のプロジェクトを引き継ぐかどうか。</param>
-    /// <returns>起動先の絶対パス。引き継ぎ時は最終通知のパスを優先する。</returns>
-    private async Task<string> StopServerForProjectAsync(string projectPath, bool preserveCurrentProject)
-    {
-        if (!_webServerHost.IsRunning)
-        {
-            return projectPath;
-        }
-
-        // 停止待ちの間にも Web 側で切り替えが完了し得るため、最終通知を読み切った後でパスを選ぶ。
-        await _webServerHost.StopAsync();
-        if (preserveCurrentProject && _webServerHost.CurrentProject is { } finalState)
-        {
-            return finalState.FilePath;
-        }
-
-        return projectPath;
     }
 
     /// <summary>WebView2 の遷移イベントを登録する。</summary>

@@ -4,23 +4,23 @@ using System.Text.Json;
 
 namespace CREC_Web.Services;
 
-/// <summary>同じ OS ユーザーのデスクトップホストへ、プロジェクトの状態を専用パイプで通知する。</summary>
+/// <summary>同じ OS ユーザーのホストへ、プロジェクト状態を通知する。</summary>
 public sealed class DesktopStatePublisher : IAsyncDisposable
 {
-    private readonly NamedPipeClientStream _pipe;// HTTP へ実パスを公開せず、起動元のホストだけに送る経路。
+    private readonly NamedPipeClientStream _pipe;// 起動元への専用通知経路。
     private readonly StreamWriter _writer;// 1通知を1行の JSON として送信する。
 
-    /// <summary>接続済みパイプに、通知を即時送信するためのライターを用意する。</summary>
-    /// <param name="pipe">デスクトップホストへの接続が完了したパイプ。</param>
+    /// <summary>接続済みパイプの送信処理を初期化する。</summary>
+    /// <param name="pipe">接続済みパイプ。</param>
     private DesktopStatePublisher(NamedPipeClientStream pipe)
     {
         _pipe = pipe;
         _writer = new StreamWriter(pipe, new UTF8Encoding(false), leaveOpen: true) { AutoFlush = true };
     }
 
-    /// <summary>デスクトップホストが待ち受けているパイプへ、5秒を上限に接続する。</summary>
-    /// <param name="pipeName">起動元のホストが環境変数で渡したパイプ名。</param>
-    /// <returns>接続済みの通知サービス。接続失敗時はパイプを破棄して例外を返す。</returns>
+    /// <summary>5秒を上限にホストへ接続する。</summary>
+    /// <param name="pipeName">ホストから渡されたパイプ名。</param>
+    /// <returns>接続済みの通知サービス。失敗時は例外。</returns>
     public static async Task<DesktopStatePublisher> ConnectAsync(string pipeName)
     {
         var pipe = new NamedPipeClientStream(".", pipeName, PipeDirection.Out,
@@ -37,13 +37,13 @@ public sealed class DesktopStatePublisher : IAsyncDisposable
         }
     }
 
-    /// <summary>状態の変化を監視してホストに通知し、停止時には最終状態を送る。</summary>
-    /// <param name="runtime">通知する現在のプロジェクト状態。</param>
-    /// <param name="stop">Web サーバーの要求処理が終了した後に通知される停止トークン。</param>
-    /// <returns>停止通知を受け、最後の状態を送信するまで完了しないタスク。</returns>
+    /// <summary>状態変化と、停止時の最終状態を通知する。</summary>
+    /// <param name="runtime">状態の取得元。</param>
+    /// <param name="stop">全要求の完了後に通知する停止トークン。</param>
+    /// <returns>最終状態の送信完了。</returns>
     public async Task RunAsync(ProjectRuntime runtime, CancellationToken stop)
     {
-        ProjectState? lastPublishedState = null;// 同じ状態を200ミリ秒ごとに再送しないための比較用。
+        ProjectState? lastPublishedState = null;// 重複通知を避ける比較用。
         try
         {
             while (true)
@@ -59,13 +59,13 @@ public sealed class DesktopStatePublisher : IAsyncDisposable
         }
         catch (OperationCanceledException) when (stop.IsCancellationRequested)
         {
-            // 停止直前に完了した切り替えも通知し、公開設定変更後の再起動先が古いままになるのを防ぐ。
+            // 停止直前の切り替えも、次の起動先に反映する。
             await _writer.WriteLineAsync(JsonSerializer.Serialize(runtime.Current));
         }
     }
 
     /// <summary>通知用ライターとパイプを順に解放する。</summary>
-    /// <returns>両方のリソースの解放完了を待つタスク。</returns>
+    /// <returns>リソースの解放完了。</returns>
     public async ValueTask DisposeAsync()
     {
         await _writer.DisposeAsync();

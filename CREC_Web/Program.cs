@@ -331,33 +331,22 @@ else
     });
 }
 
-await RunWithDesktopStateAsync(app);
-
-/// <summary>Web サーバーを実行し、デスクトップ起動時は終了までプロジェクト状態を通知する。</summary>
-/// <param name="app">ルーティングとサービス登録が完了した Web アプリケーション。</param>
-/// <returns>サーバー終了と、デスクトップへの最終通知が完了するまで待つタスク。</returns>
-static async Task RunWithDesktopStateAsync(WebApplication app)
+// デスクトップ起動時だけ、専用パイプへ状態を通知する。
+var desktopPipeName = Environment.GetEnvironmentVariable("CREC_DESKTOP_PIPE");
+await using var desktopPublisher = string.IsNullOrWhiteSpace(desktopPipeName)
+    ? null : await DesktopStatePublisher.ConnectAsync(desktopPipeName);
+using var publisherStop = new CancellationTokenSource();
+var publisherTask = desktopPublisher?.RunAsync(
+    app.Services.GetRequiredService<ProjectRuntime>(), publisherStop.Token);
+try
 {
-    // 通知用パイプはデスクトップホストが起動した場合だけ渡される。Web 単体では通知処理を作らない。
-    var desktopPipeName = Environment.GetEnvironmentVariable("CREC_DESKTOP_PIPE");
-    await using var desktopPublisher = string.IsNullOrWhiteSpace(desktopPipeName)
-        ? null : await DesktopStatePublisher.ConnectAsync(desktopPipeName);
-    using var publisherStop = new CancellationTokenSource();
-    var publisherTask = desktopPublisher?.RunAsync(
-        app.Services.GetRequiredService<ProjectRuntime>(), publisherStop.Token);
-    try
-    {
-        app.Run();
-    }
-    finally
-    {
-        // サーバーが処理中の要求を完了してから停止を通知し、確定した最終状態の送信を待つ。
-        publisherStop.Cancel();
-        if (publisherTask is not null)
-        {
-            await publisherTask;
-        }
-    }
+    app.Run();
+}
+finally
+{
+    // 処理中の要求が完了した後に、確定した最終状態を送る。
+    publisherStop.Cancel();
+    if (publisherTask is not null) await publisherTask;
 }
 
 /// <summary>HTTP と、その次の番号の HTTPS ポートが両方利用できるか確認する。</summary>
