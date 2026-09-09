@@ -1,27 +1,27 @@
 namespace CREC_Web.Services;
 
-/// <summary>現在開いているプロジェクトと、古い画面を判別する世代を保持する。</summary>
+/// <summary>現在のプロジェクトと世代。</summary>
 /// <param name="Revision">起動・切り替えごとに更新する世代識別子。</param>
 /// <param name="FilePath">現在の .crec ファイルの絶対パス。</param>
 /// <param name="Name">画面やデスクトップのタイトルに表示する名前。</param>
 public sealed record ProjectState(string Revision, string FilePath, string Name);
 
-/// <summary>切り替えの成否と、処理後のプロジェクト状態を保持する。</summary>
+/// <summary>切り替え結果とプロジェクト状態。</summary>
 /// <param name="Code">処理結果を表す翻訳キー。</param>
 /// <param name="State">成功時は切り替え先、失敗時は元のプロジェクト状態。</param>
 public sealed record ProjectSwitchResult(string Code, ProjectState State);
 
-/// <summary>処理中の要求が完了するのを待ち、設定・データ参照先・キャッシュをまとめて切り替える。</summary>
+/// <summary>要求の完了を待ち、プロジェクトの設定とキャッシュを切り替える。</summary>
 public sealed class ProjectRuntime
 {
-    // 要求数、切り替えフラグ、現在の世代を同じロックで保護する。I/O の間は保持しない。
+    // 要求数と状態を保護する。I/O の間は保持しない。
     private readonly object _stateLock = new();
     private readonly IConfiguration _configuration;
     private readonly ProjectSettingsService _settingsService;
     private readonly CrecDataService _dataService;
     private readonly ProjectCatalogService _catalog;
     private int _activeRequestCount;// ファイル送信を含め、完了待ちが必要な要求の数。
-    private bool _isSwitching;// 検証開始から設定反映または失敗処理が終わるまで、新規要求を停止する。
+    private bool _isSwitching;// 検証から反映完了まで、新規要求を止める。
     private TaskCompletionSource? _requestsDrained;// 最後の要求が完了したときに切り替え処理を再開する。
     private ProjectState _currentState;
 
@@ -41,7 +41,7 @@ public sealed class ProjectRuntime
             configuration["ProjectName"] ?? "CREC Project");
     }
 
-    /// <summary>現在の世代・パス・名前を同じ時点の状態として取得する。</summary>
+    /// <summary>同じ時点の世代・パス・名前を返す。</summary>
     public ProjectState Current
     {
         get
@@ -53,7 +53,7 @@ public sealed class ProjectRuntime
         }
     }
 
-    /// <summary>要求を受け付け、要求全体の終了まで切り替えを待機させる。</summary>
+    /// <summary>要求を受け付け、完了まで切り替えを待機させる。</summary>
     /// <param name="revision">要求元の画面が保持する世代。読み取り要求では省略可能。</param>
     /// <param name="requireRevision">更新要求など、世代の指定を必須にする場合は true。</param>
     /// <param name="error">拒否理由の翻訳キー。受け付けた場合は null。</param>
@@ -73,11 +73,11 @@ public sealed class ProjectRuntime
         }
     }
 
-    /// <summary>切り替え状態と要求元の世代を調べ、受付を拒否する理由を返す。</summary>
+    /// <summary>切り替え状態と世代から受付可否を判定する。</summary>
     /// <param name="revision">要求元の世代。</param>
     /// <param name="requireRevision">世代を必須にする場合は true。</param>
     /// <returns>拒否理由の翻訳キー。受付可能な場合は null。</returns>
-    /// <remarks>状態の判定と受付を分離しないよう、必ず _stateLock の内側で呼び出す。</remarks>
+    /// <remarks>_stateLock の内側で呼び出すこと。</remarks>
     private string? GetAdmissionError(string? revision, bool requireRevision)
     {
         if (_isSwitching)
@@ -108,12 +108,12 @@ public sealed class ProjectRuntime
         }
     }
 
-    /// <summary>処理中の要求の完了を待ち、候補を再検証してプロジェクトを切り替える。</summary>
+    /// <summary>要求の完了を待ち、選択先を再検証して切り替える。</summary>
     /// <param name="id">候補一覧で取得した切り替え先の識別子。</param>
     /// <param name="revision">操作元の画面が保持する世代。</param>
-    /// <param name="cancellationToken">要求元の切断などによる待機の中止を通知するトークン。</param>
+    /// <param name="cancellationToken">要求元の切断などで待機を中止するトークン。</param>
     /// <returns>処理結果の翻訳キーと、処理後のプロジェクト状態。</returns>
-    /// <remarks>新規作成機能からも利用する。自身の要求受付ハンドルを保持したまま待機しないこと。</remarks>
+    /// <remarks>自身の要求受付ハンドルを保持したまま呼び出さないこと。</remarks>
     public async Task<ProjectSwitchResult> SwitchAsync(string id, string revision, CancellationToken cancellationToken)
     {
         Task requestsCompleted;
@@ -165,7 +165,7 @@ public sealed class ProjectRuntime
         }
     }
 
-    /// <summary>プロジェクトの設定と参照先を適用し、途中で失敗した場合は元に戻す。</summary>
+    /// <summary>設定と参照先を適用し、失敗時は復元する。</summary>
     /// <param name="target">切り替え直前の検証を通過したプロジェクト。</param>
     /// <returns>なし。適用時の例外は復元後に呼び出し元へ伝える。</returns>
     private void ApplyProject(ValidatedProject target)
@@ -177,7 +177,7 @@ public sealed class ProjectRuntime
             _settingsService.ApplyProjectSettings(target.Settings, target.FilePath);
             _dataService.ResetProject(target.Settings.ProjectDataPath);
 
-            // 設定とキャッシュの反映が完了してから、新しい世代を外部へ公開する。
+            // 設定とキャッシュが揃ってから新しい世代を公開する。
             lock (_stateLock)
             {
                 _currentState = new(Guid.NewGuid().ToString("N"), target.FilePath, target.Settings.ProjectName);

@@ -12,7 +12,7 @@ namespace CREC_Web.Controllers;
 public sealed class ProjectsController(ProjectRuntime runtime, ProjectCatalogService catalog,
     ILogger<ProjectsController> logger) : ControllerBase
 {
-    /// <summary>別画面での切り替えを検出するため、現在の世代と名前を返す。</summary>
+    /// <summary>現在の世代と名前を返す。</summary>
     /// <returns>世代とプロジェクト名を含む HTTP 200 応答。実パスは公開しない。</returns>
     [HttpGet("status")]
     public IActionResult Status()
@@ -26,7 +26,7 @@ public sealed class ProjectsController(ProjectRuntime runtime, ProjectCatalogSer
     [HttpGet]
     public IActionResult List() => Ok(catalog.List(runtime.Current.FilePath));
 
-    /// <summary>指定した識別子のプロジェクトへ切り替え、結果を HTTP 応答へ変換する。</summary>
+    /// <summary>指定した候補へ切り替える。</summary>
     /// <param name="request">候補の識別子と操作元の世代。</param>
     /// <returns>成功は200、世代不一致・競合は409、候補不正は400、予期しない失敗は500の応答。</returns>
     [HttpPost("switch")]
@@ -35,7 +35,7 @@ public sealed class ProjectsController(ProjectRuntime runtime, ProjectCatalogSer
         try
         {
             var result = await runtime.SwitchAsync(request.Id, request.Revision, HttpContext.RequestAborted);
-            // サーバー内部の実パスを応答へ含めず、画面に必要な状態だけを返す。
+            // 実パスは応答に含めない。
             var payload = new { code = result.Code, revision = result.State.Revision, name = result.State.Name };
             return result.Code switch
             {

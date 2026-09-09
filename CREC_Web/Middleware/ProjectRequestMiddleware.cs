@@ -2,14 +2,14 @@ using CREC_Web.Services;
 
 namespace CREC_Web.Middleware;
 
-/// <summary>プロジェクトの世代と切り替え状態を確認し、要求全体を受付ハンドルで保護する。</summary>
+/// <summary>世代を確認し、要求の処理中は切り替えを待機させる。</summary>
 /// <param name="next">検証を通過した要求を渡す次のミドルウェア。</param>
 public sealed class ProjectRequestMiddleware(RequestDelegate next)
 {
-    /// <summary>外部サイトからの管理操作と古い世代の要求を拒否し、受付可能な要求を処理する。</summary>
+    /// <summary>要求元と世代を検証し、要求を処理する。</summary>
     /// <param name="context">処理対象の HTTP 要求と応答。</param>
     /// <param name="runtime">現在の世代と切り替え状態を管理するサービス。</param>
-    /// <returns>後続の処理と、ファイル送信を含む応答の完了を待つタスク。</returns>
+    /// <returns>ファイル送信を含む応答の完了を待つタスク。</returns>
     public async Task InvokeAsync(HttpContext context, ProjectRuntime runtime)
     {
         var request = context.Request;
@@ -19,10 +19,12 @@ public sealed class ProjectRequestMiddleware(RequestDelegate next)
         var isSwitchRequest = normalizedPath.Equals("/api/projects/switch", StringComparison.OrdinalIgnoreCase);
         var isMutation = !HttpMethods.IsGet(request.Method) && !HttpMethods.IsHead(request.Method)
             && !HttpMethods.IsOptions(request.Method);
+        var hasRequiredHeader = !isMutation || request.Headers["X-CREC-Request"] == "1";
 
-        // 同じ URL を使う別プロジェクトの応答が、ブラウザキャッシュから混在するのを防ぐ。
+        // 別プロジェクトの応答がキャッシュから混ざるのを防ぐ。
         context.Response.Headers.CacheControl = "no-store";
-        if (isManagementRequest && !isStatusRequest && !IsAllowedManagementRequest(request, isMutation))
+        // 同一オリジンとカスタムヘッダーで、外部サイトからの管理操作を拒否する。
+        if (isManagementRequest && !isStatusRequest && (!IsSameOrigin(request) || !hasRequiredHeader))
         {
             await WriteErrorAsync(context, StatusCodes.Status403Forbidden, "projects-origin-denied");
             return;
@@ -55,19 +57,9 @@ public sealed class ProjectRequestMiddleware(RequestDelegate next)
         await next(context);
     }
 
-    /// <summary>管理 API の要求元と、更新要求に必要なカスタムヘッダーを確認する。</summary>
-    /// <param name="request">一覧取得または切り替えの要求。</param>
-    /// <param name="isMutation">データ更新を伴う HTTP メソッドの場合は true。</param>
-    /// <returns>同一オリジンの条件と必要なヘッダーを満たす場合は true。</returns>
-    private static bool IsAllowedManagementRequest(HttpRequest request, bool isMutation)
-    {
-        // CORS より前に実行する CSRF 対策。利用者の認証・権限制御は別 Issue で扱う。
-        return IsSameOrigin(request) && (!isMutation || request.Headers["X-CREC-Request"] == "1");
-    }
-
-    /// <summary>ブラウザが送るオリジン情報に、外部サイトからのアクセスを示す値がないか確認する。</summary>
-    /// <param name="request">要求元のヘッダーと、接続先のスキーム・ホストを含む要求。</param>
-    /// <returns>オリジン情報が未指定、または同じスキーム・ホスト・ポートの場合は true。</returns>
+    /// <summary>外部サイトからの要求を示すヘッダーがないか確認する。</summary>
+    /// <param name="request">要求元と接続先を含む HTTP 要求。</param>
+    /// <returns>要求元が未指定、または同一オリジンなら true。</returns>
     private static bool IsSameOrigin(HttpRequest request)
     {
         var fetchSite = request.Headers["Sec-Fetch-Site"].ToString();
@@ -92,7 +84,7 @@ public sealed class ProjectRequestMiddleware(RequestDelegate next)
             .Equals(targetUri.GetLeftPart(UriPartial.Authority), StringComparison.OrdinalIgnoreCase);
     }
 
-    /// <summary>要求を拒否した理由を、フロントエンドが翻訳できる形式で返す。</summary>
+    /// <summary>拒否理由を JSON で返す。</summary>
     /// <param name="context">エラーを書き込む HTTP 応答を含むコンテキスト。</param>
     /// <param name="statusCode">拒否理由に対応する HTTP ステータスコード。</param>
     /// <param name="code">画面に表示する翻訳キー。</param>

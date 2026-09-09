@@ -1,11 +1,10 @@
-/**
- * 画面が読み込んだプロジェクトの世代を保持し、通信と未保存入力を管理する。
+/** 画面の世代と未保存入力を管理する。
  * @returns {void}
  */
 (function initializeProjectSession() {
     'use strict';
 
-    // サーバーが描画した世代を固定する。別画面の切り替えに合わせて更新すると、古い入力を誤送信してしまう。
+    // 古い入力の誤送信を防ぐため、画面を読み込んだ時点の世代を固定する。
     const revision = document.querySelector('meta[name="crec-project-revision"]').content;
     const originalFetch = window.fetch.bind(window);// 世代を付けずに状態確認する際にも使う元の通信関数。
     const dirtyInputs = new Set();// 保存した編集欄だけを解除し、別の編集欄の変更は残す。
@@ -13,17 +12,15 @@
     let hasStartedNavigation = false;// 画面遷移を始めた後は状態確認を止める。
     let activeUploadCount = 0;// アップロード中も切り替え前の破棄確認を必要にする。
 
-    /**
-     * 翻訳が利用できる場合はメッセージを取得し、未初期化ならキーを返す。
+    /** 翻訳文を取得する。
      * @param {string} key 翻訳キー。
-     * @returns {string} 表示するメッセージ。
+     * @returns {string} 翻訳文。未初期化ならキー。
      */
     function message(key) {
         return typeof t === 'function' ? t(key) : key;
     }
 
-    /**
-     * 画面の世代が古くなったことを記録し、入力を残したまま再読み込みを案内する。
+    /** 入力を残して、世代変更と再読み込みを案内する。
      * @returns {void}
      */
     function markStale() {
@@ -34,9 +31,8 @@
         }
     }
 
-    /**
-     * 未保存入力やアップロードがある場合に、切り替えに伴う破棄を確認する。
-     * @returns {boolean} 未保存の操作がない、または利用者が破棄に同意した場合は true。
+    /** 未保存入力とアップロードの破棄を確認する。
+     * @returns {boolean} 未保存の操作がない、または破棄に同意した場合は true。
      */
     function confirmDiscard() {
         for (const input of dirtyInputs) {
@@ -48,8 +44,7 @@
         return (dirtyInputs.size === 0 && activeUploadCount === 0) || window.confirm(message('projects-discard'));
     }
 
-    /**
-     * 保存または破棄が完了した編集範囲だけを、未保存入力の一覧から外す。
+    /** 保存・破棄済みの入力を確認対象から外す。
      * @param {Element|null|undefined} scope 保存済みのフォームや閉じたモーダル。
      * @returns {void}
      */
@@ -61,8 +56,7 @@
         }
     }
 
-    /**
-     * 切り替え後の一覧へ移動し、現在の画面での状態確認を止める。
+    /** 状態確認を止め、切り替え後の一覧へ移動する。
      * @returns {void}
      */
     function navigateAfterSwitch() {
@@ -70,8 +64,7 @@
         window.location.assign('/');
     }
 
-    /**
-     * 切り替え通知から再読み込みする際に、未保存入力の破棄を確認する。
+    /** 破棄を確認してから画面を再読み込みする。
      * @returns {void} キャンセル時は入力と画面を維持する。
      */
     function reload() {
@@ -81,8 +74,7 @@
         navigateAfterSwitch();
     }
 
-    /**
-     * 指定された URL が、このアプリの API を指しているか確認する。
+    /** このアプリの API か確認する。
      * @param {URL} targetUrl 解決済みの要求先。
      * @returns {boolean} 同一オリジンの /api/ 配下なら true。
      */
@@ -90,10 +82,9 @@
         return targetUrl.origin === window.location.origin && targetUrl.pathname.toLowerCase().startsWith('/api/');
     }
 
-    /**
-     * ヘッダーを付けられない動画・ダウンロード用の URL に画面の世代を付与する。
+    /** 動画・ダウンロード用の URL に画面の世代を付ける。
      * @param {string|URL} value 元の URL。
-     * @returns {string} API の場合は世代付き、それ以外はそのまま解決した絶対 URL。
+     * @returns {string} 絶対 URL。アプリの API には世代を付ける。
      */
     function url(value) {
         const targetUrl = new URL(value, window.location.href);
@@ -103,23 +94,10 @@
         return targetUrl.href;
     }
 
-    /**
-     * 古い画面から通常の API を利用する処理を止める。
-     * @param {boolean} isManagementRequest 状態確認や切り替えの API なら true。
-     * @returns {void}
-     * @throws {Error} 古い画面から通常の API を利用しようとした場合。
-     */
-    function ensureCurrentProject(isManagementRequest) {
-        if (hasProjectChanged && !isManagementRequest) {
-            throw new Error(message('projects-stale'));
-        }
-    }
-
-    /**
-     * 応答の世代と切り替え関連のエラーを調べ、画面に通知できる例外へ変換する。
+    /** 応答の世代と切り替えエラーを確認する。
      * @param {Response} response API からの応答。
-     * @returns {Promise<void>} 確認の完了を待つ Promise。元の応答本文は消費しない。
-     * @throws {Error} 切り替え関連のエラー。projectCode に翻訳キーを保持する。
+     * @returns {Promise<void>} 確認完了。元の応答本文は消費しない。
+     * @throws {Error} 切り替えエラー。projectCode は翻訳キー。
      */
     async function checkProjectResponse(response) {
         const responseRevision = response.headers.get('X-CREC-Project');
@@ -130,7 +108,7 @@
             return;
         }
 
-        // 既存 API のエラー本文は呼び出し元でも使うため、複製した応答から理由だけを読む。
+        // 呼び出し元が本文を読めるよう、複製した応答から理由を読む。
         let problem;
         try {
             problem = await response.clone().json();
@@ -150,10 +128,9 @@
         throw error;
     }
 
-    /**
-     * 同一アプリの API 通信へ世代を付け、切り替え前の応答が画面へ反映されるのを防ぐ。
+    /** API 通信に世代を付け、古い応答の反映を防ぐ。
      * @param {RequestInfo|URL} input 要求先の URL または Request。
-     * @param {RequestInit} [options] 呼び出し元が指定した通信オプション。
+     * @param {RequestInit} [options] 通信オプション。
      * @returns {Promise<Response>} 世代確認を通過した応答。
      */
     async function fetchForProject(input, options) {
@@ -164,7 +141,9 @@
 
         const apiPath = targetUrl.pathname.toLowerCase();
         const isManagementRequest = apiPath === '/api/projects' || apiPath.startsWith('/api/projects/');
-        ensureCurrentProject(isManagementRequest);
+        if (hasProjectChanged && !isManagementRequest) {
+            throw new Error(message('projects-stale'));
+        }
 
         const headers = new Headers(options?.headers || (input instanceof Request ? input.headers : undefined));
         headers.set('X-CREC-Project', revision);
@@ -172,14 +151,15 @@
         const response = await originalFetch(input, { ...options, headers, cache: 'no-store' });
         await checkProjectResponse(response);
 
-        // 通信中に別の要求や定期確認で切り替えを検出した場合も、古い結果の表示を止める。
-        ensureCurrentProject(isManagementRequest);
+        // 通信中に切り替わった場合も、古い結果を表示しない。
+        if (hasProjectChanged && !isManagementRequest) {
+            throw new Error(message('projects-stale'));
+        }
         return response;
     }
 
-    /**
-     * 編集中のテキスト入力を、切り替え前の確認対象として記録する。
-     * @param {Event} event document まで伝播した input イベント。
+    /** 編集中の入力を破棄確認の対象にする。
+     * @param {Event} event 入力イベント。
      * @returns {void}
      */
     function trackInput(event) {
@@ -190,9 +170,8 @@
         }
     }
 
-    /**
-     * 選択肢・ファイル・チェックボックスの変更を確認対象として記録する。
-     * @param {Event} event document まで伝播した change イベント。
+    /** 選択・ファイルの変更を破棄確認の対象にする。
+     * @param {Event} event 変更イベント。
      * @returns {void}
      */
     function trackChange(event) {
@@ -203,8 +182,7 @@
         }
     }
 
-    /**
-     * 閉じたモーダルやリセット済みフォームの入力を確認対象から外す。
+    /** 閉じた編集画面の入力を確認対象から外す。
      * @param {Event} event モーダルの非表示またはフォームのリセットイベント。
      * @returns {void}
      */
@@ -212,9 +190,8 @@
         saved(event.target);
     }
 
-    /**
-     * サーバーの現在の世代を取得し、別画面での切り替えを検出する。
-     * @returns {Promise<void>} 確認の完了を待つ Promise。通信失敗時も入力は残す。
+    /** 現在の世代を取得し、別画面での切り替えを検出する。
+     * @returns {Promise<void>} 確認完了。通信失敗時も入力は残す。
      */
     async function checkProject() {
         if (hasProjectChanged || hasStartedNavigation) {
@@ -231,31 +208,18 @@
         }
     }
 
-    /**
-     * 再読み込みボタンと、別画面の切り替えを検出する定期確認を有効にする。
-     * @returns {void}
-     */
-    function startProjectMonitoring() {
-        document.getElementById('reloadProjectBtn').addEventListener('click', reload);
-        checkProject();
-        window.setInterval(checkProject, 2000);
-    }
-
     // 既存画面・アップロード処理から利用する公開窓口。世代は書き換えさせない。
     window.ProjectSession = Object.freeze({
         revision, url, markStale, confirmDiscard, reload, saved, navigateAfterSwitch,
-        /**
-         * この画面の世代が古くなったか確認する。
-         * @returns {boolean} プロジェクトが既に切り替わっている場合は true。
+        /** 画面の世代が古いか返す。
+         * @returns {boolean} 切り替えを検出済みなら true。
          */
         isStale() { return hasProjectChanged; },
-        /**
-         * アップロードを破棄確認の対象に加える。
+        /** アップロードを破棄確認の対象に加える。
          * @returns {void}
          */
         beginUpload() { activeUploadCount++; },
-        /**
-         * 完了したアップロードを破棄確認の対象から外す。
+        /** 完了したアップロードを確認対象から外す。
          * @returns {void}
          */
         endUpload() { activeUploadCount--; }
@@ -266,7 +230,14 @@
     document.addEventListener('change', trackChange);
     document.addEventListener('hidden.bs.modal', clearDismissedEditor);
     document.addEventListener('reset', clearDismissedEditor);
-    document.addEventListener('DOMContentLoaded', startProjectMonitoring);
+    /** 再読み込みボタンと定期確認を有効にする。
+     * @returns {void}
+     */
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('reloadProjectBtn').addEventListener('click', reload);
+        checkProject();
+        window.setInterval(checkProject, 2000);
+    });
     window.addEventListener('pageshow', checkProject);
     window.addEventListener('focus', checkProject);
 })();

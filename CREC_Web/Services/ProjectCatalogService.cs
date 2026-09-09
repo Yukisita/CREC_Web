@@ -3,7 +3,7 @@ using System.Text;
 
 namespace CREC_Web.Services;
 
-/// <summary>一覧に表示するプロジェクトと、選択できない場合の理由を保持する。</summary>
+/// <summary>候補一覧の項目と選択不可の理由。</summary>
 /// <param name="Id">サーバーが相対パスから生成する選択用識別子。</param>
 /// <param name="Name">表示名。検証できない場合はファイル名。</param>
 /// <param name="Location">Projects からの相対パス。</param>
@@ -11,17 +11,17 @@ namespace CREC_Web.Services;
 /// <param name="ErrorCode">選択不可の理由を表す翻訳キー。選択可能な場合は null。</param>
 public sealed record ProjectCandidate(string Id, string Name, string Location, bool IsCurrent, string? ErrorCode);
 
-/// <summary>一覧の取得結果を保持する。</summary>
+/// <summary>候補一覧の取得結果。</summary>
 /// <param name="ErrorCode">一覧全体の取得失敗を表す翻訳キー。取得成功時は null。</param>
 /// <param name="Projects">選択不可の項目を含む候補一覧。</param>
 public sealed record ProjectListing(string? ErrorCode, IReadOnlyList<ProjectCandidate> Projects);
 
-/// <summary>切り替え直前の検証を通過したファイルと設定を保持する。</summary>
+/// <summary>検証済みのプロジェクトファイルと設定。</summary>
 /// <param name="FilePath">プロジェクトファイルの絶対パス。</param>
 /// <param name="Settings">実データのパスを絶対パスへ解決済みの設定。</param>
 public sealed record ValidatedProject(string FilePath, ProjectSettings Settings);
 
-/// <summary>プロジェクトを選択できない理由を呼び出し元へ伝える。</summary>
+/// <summary>プロジェクトを選択できない理由。</summary>
 /// <param name="code">画面で理由を表示するための翻訳キー。</param>
 public sealed class ProjectAccessException(string code) : Exception(code)
 {
@@ -52,7 +52,7 @@ public sealed class ProjectCatalogService
         ProjectsRoot = Path.GetFullPath(projectsRoot);
     }
 
-    /// <summary>候補を検証して一覧を作り、選択用識別子と相対パスの対応を保持する。</summary>
+    /// <summary>候補を検証し、一覧と識別子の対応表を更新する。</summary>
     /// <param name="currentPath">現在開いている .crec ファイルのパス。</param>
     /// <returns>保存場所順の候補一覧。取得できない場合はエラー理由と空の一覧。</returns>
     public ProjectListing List(string currentPath)
@@ -68,7 +68,7 @@ public sealed class ProjectCatalogService
             var candidates = new List<ProjectCandidate>();
             VisitDirectory(ProjectsRoot, currentPath, candidates);
 
-            // 読み取り中の辞書は変更せず、並行する一覧要求にも完成した対応表だけを公開する。
+            // 並行する要求へは、完成した対応表だけを公開する。
             Volatile.Write(ref _listedLocations, candidates.ToDictionary(project => project.Id, project => project.Location));
             return new(null, candidates.OrderBy(project => project.Location, StringComparer.OrdinalIgnoreCase).ToArray());
         }
@@ -91,7 +91,7 @@ public sealed class ProjectCatalogService
         return new(code, []);
     }
 
-    /// <summary>リンクを辿らずにディレクトリを探索し、見つかった候補を追加する。</summary>
+    /// <summary>リンクを辿らず、ディレクトリ内の候補を列挙する。</summary>
     /// <param name="directory">今回列挙するディレクトリ。</param>
     /// <param name="currentPath">現在開いている .crec ファイルのパス。</param>
     /// <param name="candidates">探索結果を追加する一覧。</param>
@@ -116,12 +116,12 @@ public sealed class ProjectCatalogService
                 continue;
             }
 
-            // リンクのディレクトリも選択不可の候補として表示し、辿れない理由を伝える。
+            // リンクも選択不可の理由を付けて表示する。
             candidates.Add(CreateCandidate(entryPath, currentPath, isLink));
         }
     }
 
-    /// <summary>子ディレクトリを探索し、アクセスできない場合は理由付きの項目を追加する。</summary>
+    /// <summary>子ディレクトリの候補、またはアクセス不可の理由を追加する。</summary>
     /// <param name="directory">探索対象の子ディレクトリ。</param>
     /// <param name="currentPath">現在開いている .crec ファイルのパス。</param>
     /// <param name="candidates">探索結果を追加する一覧。</param>
@@ -145,7 +145,7 @@ public sealed class ProjectCatalogService
     /// <param name="entryPath">候補となるファイルまたはリンクのパス。</param>
     /// <param name="currentPath">現在開いている .crec ファイルのパス。</param>
     /// <param name="isLink">探索時点でリンクと判定されたかどうか。</param>
-    /// <returns>表示名、相対パス、現在の選択状態、エラー理由を含む候補。</returns>
+    /// <returns>選択可否と理由を含む候補。</returns>
     private ProjectCandidate CreateCandidate(string entryPath, string currentPath, bool isLink)
     {
         var location = Path.GetRelativePath(ProjectsRoot, entryPath).Replace('\\', '/');
@@ -167,7 +167,7 @@ public sealed class ProjectCatalogService
         }
     }
 
-    /// <summary>一覧で発行した識別子から選択先を特定し、その候補だけを再検証する。</summary>
+    /// <summary>一覧の識別子から選択先を特定し、再検証する。</summary>
     /// <param name="id">候補一覧で発行した識別子。ファイルパスは受け付けない。</param>
     /// <returns>切り替え直前の検証を通過したファイルと設定。</returns>
     /// <exception cref="ProjectAccessException">識別子が一覧外、または候補を読み込めない場合。</exception>
@@ -181,7 +181,7 @@ public sealed class ProjectCatalogService
         return Validate(Path.Combine(ProjectsRoot, location));
     }
 
-    /// <summary>プロジェクトファイルの配置・形式と、実データのアクセス可否を検証する。</summary>
+    /// <summary>プロジェクトファイルと実データを検証する。</summary>
     /// <param name="filePath">読み込む .crec ファイルのパス。</param>
     /// <returns>絶対パスへ解決したファイルと設定。ファイル内容は変更しない。</returns>
     /// <exception cref="ProjectAccessException">配置・形式・リンク・アクセス可否の検証に失敗した場合。</exception>
@@ -198,7 +198,7 @@ public sealed class ProjectCatalogService
 
             var settings = ProjectSettingsService.ReadValidatedSettings(filePath);
 
-            // 実データは Projects 外も許可する。相対パスの基準は既存の起動処理と同じ作業ディレクトリ。
+            // 実データは Projects 外も許可する。相対パスは従来どおり作業ディレクトリ基準。
             settings.ProjectDataPath = Path.GetFullPath(settings.ProjectDataPath);
             EnsureNoLinks(settings.ProjectDataPath);
             if (!Directory.Exists(settings.ProjectDataPath))
@@ -229,7 +229,7 @@ public sealed class ProjectCatalogService
     /// <returns>なし。</returns>
     private static void ValidateDataTree(string directory)
     {
-        // 既存のファイル API が子孫を参照するため、データ内から別の場所へ辿るリンクも拒否する。
+        // ファイル API が子孫も参照するため、実データ内のリンクも拒否する。
         foreach (var entryPath in Directory.EnumerateFileSystemEntries(directory))
         {
             var attributes = File.GetAttributes(entryPath);
@@ -276,20 +276,16 @@ public sealed class ProjectCatalogService
                     throw new ProjectAccessException("projects-link");
                 }
             }
-            catch (FileNotFoundException)
+            catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
             {
-                // 存在判定の前でも、存在している親まで確認を続ける。
-            }
-            catch (DirectoryNotFoundException)
-            {
-                // 対象が未作成でも、親ディレクトリのリンクは見逃さない。
+                // 未作成の対象でも、存在する親まで確認を続ける。
             }
         }
     }
 
     /// <summary>候補の相対パスから安定した選択用識別子を生成する。</summary>
     /// <param name="location">Projects からの相対パス。</param>
-    /// <returns>相対パスの SHA-256 を16進数で表した識別子。認証用トークンではない。</returns>
+    /// <returns>相対パスの SHA-256（16進数）。</returns>
     private static string GetId(string location)
     {
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(location)));
