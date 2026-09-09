@@ -331,27 +331,46 @@ else
     });
 }
 
-var desktopPipeName = Environment.GetEnvironmentVariable("CREC_DESKTOP_PIPE");
-await using var desktopPublisher = string.IsNullOrWhiteSpace(desktopPipeName)
-    ? null : await DesktopStatePublisher.ConnectAsync(desktopPipeName);
-using var desktopPublisherStop = new CancellationTokenSource();
-var desktopPublisherTask = desktopPublisher?.RunAsync(
-    app.Services.GetRequiredService<ProjectRuntime>(), desktopPublisherStop.Token);
-try
+await RunWithDesktopStateAsync(app);
+
+/// <summary>Web サーバーを実行し、デスクトップ起動時は終了までプロジェクト状態を通知する。</summary>
+/// <param name="app">ルーティングとサービス登録が完了した Web アプリケーション。</param>
+/// <returns>サーバー終了と、デスクトップへの最終通知が完了するまで待つタスク。</returns>
+static async Task RunWithDesktopStateAsync(WebApplication app)
 {
-    app.Run();
-}
-finally
-{
-    desktopPublisherStop.Cancel();
-    if (desktopPublisherTask is not null) await desktopPublisherTask;
+    // 通知用パイプはデスクトップホストが起動した場合だけ渡される。Web 単体では通知処理を作らない。
+    var desktopPipeName = Environment.GetEnvironmentVariable("CREC_DESKTOP_PIPE");
+    await using var desktopPublisher = string.IsNullOrWhiteSpace(desktopPipeName)
+        ? null : await DesktopStatePublisher.ConnectAsync(desktopPipeName);
+    using var publisherStop = new CancellationTokenSource();
+    var publisherTask = desktopPublisher?.RunAsync(
+        app.Services.GetRequiredService<ProjectRuntime>(), publisherStop.Token);
+    try
+    {
+        app.Run();
+    }
+    finally
+    {
+        // サーバーが処理中の要求を完了してから停止を通知し、確定した最終状態の送信を待つ。
+        publisherStop.Cancel();
+        if (publisherTask is not null)
+        {
+            await publisherTask;
+        }
+    }
 }
 
+/// <summary>HTTP と、その次の番号の HTTPS ポートが両方利用できるか確認する。</summary>
+/// <param name="port">HTTP に使用するポート番号。</param>
+/// <returns>両方のポートを待ち受けに使用できる場合は true。</returns>
 static bool ArePortsAvailable(int port)
 {
     return IsPortAvailable(port) && IsPortAvailable(port + 1);
 }
 
+/// <summary>指定されたポートで一時的に待ち受け、使用できるか確認する。</summary>
+/// <param name="port">検証するポート番号。</param>
+/// <returns>有効な番号で待ち受けを開始できた場合は true。</returns>
 static bool IsPortAvailable(int port)
 {
     // ポートが設定可能範囲内の数値か確認
@@ -381,7 +400,9 @@ static bool IsPortAvailable(int port)
     }
 }
 
-// デスクトップホストから標準入力経由で "shutdown" が送られたときだけ停止を受け付ける。
+/// <summary>標準入力を監視し、デスクトップホストの shutdown 指示でサーバー停止を要求する。</summary>
+/// <param name="lifetime">停止を要求する Web アプリケーションのライフタイム。</param>
+/// <returns>なし。入力が閉じられるか、サーバーの停止が始まるまで監視する。</returns>
 static void MonitorShutdownCommands(IHostApplicationLifetime lifetime)
 {
     try
