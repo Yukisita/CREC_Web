@@ -856,7 +856,11 @@
             loader.load(
                 url,
                 (geometry) => {
-                    if (!threeDScene || !threeDCamera || !threeDControls || ProjectSession.isStale()) { geometry.dispose(); return; }
+                    // 非同期で届いた旧プロジェクトの形状は、画面へ追加せずにメモリを解放する。
+                    if (!threeDScene || !threeDCamera || !threeDControls || ProjectSession.isStale()) {
+                        geometry.dispose();
+                        return;
+                    }
                     geometry.computeBoundingBox();
                     geometry.computeVertexNormals();
 

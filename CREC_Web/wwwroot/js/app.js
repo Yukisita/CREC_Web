@@ -440,7 +440,7 @@ function openCollectionWindow(collectionId, openEdit = false, targetWindow = nul
  * @param {FormData} formData - アップロードするフォームデータ
  * @param {HTMLElement|null} progressBar - プログレスバー要素
  * @param {HTMLElement|null} progressContainer - プログレスバーコンテナ要素
- * @returns {Promise<void>}
+ * @returns {Promise<void>} アップロード成功時に完了し、通信失敗や世代不一致では拒否される Promise。
  */
 function uploadWithProgress(url, formData, progressBar, progressContainer) {
     if (progressContainer && progressBar) {
@@ -453,6 +453,7 @@ function uploadWithProgress(url, formData, progressBar, progressContainer) {
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', url);
+        // XHR は fetch の共通処理を通らないため、画面の世代と処理中の件数をここで登録する。
         xhr.setRequestHeader('X-CREC-Project', ProjectSession.revision);
         ProjectSession.beginUpload();
         xhr.addEventListener('loadend', () => ProjectSession.endUpload());
@@ -468,10 +469,11 @@ function uploadWithProgress(url, formData, progressBar, progressContainer) {
         });
 
         xhr.addEventListener('load', () => {
-            if (xhr.status === 409) {
-                try { if (JSON.parse(xhr.responseText).code === 'projects-stale') ProjectSession.markStale(); } catch { }
+            checkUploadProjectRevision(xhr);
+            if (ProjectSession.isStale()) {
+                reject(new Error(t('projects-stale')));
+                return;
             }
-            if (ProjectSession.isStale()) { reject(new Error(t('projects-stale'))); return; }
             if (progressBar) {
                 progressBar.style.width = '100%';
                 progressBar.textContent = '100%';
@@ -489,6 +491,25 @@ function uploadWithProgress(url, formData, progressBar, progressContainer) {
 
         xhr.send(formData);
     });
+}
+
+/**
+ * アップロード応答に世代不一致が含まれる場合、古い画面の再読み込みを案内する。
+ * @param {XMLHttpRequest} xhr 応答を受信済みのアップロード要求。
+ * @returns {void} 他のエラーは呼び出し元の既存処理に任せる。
+ */
+function checkUploadProjectRevision(xhr) {
+    if (xhr.status !== 409) {
+        return;
+    }
+    try {
+        const problem = JSON.parse(xhr.responseText);
+        if (problem.code === 'projects-stale') {
+            ProjectSession.markStale();
+        }
+    } catch {
+        // JSON 以外のエラー本文もあるため、解析失敗は通常の HTTP エラーとして扱う。
+    }
 }
 
 /**
