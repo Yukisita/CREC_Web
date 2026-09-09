@@ -1,6 +1,5 @@
 /** プロジェクト選択画面を初期化する。
- * @returns {void}
- */
+ * @returns {void} */
 document.addEventListener('DOMContentLoaded', function initializeProjectPicker() {
     'use strict';
 
@@ -16,15 +15,11 @@ document.addEventListener('DOMContentLoaded', function initializeProjectPicker()
 
     /** 状態メッセージを更新する。
      * @param {string|null} code 翻訳キー。null なら表示を消す。
-     * @returns {void}
-     */
-    function showStatus(code) {
-        statusText.textContent = code ? t(code) : '';
-    }
+     * @returns {void} */
+    const showStatus = code => { statusText.textContent = code ? t(code) : ''; };
 
     /** 選択を解除して確認パネルを閉じる。
-     * @returns {void}
-     */
+     * @returns {void} */
     function resetSelection() {
         selectedProject = null;
         confirmationPanel.hidden = true;
@@ -32,8 +27,7 @@ document.addEventListener('DOMContentLoaded', function initializeProjectPicker()
 
     /** 候補一覧と、選択できない理由を描画する。
      * @param {Object[]} projects API の候補一覧。
-     * @returns {void}
-     */
+     * @returns {void} */
     function renderProjects(projects) {
         showStatus(null);
         if (projects.length === 0) {
@@ -59,8 +53,7 @@ document.addEventListener('DOMContentLoaded', function initializeProjectPicker()
             selectButton.disabled = !!project.errorCode || project.isCurrent;
             selectButton.textContent = t(project.isCurrent ? 'projects-current' : 'projects-select');
             /** この候補を確認パネルへ表示する。
-             * @returns {void}
-             */
+             * @returns {void} */
             selectButton.addEventListener('click', () => {
                 selectedProject = project;
                 confirmationName.textContent = project.name + ' (' + project.location + ')';
@@ -80,35 +73,27 @@ document.addEventListener('DOMContentLoaded', function initializeProjectPicker()
     }
 
     /** 前回の選択を破棄し、最新の候補を取得する。
-     * @returns {Promise<void>} 一覧の取得・描画の完了。
-     */
+     * @returns {Promise<void>} 一覧の取得・描画の完了。 */
     async function loadProjects() {
         resetSelection();
         candidateList.replaceChildren();
         showStatus('loading');
         try {
             const response = await fetch('/api/projects');
-            if (!response.ok) {
-                throw new Error('projects-list-failed');
-            }
+            if (!response.ok) throw new Error('projects-list-failed');
             const result = await response.json();
-            if (result.errorCode) {
-                showStatus(result.errorCode);
-                return;
-            }
-            renderProjects(result.projects);
+            if (result.errorCode) showStatus(result.errorCode);
+            else renderProjects(result.projects);
         } catch {
             showStatus(ProjectSession.isStale() ? 'projects-stale' : 'projects-list-failed');
         }
     }
 
     /** 未保存入力の破棄を確認し、選択した候補へ切り替える。
-     * @returns {Promise<void>} 結果表示または画面遷移の開始。
-     */
+     * @returns {Promise<void>} 結果表示または画面遷移の開始。 */
     async function switchProject() {
-        if (!selectedProject || isSubmitting || !ProjectSession.confirmDiscard()) {
+        if (!selectedProject || isSubmitting || !ProjectSession.confirmDiscard())
             return;
-        }
 
         isSubmitting = true;
         modalElement.querySelectorAll('button').forEach(button => { button.disabled = true; });
@@ -120,12 +105,8 @@ document.addEventListener('DOMContentLoaded', function initializeProjectPicker()
                 body: JSON.stringify({ id: selectedProject.id, revision: ProjectSession.revision })
             });
             const result = await response.json();
-            if (!response.ok) {
+            if (!response.ok || result.code === 'projects-already-current') {
                 showStatus(result.code || 'projects-switch-failed');
-                return;
-            }
-            if (result.code === 'projects-already-current') {
-                showStatus(result.code);
                 return;
             }
             ProjectSession.navigateAfterSwitch();
@@ -141,8 +122,7 @@ document.addEventListener('DOMContentLoaded', function initializeProjectPicker()
     }
 
     /** 選択画面を開き、候補を取得する。
-     * @returns {void}
-     */
+     * @returns {void} */
     document.getElementById('openProjectBtn').addEventListener('click', () => {
         modal.show();
         loadProjects();
@@ -152,12 +132,9 @@ document.addEventListener('DOMContentLoaded', function initializeProjectPicker()
 
     /** 切り替え結果が確定するまで画面を閉じない。
      * @param {Event} event モーダルの非表示イベント。
-     * @returns {void}
-     */
+     * @returns {void} */
     modalElement.addEventListener('hide.bs.modal', event => {
-        if (isSubmitting) {
-            event.preventDefault();
-        }
+        if (isSubmitting) event.preventDefault();
     });
     modalElement.addEventListener('hidden.bs.modal', resetSelection);
     switchButton.addEventListener('click', switchProject);
