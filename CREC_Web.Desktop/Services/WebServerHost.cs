@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.IO.Pipes;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.IO.Pipes;
 using System.Text.Json;
 
 namespace CREC_Web.Desktop.Services;
@@ -23,10 +23,11 @@ internal sealed class WebServerHost
     /// <summary>状態の受信通知。UI 更新は購読側で UI スレッドへ渡す。</summary>
     public event Action<DesktopProjectState>? ProjectChanged;
 
-    /// <summary>子プロセスが稼働中か。</summary>
-    public bool IsRunning => _process is { HasExited: false };
+    public bool IsRunning => _process is { HasExited: false };// サーバの起動状態を確認するためのプロパティ
 
-    /// <summary>子サーバーを起動し、接続可能になるまで待つ。</summary>
+    /// <summary>
+    /// デスクトップアプリ用に Web サーバー子プロセスを起動し、接続可能になるまで待機する。
+    /// </summary>
     /// <param name="settings">起動設定値</param>
     /// <param name="cancellationToken">キャンセルトークン</param>
     /// <returns>Web サーバーセッション</returns>
@@ -41,15 +42,20 @@ internal sealed class WebServerHost
             await StopStateChannelAsync();
         }
 
+        // すでに起動中の場合は例外をスローする
         if (IsRunning)
+        {
             throw new InvalidOperationException("The web server is already running.");
+        }
+        // 起動設定で指定しているプロジェクトファイルの存在を確認する
         var projectFilePath = Path.GetFullPath(settings.ProjectFilePath);
         if (!File.Exists(projectFilePath))
+        {
             throw new FileNotFoundException("The selected .crec project file was not found.", projectFilePath);
+        }
 
         var webAppDirectory = ResolveWebAppDirectory();
         var port = settings.Port;
-        // 起動ごとに専用パイプを作り、HTTP の応答元との照合に使う。
         var pipeName = "crec-desktop-" + Guid.NewGuid().ToString("N");
         _statePipe = new NamedPipeServerStream(pipeName, PipeDirection.In, 1,
             PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
@@ -73,14 +79,15 @@ internal sealed class WebServerHost
         }
         catch
         {
-            // 起動失敗時もプロセスとパイプを解放する。
             await StopAsync();
             process.Dispose();
             throw;
         }
     }
 
-    /// <summary>子サーバーを停止する。35秒を超えたら強制終了する。</summary>
+    /// <summary>
+    /// Web サーバー子プロセスを停止する
+    /// </summary>
     /// <returns>停止と最終通知の受信完了。</returns>
     public async Task StopAsync()
     {
@@ -99,7 +106,7 @@ internal sealed class WebServerHost
             }
             catch
             {
-                // 入力が閉じられていても終了を待つ。
+                // 標準入力に送れない場合は強制終了のフォールバックを行う
             }
 
             var exitTask = process.WaitForExitAsync();
@@ -120,19 +127,12 @@ internal sealed class WebServerHost
     /// <returns>受信終了と解放の完了。最大5秒待機。</returns>
     private async Task StopStateChannelAsync()
     {
-        // 接続済みなら最終通知と EOF を待つ。未接続なら中止する。
-        if (_statePipe?.IsConnected != true)
-            _stateCancellation?.Cancel();
+        // EOF follows the final state after graceful shutdown. Read it before restarting.
+        if (_statePipe?.IsConnected != true) _stateCancellation?.Cancel();
         if (_stateReader is not null)
         {
-            try
-            {
-                await _stateReader.WaitAsync(TimeSpan.FromSeconds(5));
-            }
-            catch (TimeoutException)
-            {
-                _stateCancellation?.Cancel();
-            }
+            try { await _stateReader.WaitAsync(TimeSpan.FromSeconds(5)); }
+            catch (TimeoutException) { _stateCancellation?.Cancel(); }
         }
         _stateCancellation?.Cancel();
         _statePipe?.Dispose();
@@ -155,19 +155,20 @@ internal sealed class WebServerHost
             while (await reader.ReadLineAsync(cancellationToken) is { } line)
             {
                 var state = JsonSerializer.Deserialize<DesktopProjectState>(line);
-                if (state is null || !Path.IsPathFullyQualified(state.FilePath))
-                    continue;
+                if (state is null || !Path.IsPathFullyQualified(state.FilePath)) continue;
                 Volatile.Write(ref _currentState, state);
                 ProjectChanged?.Invoke(state);
             }
         }
         catch (Exception ex) when (ex is IOException or OperationCanceledException or ObjectDisposedException)
         {
-            // 停止・起動中止によるパイプの切断は正常終了とする。
+            // Server shutdown or canceled startup closes the private channel.
         }
     }
 
-    /// <summary>Web サーバー子プロセスの起動情報を作成する</summary>
+    /// <summary>
+    /// Web サーバー子プロセスの起動情報を作成する
+    /// </summary>
     /// <param name="webAppDirectory">Web アプリケーションのディレクトリ</param>
     /// <param name="projectFilePath">プロジェクトファイルのパス</param>
     /// <param name="port">使用するポート番号</param>
@@ -204,7 +205,9 @@ internal sealed class WebServerHost
         return startInfo;
     }
 
-    /// <summary>HTTP と通知の世代が一致するまで起動を待つ。</summary>
+    /// <summary>
+    /// Web サーバー子プロセスが指定したポートで接続可能になるまで待機する
+    /// </summary>
     /// <param name="process">Web サーバー子プロセス</param>
     /// <param name="port">接続確認を行うポート番号</param>
     /// <param name="cancellationToken">キャンセルトークン</param>
@@ -213,25 +216,27 @@ internal sealed class WebServerHost
     /// <exception cref="TimeoutException">30秒以内に起動を確認できなかった場合。</exception>
     private async Task WaitForServerAsync(Process process, int port, CancellationToken cancellationToken)
     {
-        var timeoutAt = DateTime.UtcNow.AddSeconds(30); // 起動待ちの期限。
+        var timeoutAt = DateTime.UtcNow.AddSeconds(30);// 30 秒以内に接続可能にならなければタイムアウトとする
         using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(1) };
 
         while (DateTime.UtcNow < timeoutAt)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (process.HasExited)
+            if (process.HasExited)// プロセスが終了している場合は接続確認を行わずに例外をスローする
+            {
                 throw new InvalidOperationException("The CREC Web server exited before startup completed.");
+            }
 
             if (await IsServerReadyAsync(client, port, cancellationToken))
             {
                 return;
             }
 
-            await Task.Delay(250, cancellationToken);
+            await Task.Delay(250, cancellationToken);// 250 ミリ秒ごとに接続確認を行う
         }
 
-        throw new TimeoutException("Timed out while waiting for the CREC Web server to start.");
+        throw new TimeoutException("Timed out while waiting for the CREC Web server to start.");// タイムアウトとして例外をスローする
     }
 
     /// <summary>HTTP の接続先が今回の子プロセスか確認する。</summary>
@@ -247,9 +252,10 @@ internal sealed class WebServerHost
 
         try
         {
-            // 別プロセスの応答を起動完了と誤認しない。
+            // Verify the revision received over private IPC before opening the browser.
+            // An unrelated process listening on the requested port is not readiness.
             var status = await client.GetFromJsonAsync<DesktopServerStatus>(
-                $"http://127.0.0.1:{port}/api/projects/status", cancellationToken);
+                        $"http://127.0.0.1:{port}/api/projects/status", cancellationToken);
             return status?.Revision == expectedState.Revision;
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
@@ -259,7 +265,9 @@ internal sealed class WebServerHost
         }
     }
 
-    /// <summary>Web アプリケーションのディレクトリを解決する</summary>
+    /// <summary>
+    /// Web アプリケーションのディレクトリを解決する
+    /// </summary>
     /// <returns>デスクトップ実行ファイルの隣にある web フォルダの絶対パス。</returns>
     /// <exception cref="DirectoryNotFoundException">Web アプリケーションの DLL が配置されていない場合。</exception>
     private static string ResolveWebAppDirectory()
@@ -268,19 +276,25 @@ internal sealed class WebServerHost
         var webAppAssemblyPath = Path.Combine(webAppDirectory, "CREC_Web.dll");
 
         if (!File.Exists(webAppAssemblyPath))
+        {
             throw new DirectoryNotFoundException("The packaged CREC Web files were not found. Build the desktop project after the web project so the web output is copied to the desktop app.");
+        }
 
         return webAppDirectory;
     }
 }
 
-/// <summary>子サーバーの起動設定。</summary>
+/// <summary>
+/// デスクトップアプリから Web サーバーを起動する際の設定値を保持するレコード
+/// </summary>
 /// <param name="ProjectFilePath">プロジェクトファイルのパス</param>
 /// <param name="Port">使用するポート番号</param>
 /// <param name="PublishToNetwork">ネットワークに公開するかどうか</param>
 internal sealed record DesktopLaunchSettings(string ProjectFilePath, int Port, bool PublishToNetwork);
 
-/// <summary>起動した子サーバーの接続先。</summary>
+/// <summary>
+/// デスクトップアプリから Web サーバーを起動した際のセッション情報を保持するレコード
+/// </summary>
 /// <param name="Port">使用するポート番号</param>
 /// <param name="FrontendUri">フロントエンドの URI</param>
 internal sealed record WebServerSession(int Port, Uri FrontendUri);

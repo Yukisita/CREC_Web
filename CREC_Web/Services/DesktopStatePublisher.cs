@@ -4,13 +4,13 @@ using System.Text.Json;
 
 namespace CREC_Web.Services;
 
-/// <summary>同じ OS ユーザーのホストへ、プロジェクト状態を通知する。</summary>
+/// <summary>Private, same-user IPC: project paths are never exposed through the public status API.</summary>
 public sealed class DesktopStatePublisher : IAsyncDisposable
 {
     private readonly NamedPipeClientStream _pipe;// 起動元への専用通知経路。
     private readonly StreamWriter _writer;// 1通知を1行の JSON として送信する。
 
-    /// <summary>接続済みパイプの送信処理を初期化する。</summary>
+    /// <summary>Private, same-user IPC: project paths are never exposed through the public status API.</summary>
     /// <param name="pipe">接続済みパイプ。</param>
     private DesktopStatePublisher(NamedPipeClientStream pipe)
     {
@@ -59,7 +59,7 @@ public sealed class DesktopStatePublisher : IAsyncDisposable
         }
         catch (OperationCanceledException) when (stop.IsCancellationRequested)
         {
-            // 停止直前の切り替えも、次の起動先に反映する。
+            // The caller stops this loop AFTER Kestrel has drained shutdown requests.
             await _writer.WriteLineAsync(JsonSerializer.Serialize(runtime.Current));
         }
     }

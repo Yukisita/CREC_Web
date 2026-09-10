@@ -10,7 +10,9 @@ namespace CREC_Web.Desktop;
 
 public partial class MainWindow : Window
 {
-    /// <summary>ブラウザの遷移先。</summary>
+    /// <summary>
+    /// ブラウザの遷移モードを表す列挙型
+    /// </summary>
     private enum BrowserNavigationMode
     {
         Ignore,// ナビゲーションを無視する
@@ -18,15 +20,17 @@ public partial class MainWindow : Window
         External// 外部ブラウザでナビゲーションする
     }
 
-    private readonly WebServerHost _webServerHost = new();// 子サーバーとプロジェクト状態の管理。
+    private readonly WebServerHost _webServerHost = new();// WebServerHost のインスタンスを作成
     private readonly string? _startupProjectPath;// コマンドライン引数から取得した起動時の .crec ファイルパス
     private string? _currentProjectPath;// 現在開いているプロジェクトのパス
-    private bool _browserInitialized;// 遷移イベントの二重登録を防ぐ。
-    private bool _closeRequested;// 二重終了と、終了中の画面更新を防ぐ。
-    private bool _closeConfirmed;// サーバー停止後の Close を許可する。
-    private bool _currentPublishToNetwork;// 稼働中の公開設定。変更の取り消し時に使う。
+    private bool _browserInitialized;// WebView2 の初期化が完了したかどうかを示すフラグ
+    private bool _closeRequested;// ウィンドウの閉じる操作が要求されたかどうかを示すフラグ
+    private bool _closeConfirmed;// ウィンドウの閉じる操作が確認されたかどうかを示すフラグ
+    private bool _currentPublishToNetwork;// 現在の公開設定がネットワーク公開かどうかを示すフラグ
 
-    /// <summary>画面とプロジェクト変更通知を初期化する。</summary>
+    /// <summary>
+    /// MainWindow クラスのコンストラクタ
+    /// </summary>
     public MainWindow()
     {
         InitializeComponent();
@@ -56,7 +60,9 @@ public partial class MainWindow : Window
         });
     }
 
-    /// <summary>サーバー停止を待ってから画面を閉じる。</summary>
+    /// <summary>
+    /// ウィンドウの閉じる操作が要求されたときに呼び出されるイベントハンドラ
+    /// </summary>
     /// <param name="e">イベント情報。</param>
     /// <returns>なし。</returns>
     protected override void OnClosing(CancelEventArgs e)
@@ -79,7 +85,9 @@ public partial class MainWindow : Window
         _ = ShutdownAndCloseAsync();
     }
 
-    /// <summary>引数で指定されたプロジェクトを起動する。</summary>
+    /// <summary>
+    /// ウィンドウが読み込まれたときに呼び出されるイベントハンドラ
+    /// </summary>
     /// <param name="sender">イベント発生元。</param>
     /// <param name="e">イベント情報。</param>
     /// <returns>なし。</returns>
@@ -91,7 +99,9 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>ファイル選択ダイアログからプロジェクトを開く。</summary>
+    /// <summary>
+    /// 「プロジェクトを開く」ボタンがクリックされたときに呼び出されるイベントハンドラ
+    /// </summary>
     /// <param name="sender">イベント発生元。</param>
     /// <param name="e">イベント情報。</param>
     /// <returns>なし。</returns>
@@ -111,7 +121,9 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>確認後にサーバーを再起動し、公開設定を反映する。</summary>
+    /// <summary>
+    /// ネットワーク公開設定のチェックボックスがクリックされたときに呼び出されるイベントハンドラ
+    /// </summary>
     /// <param name="sender">イベント発生元。</param>
     /// <param name="e">イベント情報。</param>
     /// <returns>なし。</returns>
@@ -144,7 +156,9 @@ public partial class MainWindow : Window
         await OpenProjectAsync(_currentProjectPath, preserveCurrentProject: true);
     }
 
-    /// <summary>プロジェクトを起動し、WebView2 に表示する。</summary>
+    /// <summary>
+    /// 指定されたプロジェクトファイルを開き、Web サーバーを起動して WebView2 に表示する非同期メソッド
+    /// </summary>
     /// <param name="projectPath">起動する .crec のパス。</param>
     /// <param name="preserveCurrentProject">停止直前のプロジェクトを引き継ぐか。</param>
     /// <returns>起動・画面表示の完了。</returns>
@@ -167,9 +181,9 @@ public partial class MainWindow : Window
 
             ShowLoadingState(fullProjectPath);
 
+            // プロジェクト切り替え時は既存サーバーを止めてから再起動し、読み込み中表示も同時に切り替える
             if (_webServerHost.IsRunning)
             {
-                // 停止待ちの間に切り替わる場合もあるため、最終通知を受けてから起動先を選ぶ。
                 await _webServerHost.StopAsync();
                 if (preserveCurrentProject && _webServerHost.CurrentProject is { } finalState)
                     fullProjectPath = finalState.FilePath;
@@ -210,7 +224,9 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>WebView2 の遷移イベントを登録する。</summary>
+    /// <summary>
+    /// WebView2 の初期化を行い、ナビゲーションイベントのハンドラを登録するメソッド
+    /// </summary>
     /// <returns>なし。</returns>
     private void InitializeBrowser()
     {
@@ -224,7 +240,9 @@ public partial class MainWindow : Window
         _browserInitialized = true;
     }
 
-    /// <summary>外部リンクを既定のブラウザへ渡す。</summary>
+    /// <summary>
+    /// WebView2 でナビゲーションが開始されたときに呼び出されるイベントハンドラ
+    /// </summary>
     /// <param name="sender">イベント発生元。</param>
     /// <param name="e">イベント情報。</param>
     /// <returns>なし。</returns>
@@ -245,7 +263,9 @@ public partial class MainWindow : Window
         OpenInDefaultBrowser(targetUri);
     }
 
-    /// <summary>新規ウィンドウの要求を適切な遷移先へ振り分ける。</summary>
+    /// <summary>
+    /// WebView2 で新しいウィンドウが要求されたときに呼び出されるイベントハンドラ
+    /// </summary>
     /// <param name="sender">イベント発生元。</param>
     /// <param name="e">イベント情報。</param>
     /// <returns>なし。</returns>
@@ -264,7 +284,9 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
-    /// <summary>サーバーを停止し、画面を閉じる。</summary>
+    /// <summary>
+    /// Web サーバーを停止し、ウィンドウを閉じる非同期メソッド
+    /// </summary>
     /// <returns>サーバー停止と画面終了を待つタスク。</returns>
     private async Task ShutdownAndCloseAsync()
     {
@@ -291,7 +313,9 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>読み込み中の表示へ切り替える。</summary>
+    /// <summary>
+    /// 読み込み中オーバーレイを表示し、対象プロジェクト名に合わせて文言を更新するメソッド
+    /// </summary>
     /// <param name="projectPath">プロジェクトのパス</param>
     /// <returns>なし。</returns>
     private void ShowLoadingState(string? projectPath = null)
@@ -310,7 +334,9 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>読み込み中の表示を解除する。</summary>
+    /// <summary>
+    /// 読み込み中オーバーレイを閉じ、次回表示用に既定の文言へ戻すメソッド
+    /// </summary>
     /// <returns>なし。</returns>
     private void HideLoadingState()
     {
@@ -323,7 +349,9 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>読み込み中の文言とタイトルを更新する。</summary>
+    /// <summary>
+    /// 読み込みオーバーレイの文言とタイトルを更新するメソッド
+    /// </summary>
     /// <param name="projectName">表示対象のプロジェクト名</param>
     /// <returns>なし。</returns>
     private void ApplyLoadingMessage(string? projectName = null)
@@ -336,7 +364,9 @@ public partial class MainWindow : Window
             : $"CREC Desktop - {projectName} を読み込み中...";
     }
 
-    /// <summary>起動設定の入力可否を切り替える。</summary>
+    /// <summary>
+    /// 起動設定まわりの入力 UI の有効/無効をまとめて切り替えるメソッド
+    /// </summary>
     /// <param name="isEnabled">有効にする場合は true</param>
     /// <returns>なし。</returns>
     private void SetLauncherControlsEnabled(bool isEnabled)
@@ -346,7 +376,9 @@ public partial class MainWindow : Window
         PublishCheckBox.IsEnabled = isEnabled;
     }
 
-    /// <summary>入力されたポート番号を検証する。</summary>
+    /// <summary>
+    /// ユーザーが入力したポート番号を取得し、1 から 65534 の範囲内であるかを検証するメソッド
+    /// </summary>
     /// <param name="port">取得したポート番号</param>
     /// <returns>ポート番号が有効な範囲内であるかどうか</returns>
     private bool TryGetConfiguredPort(out int port)
@@ -364,7 +396,9 @@ public partial class MainWindow : Window
         return true;
     }
 
-    /// <summary>URI からブラウザの遷移先を決める。</summary>
+    /// <summary>
+    /// 指定された URI を解析し、ブラウザの遷移モードを決定するメソッド
+    /// </summary>
     /// <param name="uriText">解析対象の URI 文字列</param>
     /// <param name="ignoreAboutBlankPopup">"about:blank" のポップアップを無視するかどうか</param>
     /// <param name="targetUri">解析結果の URI</param>
@@ -373,27 +407,27 @@ public partial class MainWindow : Window
     {
         targetUri = null;
 
-        if (string.IsNullOrWhiteSpace(uriText))
+        if (string.IsNullOrWhiteSpace(uriText))// URI が null または空文字の場合は無視する
         {
             return BrowserNavigationMode.Ignore;
         }
 
-        if (string.Equals(uriText, "about:blank", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(uriText, "about:blank", StringComparison.OrdinalIgnoreCase))// "about:blank" の場合は、ignoreAboutBlankPopup フラグに応じて遷移モードを決定する
         {
             return ignoreAboutBlankPopup ? BrowserNavigationMode.Ignore : BrowserNavigationMode.InApp;
         }
 
-        if (!Uri.TryCreate(uriText, UriKind.Absolute, out targetUri))
+        if (!Uri.TryCreate(uriText, UriKind.Absolute, out targetUri))// URI の解析に失敗した場合は無視する
         {
             return BrowserNavigationMode.Ignore;
         }
 
-        if (targetUri.IsLoopback && (targetUri.Scheme == Uri.UriSchemeHttp || targetUri.Scheme == Uri.UriSchemeHttps))
+        if (targetUri.IsLoopback && (targetUri.Scheme == Uri.UriSchemeHttp || targetUri.Scheme == Uri.UriSchemeHttps))// ループバックアドレスの場合はアプリ内で遷移する
         {
             return BrowserNavigationMode.InApp;
         }
 
-        if (targetUri.Scheme == Uri.UriSchemeHttp || targetUri.Scheme == Uri.UriSchemeHttps)
+        if (targetUri.Scheme == Uri.UriSchemeHttp || targetUri.Scheme == Uri.UriSchemeHttps)// ループバックアドレス以外の HTTP/HTTPS の場合は外部ブラウザで遷移する
         {
             return BrowserNavigationMode.External;
         }
@@ -402,7 +436,9 @@ public partial class MainWindow : Window
         return BrowserNavigationMode.Ignore;
     }
 
-    /// <summary>URI を既定のブラウザで開く。</summary>
+    /// <summary>
+    /// 指定された URI を OS 既定のブラウザで開くメソッド
+    /// </summary>
     /// <param name="uri">開く対象の URI</param>
     /// <returns>なし。</returns>
     private void OpenInDefaultBrowser(Uri uri)
@@ -426,7 +462,9 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>ブラウザを前のページへ戻す。</summary>
+    /// <summary>
+    /// ブラウザの戻るボタンがクリックされたときに呼び出されるイベントハンドラ
+    /// </summary>
     /// <param name="sender">イベント発生元。</param>
     /// <param name="e">イベント情報。</param>
     /// <returns>なし。</returns>

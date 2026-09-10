@@ -335,9 +335,9 @@ else
 var desktopPipeName = Environment.GetEnvironmentVariable("CREC_DESKTOP_PIPE");
 await using var desktopPublisher = string.IsNullOrWhiteSpace(desktopPipeName)
     ? null : await DesktopStatePublisher.ConnectAsync(desktopPipeName);
-using var publisherStop = new CancellationTokenSource();
-var publisherTask = desktopPublisher?.RunAsync(
-    app.Services.GetRequiredService<ProjectRuntime>(), publisherStop.Token);
+using var desktopPublisherStop = new CancellationTokenSource();
+var desktopPublisherTask = desktopPublisher?.RunAsync(
+    app.Services.GetRequiredService<ProjectRuntime>(), desktopPublisherStop.Token);
 try
 {
     app.Run();
@@ -345,8 +345,8 @@ try
 finally
 {
     // 処理中の要求が完了した後に、確定した最終状態を送る。
-    publisherStop.Cancel();
-    if (publisherTask is not null) await publisherTask;
+    desktopPublisherStop.Cancel();
+    if (desktopPublisherTask is not null) await desktopPublisherTask;
 }
 
 /// <summary>HTTP と、その次の番号の HTTPS ポートが両方利用できるか確認する。</summary>
@@ -389,7 +389,7 @@ static bool IsPortAvailable(int port)
     }
 }
 
-/// <summary>標準入力を監視し、デスクトップホストの shutdown 指示でサーバー停止を要求する。</summary>
+/// <summary>デスクトップホストから標準入力経由で "shutdown" が送られたときだけ停止を受け付ける。</summary>
 /// <param name="lifetime">停止を要求する Web アプリケーションのライフタイム。</param>
 /// <returns>なし。入力が閉じられるか、サーバーの停止が始まるまで監視する。</returns>
 static void MonitorShutdownCommands(IHostApplicationLifetime lifetime)
