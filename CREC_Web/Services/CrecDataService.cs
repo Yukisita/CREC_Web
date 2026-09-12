@@ -19,7 +19,7 @@ namespace CREC_Web.Services
     public class CrecDataService
     {
         private readonly ILogger<CrecDataService> _logger;
-        private string _dataFolderPath;// 現在の実データ参照先。切り替え時は処理中の要求がなくなってから変更する。
+        private string _dataFolderPath;// 現在のプロジェクトデータ参照先。切り替え時は処理中の要求がなくなってから変更する。
         private readonly List<CollectionData> _collectionsCache = new();
         private DateTime _lastCacheUpdate = DateTime.MinValue;
         private readonly TimeSpan _cacheExpiry = TimeSpan.FromMinutes(5);
