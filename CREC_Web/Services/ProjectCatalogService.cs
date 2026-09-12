@@ -150,7 +150,7 @@ public sealed class ProjectCatalogService
     /// <summary>.crec と実データを検証する。</summary>
     /// <param name="filePath">.crec のパス</param>
     /// <returns>絶対パスへ解決した設定。検証失敗なら例外</returns>
-    public ValidatedProject Validate(string filePath)
+    private ValidatedProject Validate(string filePath)
     {
         try
         {
@@ -200,7 +200,7 @@ public sealed class ProjectCatalogService
     /// <summary>パスが Projects 内に収まり、リンクを通らないか確認する。</summary>
     /// <param name="path">探索対象のパス</param>
     /// <returns>なし。範囲外・リンクありなら例外</returns>
-    public void EnsureSafePath(string path)
+    private void EnsureSafePath(string path)
     {
         var fullPath = Path.GetFullPath(path);
         var relativePath = Path.GetRelativePath(ProjectsRoot, fullPath);
