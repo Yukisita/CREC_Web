@@ -14,7 +14,6 @@ registerTranslations('en', {
     'projects-confirm-impact': 'Open the selected project? This affects every browser, tab, and desktop window connected to this server.',
     'projects-discard': 'You have unsaved input or an upload in progress. Discard your input and move to the new project?',
     'projects-switching': 'Waiting for active saves, uploads, and other requests before switching projects…',
-    'projects-switched': 'Project switched.',
     'projects-already-current': 'This project is already open.',
     'projects-missing': 'The server’s Projects folder does not exist. The current project is unchanged.',
     'projects-empty': 'No projects were found in Projects. The current project is unchanged.',

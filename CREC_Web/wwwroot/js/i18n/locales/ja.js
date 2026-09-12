@@ -14,7 +14,6 @@ registerTranslations('ja', {
     'projects-confirm-impact': '選択したプロジェクトを開きます。このサーバーに接続しているすべてのブラウザ・タブ・デスクトップ画面に影響します。続行しますか？',
     'projects-discard': '未保存の入力や処理中のアップロードがあります。入力を破棄して、新しいプロジェクトの画面へ移動しますか？',
     'projects-switching': '実行中の保存・アップロードなどの完了を待って、プロジェクトを切り替えています…',
-    'projects-switched': 'プロジェクトを切り替えました。',
     'projects-already-current': 'このプロジェクトはすでに開いています。',
     'projects-missing': 'サーバーの Projects フォルダが存在しません。現在のプロジェクトを維持します。',
     'projects-empty': 'Projects 内にプロジェクトがありません。現在のプロジェクトを維持します。',
