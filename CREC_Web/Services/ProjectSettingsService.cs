@@ -14,6 +14,19 @@ namespace CREC_Web.Services;
 
 public class ProjectSettingsService
 {
+    // 切り替え失敗時の復元対象。ポートや公開設定など、プロジェクト以外の設定は含めない。
+    public static readonly string[] ConfigurationKeys = ["ProjectDataPath", "CrecFilePath", "ProjectName",
+        "CollectionNameLabel", "UUIDLabel", "ManagementCodeLabel", "CategoryLabel", "FirstTagLabel", "SecondTagLabel", "ThirdTagLabel"];
+
+    /// <summary>.crec の JSON 形式と必須設定を検証して読み込む。</summary>
+    /// <param name="path">読み込む .crec ファイルのパス</param>
+    /// <returns>ファイル内のパス表記を維持したプロジェクト設定</returns>
+    public static ProjectSettings ReadValidatedSettings(string path)
+    {
+        // Preserve the existing projectLocation value. Relative paths use the process working directory.
+        return ReadSettings(ReadProjectFile(path));
+    }
+
     private readonly IConfiguration _configuration;
 
     // Webプロセス内でプロジェクトファイルの読み込みと更新を直列化するためのロック
@@ -52,7 +65,7 @@ public class ProjectSettingsService
                     return null;
                 }
 
-                var settings = ReadSettings(ReadProjectFile(crecFilePath));
+                var settings = ReadValidatedSettings(crecFilePath);
                 Console.WriteLine($"Loaded project settings: {settings.ProjectName}");
 
                 if (!Directory.Exists(settings.ProjectDataPath))

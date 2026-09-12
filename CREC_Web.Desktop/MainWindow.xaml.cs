@@ -34,6 +34,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        _webServerHost.ProjectChanged += HandleProjectChanged;
 
         _startupProjectPath = Array.Find(
             Environment.GetCommandLineArgs(),
@@ -41,10 +42,29 @@ public partial class MainWindow : Window
         Loaded += MainWindow_Loaded;
     }
 
+    /// <summary>切り替え結果を UI スレッドへ反映する。</summary>
+    /// <param name="state">受信したプロジェクト状態</param>
+    /// <returns>なし。画面更新は UI スレッドへ予約する。</returns>
+    private void HandleProjectChanged(DesktopProjectState state)
+    {
+        // パイプの受信スレッドから直接 WPF の表示を書き換えない。
+        _ = Dispatcher.InvokeAsync(() =>
+        {
+            if (_closeRequested)
+            {
+                return;
+            }
+
+            _currentProjectPath = state.FilePath;
+            Title = $"CREC Desktop - {state.Name}";
+        });
+    }
+
     /// <summary>
     /// ウィンドウの閉じる操作が要求されたときに呼び出されるイベントハンドラ
     /// </summary>
-    /// <param name="e"></param>
+    /// <param name="e">イベント情報</param>
+    /// <returns>なし</returns>
     protected override void OnClosing(CancelEventArgs e)
     {
         if (_closeConfirmed)
@@ -68,8 +88,9 @@ public partial class MainWindow : Window
     /// <summary>
     /// ウィンドウが読み込まれたときに呼び出されるイベントハンドラ
     /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
+    /// <param name="sender">イベント発生元</param>
+    /// <param name="e">イベント情報</param>
+    /// <returns>なし</returns>
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
         if (!string.IsNullOrWhiteSpace(_startupProjectPath))
@@ -81,8 +102,9 @@ public partial class MainWindow : Window
     /// <summary>
     /// 「プロジェクトを開く」ボタンがクリックされたときに呼び出されるイベントハンドラ
     /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
+    /// <param name="sender">イベント発生元</param>
+    /// <param name="e">イベント情報</param>
+    /// <returns>なし</returns>
     private async void BrowseButton_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFileDialog
@@ -102,8 +124,9 @@ public partial class MainWindow : Window
     /// <summary>
     /// ネットワーク公開設定のチェックボックスがクリックされたときに呼び出されるイベントハンドラ
     /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
+    /// <param name="sender">イベント発生元</param>
+    /// <param name="e">イベント情報</param>
+    /// <returns>なし</returns>
     private async void PublishCheckBox_Click(object sender, RoutedEventArgs e)
     {
         if (_closeRequested || !_webServerHost.IsRunning || string.IsNullOrWhiteSpace(_currentProjectPath))
@@ -130,25 +153,21 @@ public partial class MainWindow : Window
             return;
         }
 
-        await OpenProjectAsync(_currentProjectPath);
+        await OpenProjectAsync(_currentProjectPath, preserveCurrentProject: true);
     }
 
     /// <summary>
     /// 指定されたプロジェクトファイルを開き、Web サーバーを起動して WebView2 に表示する非同期メソッド
     /// </summary>
-    /// <param name="projectPath"></param>
-    /// <returns></returns>
-    private async Task OpenProjectAsync(string projectPath)
+    /// <param name="projectPath">起動する .crec のパス</param>
+    /// <param name="preserveCurrentProject">停止直前のプロジェクトを引き継ぐか</param>
+    /// <returns>起動・画面表示の完了</returns>
+    private async Task OpenProjectAsync(string projectPath, bool preserveCurrentProject = false)
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(projectPath))
-            {
-                MessageBox.Show(this, "起動する .crec ファイルを指定してください。", "CREC Desktop", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            var fullProjectPath = Path.GetFullPath(projectPath.Trim());
+            var fullProjectPath = string.IsNullOrWhiteSpace(projectPath)
+                ? string.Empty : Path.GetFullPath(projectPath.Trim());
             if (!File.Exists(fullProjectPath))
             {
                 MessageBox.Show(this, "起動する .crec ファイルを指定してください。", "CREC Desktop", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -166,9 +185,12 @@ public partial class MainWindow : Window
             if (_webServerHost.IsRunning)
             {
                 await _webServerHost.StopAsync();
+                if (preserveCurrentProject && _webServerHost.CurrentProject is { } finalState)
+                    fullProjectPath = finalState.FilePath;
             }
 
-            var session = await _webServerHost.StartAsync(new DesktopLaunchSettings(fullProjectPath, port, PublishCheckBox.IsChecked == true));
+            var launchSettings = new DesktopLaunchSettings(fullProjectPath, port, PublishCheckBox.IsChecked == true);
+            var session = await _webServerHost.StartAsync(launchSettings);
 
             await Browser.EnsureCoreWebView2Async();
             InitializeBrowser();
@@ -181,9 +203,9 @@ public partial class MainWindow : Window
             Browser.Source = session.FrontendUri;
             BrowserHost.Visibility = Visibility.Visible;
             LoadingHost.Visibility = Visibility.Collapsed;
-            _currentProjectPath = fullProjectPath;
+            _currentProjectPath = _webServerHost.CurrentProject?.FilePath ?? fullProjectPath;
             _currentPublishToNetwork = PublishCheckBox.IsChecked == true;
-            Title = $"CREC Desktop - {Path.GetFileNameWithoutExtension(fullProjectPath)}";
+            Title = $"CREC Desktop - {_webServerHost.CurrentProject?.Name ?? Path.GetFileNameWithoutExtension(fullProjectPath)}";
         }
         catch (Exception ex)
         {
@@ -205,6 +227,7 @@ public partial class MainWindow : Window
     /// <summary>
     /// WebView2 の初期化を行い、ナビゲーションイベントのハンドラを登録するメソッド
     /// </summary>
+    /// <returns>なし</returns>
     private void InitializeBrowser()
     {
         if (_browserInitialized || Browser.CoreWebView2 is null)
@@ -220,8 +243,9 @@ public partial class MainWindow : Window
     /// <summary>
     /// WebView2 でナビゲーションが開始されたときに呼び出されるイベントハンドラ
     /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
+    /// <param name="sender">イベント発生元</param>
+    /// <param name="e">イベント情報</param>
+    /// <returns>なし</returns>
     private void Browser_NavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
     {
         if (_closeRequested)
@@ -242,8 +266,9 @@ public partial class MainWindow : Window
     /// <summary>
     /// WebView2 で新しいウィンドウが要求されたときに呼び出されるイベントハンドラ
     /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
+    /// <param name="sender">イベント発生元</param>
+    /// <param name="e">イベント情報</param>
+    /// <returns>なし</returns>
     private void Browser_NewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
     {
         switch (ResolveBrowserNavigation(e.Uri, ignoreAboutBlankPopup: true, out var targetUri))
@@ -262,7 +287,7 @@ public partial class MainWindow : Window
     /// <summary>
     /// Web サーバーを停止し、ウィンドウを閉じる非同期メソッド
     /// </summary>
-    /// <returns></returns>
+    /// <returns>サーバー停止と画面終了を待つタスク</returns>
     private async Task ShutdownAndCloseAsync()
     {
         try
@@ -292,6 +317,7 @@ public partial class MainWindow : Window
     /// 読み込み中オーバーレイを表示し、対象プロジェクト名に合わせて文言を更新するメソッド
     /// </summary>
     /// <param name="projectPath">プロジェクトのパス</param>
+    /// <returns>なし</returns>
     private void ShowLoadingState(string? projectPath = null)
     {
         var projectName = string.IsNullOrWhiteSpace(projectPath)
@@ -311,6 +337,7 @@ public partial class MainWindow : Window
     /// <summary>
     /// 読み込み中オーバーレイを閉じ、次回表示用に既定の文言へ戻すメソッド
     /// </summary>
+    /// <returns>なし</returns>
     private void HideLoadingState()
     {
         ApplyLoadingMessage();
@@ -326,6 +353,7 @@ public partial class MainWindow : Window
     /// 読み込みオーバーレイの文言とタイトルを更新するメソッド
     /// </summary>
     /// <param name="projectName">表示対象のプロジェクト名</param>
+    /// <returns>なし</returns>
     private void ApplyLoadingMessage(string? projectName = null)
     {
         LoadingTextBlock.Text = string.IsNullOrWhiteSpace(projectName)
@@ -340,6 +368,7 @@ public partial class MainWindow : Window
     /// 起動設定まわりの入力 UI の有効/無効をまとめて切り替えるメソッド
     /// </summary>
     /// <param name="isEnabled">有効にする場合は true</param>
+    /// <returns>なし</returns>
     private void SetLauncherControlsEnabled(bool isEnabled)
     {
         OpenProjectButton.IsEnabled = isEnabled;
@@ -411,6 +440,7 @@ public partial class MainWindow : Window
     /// 指定された URI を OS 既定のブラウザで開くメソッド
     /// </summary>
     /// <param name="uri">開く対象の URI</param>
+    /// <returns>なし</returns>
     private void OpenInDefaultBrowser(Uri uri)
     {
         try
@@ -435,8 +465,9 @@ public partial class MainWindow : Window
     /// <summary>
     /// ブラウザの戻るボタンがクリックされたときに呼び出されるイベントハンドラ
     /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
+    /// <param name="sender">イベント発生元</param>
+    /// <param name="e">イベント情報</param>
+    /// <returns>なし</returns>
     private void BrowserBackButton_Click(object sender, RoutedEventArgs e)
     {
         if (Browser.CanGoBack && Browser.Source?.AbsolutePath != "/")

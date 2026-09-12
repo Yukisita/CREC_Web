@@ -644,7 +644,7 @@
                 ? `
                     <div class="video-carousel">
                         <video id="carouselVideo"
-                               src="/api/File/${encodeURIComponent(collection.indexData.systemData.id)}/video/${encodeURIComponent(videos[currentVideoIndex])}"
+                               src="${ProjectSession.url(`/api/File/${encodeURIComponent(collection.indexData.systemData.id)}/video/${encodeURIComponent(videos[currentVideoIndex])}`)}"
                                class="detail-video"
                                controls
                                preload="metadata">
@@ -851,12 +851,16 @@
                 threeDCurrentMesh = null;
             }
 
-            const url = `/api/File/${encodeURIComponent(collectionId)}/3ddata/${encodeURIComponent(fileName)}`;
+            const url = ProjectSession.url(`/api/File/${encodeURIComponent(collectionId)}/3ddata/${encodeURIComponent(fileName)}`);
             const loader = new ThreeDLoaderClass();
             loader.load(
                 url,
                 (geometry) => {
-                    if (!threeDScene || !threeDCamera || !threeDControls) return;
+                    // 非同期で届いた旧プロジェクトの形状は、画面へ追加せずにメモリを解放する。
+                    if (!threeDScene || !threeDCamera || !threeDControls || ProjectSession.isStale()) {
+                        geometry.dispose();
+                        return;
+                    }
                     geometry.computeBoundingBox();
                     geometry.computeVertexNormals();
 
@@ -1046,7 +1050,7 @@
                             console.error('Collection ID is missing.');
                             return;
                         }
-                        carouselVideo.src = `/api/File/${encodeURIComponent(collectionID)}/video/${encodeURIComponent(videos[currentVideoIndex])}`;
+                        carouselVideo.src = ProjectSession.url(`/api/File/${encodeURIComponent(collectionID)}/video/${encodeURIComponent(videos[currentVideoIndex])}`);
                         videoCounter.textContent = `${currentVideoIndex + 1} / ${videos.length}`;
                         videoName.textContent = videos[currentVideoIndex];
                     };
@@ -1265,6 +1269,7 @@
                     
                     if (response.ok) {
                         alert(t('edit-success'));
+                        ProjectSession.saved(document.getElementById('editIndexModal'));
                         modal.hide();
                         // ページをリロードして最新の情報を表示
                         loadCollectionDetails();
@@ -1472,6 +1477,7 @@
                     
                     if (response.ok) {
                         alert(t('operation-success'));
+                        ProjectSession.saved(document.getElementById('inventoryOperationModal'));
                         modal.hide();
                         // ページをリロードして最新の在庫を表示
                         loadCollectionDetails();
@@ -1548,6 +1554,7 @@
                     
                     if (response.ok) {
                         alert(t('operation-success'));
+                        ProjectSession.saved(document.getElementById('inventoryManagementSettingsModal'));
                         modal.hide();
                         // ページをリロードして最新の在庫状況を表示
                         loadCollectionDetails();

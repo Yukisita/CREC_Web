@@ -1,8 +1,10 @@
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@inject CREC_Web.Services.ProjectRuntime ProjectRuntime
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="crec-project-revision" content="@ProjectRuntime.Current.Revision">
     @*
         スマートフォンでPC版相当の情報密度と複数列表示を実現するため、
         アクセシビリティ上のトレードオフを認識したうえで
@@ -568,6 +570,10 @@
     </nav>
 
     <main>
+        <div id="projectChangedNotice" class="alert alert-warning border-dark position-sticky top-0 m-3" style="z-index: 1100" role="alert" hidden>
+            <span data-lang="projects-stale"></span>
+            <button type="button" class="btn btn-warning ms-2" id="reloadProjectBtn" data-lang="projects-reload"></button>
+        </div>
         @RenderBody()
     </main>
 
@@ -707,6 +713,35 @@
                 <i class="bi bi-pencil-square"></i>
                 <span data-lang="edit-project"></span>
             </button>
+            <button class="btn btn-primary w-100 mt-2" id="openProjectBtn">
+                <i class="bi bi-folder2-open"></i>
+                <span data-lang="projects-open"></span>
+            </button>
+        </div>
+    </div>
+
+    <div class="modal fade" id="projectSwitchModal" tabindex="-1" aria-labelledby="projectSwitchTitle" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="projectSwitchTitle" data-lang="projects-open"></h5>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-lang="cancel"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="projectSwitchStatus" role="status" aria-live="polite"></p>
+                    <div id="projectCandidates"></div>
+                    <div id="projectSwitchConfirmation" class="alert alert-warning mt-3" hidden>
+                        <p class="fw-bold text-break" id="projectSwitchTarget"></p>
+                        <p data-lang="projects-confirm-impact"></p>
+                        <button type="button" class="btn btn-primary" id="confirmProjectSwitchBtn" data-lang="projects-switch"></button>
+                        <button type="button" class="btn btn-secondary" id="cancelProjectSelectionBtn" data-lang="cancel"></button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-primary" id="refreshProjectsBtn" data-lang="projects-refresh"></button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-lang="cancel"></button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -730,7 +765,9 @@
     <script src="~/js/i18n/locales/ja.js" asp-append-version="true"></script>
     <script src="~/js/i18n/locales/de.js" asp-append-version="true"></script>
     <script src="~/js/i18n/locales/en.js" asp-append-version="true"></script>
+    <script src="~/js/project-session.js" asp-append-version="true"></script>
     <script src="~/js/app.js" asp-append-version="true"></script>
+    <script src="~/js/project-switching.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
