@@ -12,12 +12,12 @@ namespace CREC_Web.Desktop.Services;
 internal sealed class WebServerHost
 {
     private Process? _process;// Web サーバー子プロセスの参照
-    private NamedPipeServerStream? _statePipe;// 同じ OS ユーザー専用の通知経路。
-    private CancellationTokenSource? _stateCancellation;// 受信待ちの中止用。
-    private Task? _stateReader;// 再起動前に最終通知を読み切るための待機対象。
+    private NamedPipeServerStream? _statePipe;// 同じ OS ユーザー専用の通知経路
+    private CancellationTokenSource? _stateCancellation;// 受信待ちの中止用
+    private Task? _stateReader;// 再起動前に最終通知を読み切るための待機対象
     private DesktopProjectState? _currentState;// 停止後も保持し、再起動先に使う。
 
-    /// <summary>子プロセスから最後に受信したプロジェクト状態。初回受信前は null。</summary>
+    /// <summary>子プロセスから最後に受信したプロジェクト状態。初回受信前は null</summary>
     public DesktopProjectState? CurrentProject => Volatile.Read(ref _currentState);
 
     /// <summary>状態の受信通知。UI 更新は購読側で UI スレッドへ渡す。</summary>
@@ -31,8 +31,8 @@ internal sealed class WebServerHost
     /// <param name="settings">起動設定値</param>
     /// <param name="cancellationToken">キャンセルトークン</param>
     /// <returns>Web サーバーセッション</returns>
-    /// <exception cref="InvalidOperationException">既に起動中、または起動完了前に子プロセスが終了した場合。</exception>
-    /// <exception cref="FileNotFoundException">指定したプロジェクトファイルが存在しない場合。</exception>
+    /// <exception cref="InvalidOperationException">既に起動中、または起動完了前に子プロセスが終了した場合</exception>
+    /// <exception cref="FileNotFoundException">指定したプロジェクトファイルが存在しない場合</exception>
     public async Task<WebServerSession> StartAsync(DesktopLaunchSettings settings, CancellationToken cancellationToken = default)
     {
         if (_process is { HasExited: true } exitedProcess)
@@ -88,7 +88,7 @@ internal sealed class WebServerHost
     /// <summary>
     /// Web サーバー子プロセスを停止する
     /// </summary>
-    /// <returns>停止と最終通知の受信完了。</returns>
+    /// <returns>停止と最終通知の受信完了</returns>
     public async Task StopAsync()
     {
         var process = _process;
@@ -124,7 +124,7 @@ internal sealed class WebServerHost
     }
 
     /// <summary>最終通知を読み切り、通知パイプを閉じる。</summary>
-    /// <returns>受信終了と解放の完了。最大5秒待機。</returns>
+    /// <returns>受信終了と解放の完了。最大5秒待機</returns>
     private async Task StopStateChannelAsync()
     {
         // EOF follows the final state after graceful shutdown. Read it before restarting.
@@ -143,9 +143,9 @@ internal sealed class WebServerHost
     }
 
     /// <summary>子プロセスの最新状態を受信し、購読先へ通知する。</summary>
-    /// <param name="pipe">状態の受信パイプ。</param>
-    /// <param name="cancellationToken">受信の中止通知。</param>
-    /// <returns>EOF または中止までの受信タスク。</returns>
+    /// <param name="pipe">状態の受信パイプ</param>
+    /// <param name="cancellationToken">受信の中止通知</param>
+    /// <returns>EOF または中止までの受信タスク</returns>
     private async Task ReadProjectStatesAsync(NamedPipeServerStream pipe, CancellationToken cancellationToken)
     {
         try
@@ -211,9 +211,9 @@ internal sealed class WebServerHost
     /// <param name="process">Web サーバー子プロセス</param>
     /// <param name="port">接続確認を行うポート番号</param>
     /// <param name="cancellationToken">キャンセルトークン</param>
-    /// <returns>起動確認の完了を待つタスク。</returns>
-    /// <exception cref="InvalidOperationException">起動確認中に子プロセスが終了した場合。</exception>
-    /// <exception cref="TimeoutException">30秒以内に起動を確認できなかった場合。</exception>
+    /// <returns>起動確認の完了を待つタスク</returns>
+    /// <exception cref="InvalidOperationException">起動確認中に子プロセスが終了した場合</exception>
+    /// <exception cref="TimeoutException">30秒以内に起動を確認できなかった場合</exception>
     private async Task WaitForServerAsync(Process process, int port, CancellationToken cancellationToken)
     {
         var timeoutAt = DateTime.UtcNow.AddSeconds(30);// 30 秒以内に接続可能にならなければタイムアウトとする
@@ -240,10 +240,10 @@ internal sealed class WebServerHost
     }
 
     /// <summary>HTTP の接続先が今回の子プロセスか確認する。</summary>
-    /// <param name="client">起動確認用の HTTP クライアント。</param>
-    /// <param name="port">子プロセスへ指定した HTTP ポート。</param>
-    /// <param name="cancellationToken">起動確認の中止を通知するトークン。</param>
-    /// <returns>パイプと HTTP の世代が一致すれば true。</returns>
+    /// <param name="client">起動確認用の HTTP クライアント</param>
+    /// <param name="port">子プロセスへ指定した HTTP ポート</param>
+    /// <param name="cancellationToken">起動確認の中止を通知するトークン</param>
+    /// <returns>パイプと HTTP の世代が一致すれば true</returns>
     private async Task<bool> IsServerReadyAsync(HttpClient client, int port, CancellationToken cancellationToken)
     {
         var expectedState = CurrentProject;
@@ -268,8 +268,8 @@ internal sealed class WebServerHost
     /// <summary>
     /// Web アプリケーションのディレクトリを解決する
     /// </summary>
-    /// <returns>デスクトップ実行ファイルの隣にある web フォルダの絶対パス。</returns>
-    /// <exception cref="DirectoryNotFoundException">Web アプリケーションの DLL が配置されていない場合。</exception>
+    /// <returns>デスクトップ実行ファイルの隣にある web フォルダの絶対パス</returns>
+    /// <exception cref="DirectoryNotFoundException">Web アプリケーションの DLL が配置されていない場合</exception>
     private static string ResolveWebAppDirectory()
     {
         var webAppDirectory = Path.Combine(AppContext.BaseDirectory, "web");
@@ -299,12 +299,12 @@ internal sealed record DesktopLaunchSettings(string ProjectFilePath, int Port, b
 /// <param name="FrontendUri">フロントエンドの URI</param>
 internal sealed record WebServerSession(int Port, Uri FrontendUri);
 
-/// <summary>専用パイプから受信する、同じ時点のプロジェクト状態。</summary>
-/// <param name="Revision">Web サーバーが発行する世代識別子。</param>
-/// <param name="FilePath">次回起動で再利用する .crec ファイルの絶対パス。</param>
-/// <param name="Name">ウィンドウタイトルに表示する名前。</param>
+/// <summary>専用パイプから受信する、同じ時点のプロジェクト状態</summary>
+/// <param name="Revision">Web サーバーが発行する世代識別子</param>
+/// <param name="FilePath">次回起動で再利用する .crec ファイルの絶対パス</param>
+/// <param name="Name">ウィンドウタイトルに表示する名前</param>
 internal sealed record DesktopProjectState(string Revision, string FilePath, string Name);
 
-/// <summary>HTTP の起動確認で使うプロジェクト状態。</summary>
-/// <param name="Revision">専用パイプの通知と照合する世代識別子。</param>
+/// <summary>HTTP の起動確認で使うプロジェクト状態</summary>
+/// <param name="Revision">専用パイプの通知と照合する世代識別子</param>
 internal sealed record DesktopServerStatus(string Revision);

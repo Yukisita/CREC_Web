@@ -32,8 +32,8 @@ namespace CREC_Web.Services
         };
 
         /// <summary>参照先を更新し、以前のプロジェクトのコレクションキャッシュを破棄する。</summary>
-        /// <param name="dataFolderPath">切り替え後、または失敗時の復元先となるデータフォルダ。</param>
-        /// <returns>なし。</returns>
+        /// <param name="dataFolderPath">切り替え後、または失敗時の復元先となるデータフォルダ</param>
+        /// <returns>なし</returns>
         // Called only after ProjectRuntime has drained every project request.
         public void ResetProject(string dataFolderPath)
         {

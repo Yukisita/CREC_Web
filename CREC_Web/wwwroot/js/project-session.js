@@ -12,8 +12,8 @@
     let activeUploadCount = 0;// アップロード中も破棄確認を行う。
 
     /** 翻訳文を取得する。
-     * @param {string} key 翻訳キー。
-     * @returns {string} 翻訳文。未初期化ならキー。 */
+     * @param {string} key 翻訳キー
+     * @returns {string} 翻訳文。未初期化ならキー */
     const message = key => typeof t === 'function' ? t(key) : key;
 
     /** 入力を残して再読み込みを案内する。
@@ -25,7 +25,7 @@
     }
 
     /** 未保存入力とアップロードの破棄を確認する。
-     * @returns {boolean} 切り替えてよい場合は true。 */
+     * @returns {boolean} 切り替えてよい場合は true */
     function confirmDiscard() {
         for (const input of dirtyInputs) {
             // 消えた編集欄と空のファイル入力は確認対象から外す。
@@ -36,7 +36,7 @@
     }
 
     /** 保存・破棄済みの入力を確認対象から外す。
-     * @param {Element|null|undefined} scope 対象の編集範囲。
+     * @param {Element|null|undefined} scope 対象の編集範囲
      * @returns {void} */
     function saved(scope) {
         for (const input of dirtyInputs) {
@@ -58,14 +58,14 @@
     }
 
     /** このアプリの API か確認する。
-     * @param {URL} target 要求先。
-     * @returns {boolean} 同一オリジンの API なら true。 */
+     * @param {URL} target 要求先
+     * @returns {boolean} 同一オリジンの API なら true */
     function isLocalApi(target) {
         return target.origin === window.location.origin && target.pathname.toLowerCase().startsWith('/api/');
     }
 
     /** 動画・ダウンロードの URL に世代を付ける。
-     * @param {string|URL} value 元の URL。
+     * @param {string|URL} value 元の URL
      * @returns {string} 絶対 URL。アプリの API には世代を付ける。 */
     function url(value) {
         const target = new URL(value, window.location.href);
@@ -74,9 +74,9 @@
     }
 
     /** API 通信に世代を付け、古い応答の反映を防ぐ。
-     * @param {RequestInfo|URL} input 要求先。
-     * @param {RequestInit} [options] 通信オプション。
-     * @returns {Promise<Response>} 世代確認を通過した応答。 */
+     * @param {RequestInfo|URL} input 要求先
+     * @param {RequestInit} [options] 通信オプション
+     * @returns {Promise<Response>} 世代確認を通過した応答 */
     window.fetch = async (input, options) => {
         const target = new URL(input instanceof Request ? input.url : input, window.location.href);
         if (!isLocalApi(target)) return originalFetch(input, options);
@@ -115,7 +115,7 @@
     };
 
     /** 入力の変更を破棄確認の対象にする。
-     * @param {Event} event input または change イベント。
+     * @param {Event} event input または change イベント
      * @returns {void} */
     function trackEdit(event) {
         const input = event.target;
@@ -127,7 +127,7 @@
     }
 
     /** 別画面での切り替えを検出する。
-     * @returns {Promise<void>} 確認完了。 */
+     * @returns {Promise<void>} 確認完了 */
     async function checkProject() {
         if (hasProjectChanged || hasStartedNavigation) return;
         try {
@@ -141,7 +141,7 @@
     window.ProjectSession = Object.freeze({
         revision, url, markStale, confirmDiscard, reload, saved, navigateAfterSwitch,
         /** 画面の世代が古いか返す。
-         * @returns {boolean} 切り替え検出済みなら true。 */
+         * @returns {boolean} 切り替え検出済みなら true */
         isStale() { return hasProjectChanged; },
         /** アップロードを確認対象に加える。
          * @returns {void} */
@@ -154,7 +154,7 @@
     document.addEventListener('input', trackEdit);
     document.addEventListener('change', trackEdit);
     /** 閉じた編集画面を確認対象から外す。
-     * @param {Event} event 非表示またはリセットの通知。
+     * @param {Event} event 非表示またはリセットの通知
      * @returns {void} */
     const clearDismissedEditor = event => saved(event.target);
     document.addEventListener('hidden.bs.modal', clearDismissedEditor);

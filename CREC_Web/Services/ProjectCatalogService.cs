@@ -3,29 +3,29 @@ using System.Text;
 
 namespace CREC_Web.Services;
 
-/// <summary>候補一覧の項目。</summary>
-/// <param name="Id">選択用識別子。</param>
-/// <param name="Name">表示名。</param>
-/// <param name="Location">Projects からの相対パス。</param>
-/// <param name="IsCurrent">現在のプロジェクトかどうか。</param>
-/// <param name="ErrorCode">選択不可の理由。選択可能なら null。</param>
+/// <summary>候補一覧の項目</summary>
+/// <param name="Id">選択用識別子</param>
+/// <param name="Name">表示名</param>
+/// <param name="Location">Projects からの相対パス</param>
+/// <param name="IsCurrent">現在のプロジェクトかどうか</param>
+/// <param name="ErrorCode">選択不可の理由。選択可能なら null</param>
 public sealed record ProjectCandidate(string Id, string Name, string Location, bool IsCurrent, string? ErrorCode);
 
-/// <summary>候補一覧の取得結果。</summary>
-/// <param name="ErrorCode">取得失敗の理由。成功なら null。</param>
-/// <param name="Projects">選択不可の項目を含む一覧。</param>
+/// <summary>候補一覧の取得結果</summary>
+/// <param name="ErrorCode">取得失敗の理由。成功なら null</param>
+/// <param name="Projects">選択不可の項目を含む一覧</param>
 public sealed record ProjectListing(string? ErrorCode, IReadOnlyList<ProjectCandidate> Projects);
 
-/// <summary>検証済みのプロジェクト。</summary>
-/// <param name="FilePath">.crec の絶対パス。</param>
-/// <param name="Settings">実データのパスを解決済みの設定。</param>
+/// <summary>検証済みのプロジェクト</summary>
+/// <param name="FilePath">.crec の絶対パス</param>
+/// <param name="Settings">実データのパスを解決済みの設定</param>
 public sealed record ValidatedProject(string FilePath, ProjectSettings Settings);
 
-/// <summary>プロジェクトを選択できない理由。</summary>
-/// <param name="code">理由を表す翻訳キー。</param>
+/// <summary>プロジェクトを選択できない理由</summary>
+/// <param name="code">理由を表す翻訳キー</param>
 public sealed class ProjectAccessException(string code) : Exception(code)
 {
-    /// <summary>理由の翻訳キー。</summary>
+    /// <summary>理由の翻訳キー</summary>
     public string Code { get; } = code;
 }
 
@@ -45,12 +45,12 @@ public sealed class ProjectCatalogService
     public ProjectCatalogService() : this(Path.Combine(AppContext.BaseDirectory, "Projects")) { }
 
     /// <summary>Lists server-owned project identifiers without accepting paths from clients.</summary>
-    /// <param name="projectsRoot">.crec の配置フォルダ。</param>
+    /// <param name="projectsRoot">.crec の配置フォルダ</param>
     public ProjectCatalogService(string projectsRoot) => ProjectsRoot = Path.GetFullPath(projectsRoot);
 
     /// <summary>候補を検証し、一覧と識別子を更新する。</summary>
-    /// <param name="currentPath">現在の .crec のパス。</param>
-    /// <returns>保存場所順の一覧。失敗時は理由と空の一覧。</returns>
+    /// <param name="currentPath">現在の .crec のパス</param>
+    /// <returns>保存場所順の一覧。失敗時は理由と空の一覧</returns>
     public ProjectListing List(string currentPath)
     {
         try
@@ -76,8 +76,8 @@ public sealed class ProjectCatalogService
     }
 
     /// <summary>一覧取得失敗時に、以前の候補を無効にする。</summary>
-    /// <param name="code">失敗理由の翻訳キー。</param>
-    /// <returns>理由と空の一覧。</returns>
+    /// <param name="code">失敗理由の翻訳キー</param>
+    /// <returns>理由と空の一覧</returns>
     private ProjectListing FailedListing(string code)
     {
         Volatile.Write(ref _listedLocations, new());
@@ -85,10 +85,10 @@ public sealed class ProjectCatalogService
     }
 
     /// <summary>リンクを辿らず、配下の候補を列挙する。</summary>
-    /// <param name="directory">探索対象。</param>
-    /// <param name="currentPath">現在の .crec のパス。</param>
-    /// <param name="candidates">結果の追加先。</param>
-    /// <returns>なし。</returns>
+    /// <param name="directory">探索対象</param>
+    /// <param name="currentPath">現在の .crec のパス</param>
+    /// <param name="candidates">結果の追加先</param>
+    /// <returns>なし</returns>
     private void VisitDirectory(string directory, string currentPath, List<ProjectCandidate> candidates)
     {
         try
@@ -114,10 +114,10 @@ public sealed class ProjectCatalogService
     }
 
     /// <summary>候補の表示名と選択可否を調べる。</summary>
-    /// <param name="entryPath">候補のパス。</param>
-    /// <param name="currentPath">現在の .crec のパス。</param>
-    /// <param name="isLink">探索時にリンクと判定されたか。</param>
-    /// <returns>検証結果を含む候補。</returns>
+    /// <param name="entryPath">候補のパス</param>
+    /// <param name="currentPath">現在の .crec のパス</param>
+    /// <param name="isLink">探索時にリンクと判定されたか</param>
+    /// <returns>検証結果を含む候補</returns>
     private ProjectCandidate CreateCandidate(string entryPath, string currentPath, bool isLink)
     {
         var location = Path.GetRelativePath(ProjectsRoot, entryPath).Replace('\\', '/');
@@ -137,8 +137,8 @@ public sealed class ProjectCatalogService
     }
 
     /// <summary>選択された候補だけを再検証する。</summary>
-    /// <param name="id">一覧で発行した識別子。</param>
-    /// <returns>検証済みプロジェクト。選択不可なら例外。</returns>
+    /// <param name="id">一覧で発行した識別子</param>
+    /// <returns>検証済みプロジェクト。選択不可なら例外</returns>
     public ValidatedProject Resolve(string id)
     {
         if (!Volatile.Read(ref _listedLocations).TryGetValue(id, out var location))
@@ -148,8 +148,8 @@ public sealed class ProjectCatalogService
     }
 
     /// <summary>.crec と実データを検証する。</summary>
-    /// <param name="filePath">.crec のパス。</param>
-    /// <returns>絶対パスへ解決した設定。検証失敗なら例外。</returns>
+    /// <param name="filePath">.crec のパス</param>
+    /// <returns>絶対パスへ解決した設定。検証失敗なら例外</returns>
     public ValidatedProject Validate(string filePath)
     {
         try
@@ -182,8 +182,8 @@ public sealed class ProjectCatalogService
     }
 
     /// <summary>実データ配下のアクセス可否とリンクを調べる。</summary>
-    /// <param name="directory">検証対象のフォルダ。</param>
-    /// <returns>なし。アクセス不可・リンクありなら例外。</returns>
+    /// <param name="directory">検証対象のフォルダ</param>
+    /// <returns>なし。アクセス不可・リンクありなら例外</returns>
     private static void ValidateDataTree(string directory)
     {
         // Existing collection/file endpoints may traverse descendants: do not admit linked data.
@@ -198,8 +198,8 @@ public sealed class ProjectCatalogService
     }
 
     /// <summary>パスが Projects 内に収まり、リンクを通らないか確認する。</summary>
-    /// <param name="path">探索対象のパス。</param>
-    /// <returns>なし。範囲外・リンクありなら例外。</returns>
+    /// <param name="path">探索対象のパス</param>
+    /// <returns>なし。範囲外・リンクありなら例外</returns>
     public void EnsureSafePath(string path)
     {
         var fullPath = Path.GetFullPath(path);
@@ -211,8 +211,8 @@ public sealed class ProjectCatalogService
     }
 
     /// <summary>対象と親ディレクトリのリンクを拒否する。</summary>
-    /// <param name="fullPath">対象の絶対パス。</param>
-    /// <returns>なし。リンクありなら例外。</returns>
+    /// <param name="fullPath">対象の絶対パス</param>
+    /// <returns>なし。リンクありなら例外</returns>
     private static void EnsureNoLinks(string fullPath)
     {
         // Inspect each existing ancestor without following links.
@@ -231,8 +231,8 @@ public sealed class ProjectCatalogService
     }
 
     /// <summary>相対パスから選択用識別子を作る。</summary>
-    /// <param name="location">Projects からの相対パス。</param>
-    /// <returns>SHA-256（16進数）。</returns>
+    /// <param name="location">Projects からの相対パス</param>
+    /// <returns>SHA-256（16進数）</returns>
     private static string GetId(string location) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(location)));
 }

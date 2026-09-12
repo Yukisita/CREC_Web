@@ -3,13 +3,13 @@ using CREC_Web.Services;
 namespace CREC_Web.Middleware;
 
 /// <summary>世代を確認し、要求の処理中は切り替えを待機させる。</summary>
-/// <param name="next">検証を通過した要求を渡す次のミドルウェア。</param>
+/// <param name="next">検証を通過した要求を渡す次のミドルウェア</param>
 public sealed class ProjectRequestMiddleware(RequestDelegate next)
 {
     /// <summary>要求元と世代を検証し、要求を処理する。</summary>
-    /// <param name="context">処理対象の HTTP 要求と応答。</param>
-    /// <param name="runtime">現在の世代と切り替え状態を管理するサービス。</param>
-    /// <returns>ファイル送信を含む応答の完了を待つタスク。</returns>
+    /// <param name="context">処理対象の HTTP 要求と応答</param>
+    /// <param name="runtime">現在の世代と切り替え状態を管理するサービス</param>
+    /// <returns>ファイル送信を含む応答の完了を待つタスク</returns>
     public async Task InvokeAsync(HttpContext context, ProjectRuntime runtime)
     {
         var request = context.Request;
@@ -58,8 +58,8 @@ public sealed class ProjectRequestMiddleware(RequestDelegate next)
     }
 
     /// <summary>外部サイトからの要求を示すヘッダーがないか確認する。</summary>
-    /// <param name="request">要求元と接続先を含む HTTP 要求。</param>
-    /// <returns>要求元が未指定、または同一オリジンなら true。</returns>
+    /// <param name="request">要求元と接続先を含む HTTP 要求</param>
+    /// <returns>要求元が未指定、または同一オリジンなら true</returns>
     private static bool IsSameOrigin(HttpRequest request)
     {
         var fetchSite = request.Headers["Sec-Fetch-Site"].ToString();
@@ -85,10 +85,10 @@ public sealed class ProjectRequestMiddleware(RequestDelegate next)
     }
 
     /// <summary>拒否理由を JSON で返す。</summary>
-    /// <param name="context">エラーを書き込む HTTP 応答を含むコンテキスト。</param>
-    /// <param name="statusCode">拒否理由に対応する HTTP ステータスコード。</param>
-    /// <param name="code">画面に表示する翻訳キー。</param>
-    /// <returns>JSON 応答の書き込み完了を待つタスク。</returns>
+    /// <param name="context">エラーを書き込む HTTP 応答を含むコンテキスト</param>
+    /// <param name="statusCode">拒否理由に対応する HTTP ステータスコード</param>
+    /// <param name="code">画面に表示する翻訳キー</param>
+    /// <returns>JSON 応答の書き込み完了を待つタスク</returns>
     private static async Task WriteErrorAsync(HttpContext context, int statusCode, string code)
     {
         context.Response.StatusCode = statusCode;

@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function initializeProjectPicker()
     }
 
     /** 候補一覧と、選択できない理由を描画する。
-     * @param {Object[]} projects API の候補一覧。
+     * @param {Object[]} projects API の候補一覧
      * @returns {void} */
     function renderProjects(projects) {
         showStatus(null);
@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function initializeProjectPicker()
     }
 
     /** 前回の選択を破棄し、最新の候補を取得する。
-     * @returns {Promise<void>} 一覧の取得・描画の完了。 */
+     * @returns {Promise<void>} 一覧の取得・描画の完了 */
     async function loadProjects() {
         resetSelection();
         candidateList.replaceChildren();
@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function initializeProjectPicker()
     }
 
     /** 未保存入力の破棄を確認し、選択した候補へ切り替える。
-     * @returns {Promise<void>} 結果表示または画面遷移の開始。 */
+     * @returns {Promise<void>} 結果表示または画面遷移の開始 */
     async function switchProject() {
         if (!selectedProject || isSubmitting || !ProjectSession.confirmDiscard())
             return;
@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', function initializeProjectPicker()
     document.getElementById('cancelProjectSelectionBtn').addEventListener('click', resetSelection);
 
     /** 切り替え結果が確定するまで画面を閉じない。
-     * @param {Event} event モーダルの非表示イベント。
+     * @param {Event} event モーダルの非表示イベント
      * @returns {void} */
     modalElement.addEventListener('hide.bs.modal', event => {
         if (isSubmitting) event.preventDefault();

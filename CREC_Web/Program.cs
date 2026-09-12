@@ -350,16 +350,16 @@ finally
 }
 
 /// <summary>HTTP と、その次の番号の HTTPS ポートが両方利用できるか確認する。</summary>
-/// <param name="port">HTTP に使用するポート番号。</param>
-/// <returns>両方のポートを待ち受けに使用できる場合は true。</returns>
+/// <param name="port">HTTP に使用するポート番号</param>
+/// <returns>両方のポートを待ち受けに使用できる場合は true</returns>
 static bool ArePortsAvailable(int port)
 {
     return IsPortAvailable(port) && IsPortAvailable(port + 1);
 }
 
 /// <summary>指定されたポートで一時的に待ち受け、使用できるか確認する。</summary>
-/// <param name="port">検証するポート番号。</param>
-/// <returns>有効な番号で待ち受けを開始できた場合は true。</returns>
+/// <param name="port">検証するポート番号</param>
+/// <returns>有効な番号で待ち受けを開始できた場合は true</returns>
 static bool IsPortAvailable(int port)
 {
     // ポートが設定可能範囲内の数値か確認
@@ -390,7 +390,7 @@ static bool IsPortAvailable(int port)
 }
 
 /// <summary>デスクトップホストから標準入力経由で "shutdown" が送られたときだけ停止を受け付ける。</summary>
-/// <param name="lifetime">停止を要求する Web アプリケーションのライフタイム。</param>
+/// <param name="lifetime">停止を要求する Web アプリケーションのライフタイム</param>
 /// <returns>なし。入力が閉じられるか、サーバーの停止が始まるまで監視する。</returns>
 static void MonitorShutdownCommands(IHostApplicationLifetime lifetime)
 {

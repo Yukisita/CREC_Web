@@ -1,14 +1,14 @@
 namespace CREC_Web.Services;
 
-/// <summary>現在のプロジェクトと世代。</summary>
-/// <param name="Revision">起動・切り替えごとの世代。</param>
-/// <param name="FilePath">現在の .crec の絶対パス。</param>
-/// <param name="Name">表示名。</param>
+/// <summary>現在のプロジェクトと世代</summary>
+/// <param name="Revision">起動・切り替えごとの世代</param>
+/// <param name="FilePath">現在の .crec の絶対パス</param>
+/// <param name="Name">表示名</param>
 public sealed record ProjectState(string Revision, string FilePath, string Name);
 
-/// <summary>切り替え結果とプロジェクト状態。</summary>
-/// <param name="Code">処理結果を表す翻訳キー。</param>
-/// <param name="State">処理後の状態。</param>
+/// <summary>切り替え結果とプロジェクト状態</summary>
+/// <param name="Code">処理結果を表す翻訳キー</param>
+/// <param name="State">処理後の状態</param>
 public sealed record ProjectSwitchResult(string Code, ProjectState State);
 
 /// <summary>Drains whole requests (including uploads and streamed results) before switching.</summary>
@@ -20,16 +20,16 @@ public sealed class ProjectRuntime
     private readonly ProjectSettingsService _settingsService;
     private readonly CrecDataService _dataService;
     private readonly ProjectCatalogService _catalog;
-    private int _activeRequestCount;// 完了待ちの要求数。
-    private bool _isSwitching;// 新規要求を停止中か。
-    private TaskCompletionSource? _requestsDrained;// 要求完了の通知。
+    private int _activeRequestCount;// 完了待ちの要求数
+    private bool _isSwitching;// 新規要求を停止中か
+    private TaskCompletionSource? _requestsDrained;// 要求完了の通知
     private ProjectState _currentState;
 
     /// <summary>Drains whole requests (including uploads and streamed results) before switching.</summary>
-    /// <param name="configuration">現在の設定。</param>
-    /// <param name="settings">設定の反映先。</param>
-    /// <param name="data">データとキャッシュの管理。</param>
-    /// <param name="catalog">候補の探索・検証。</param>
+    /// <param name="configuration">現在の設定</param>
+    /// <param name="settings">設定の反映先</param>
+    /// <param name="data">データとキャッシュの管理</param>
+    /// <param name="catalog">候補の探索・検証</param>
     public ProjectRuntime(IConfiguration configuration, ProjectSettingsService settings,
         CrecDataService data, ProjectCatalogService catalog)
     {
@@ -48,10 +48,10 @@ public sealed class ProjectRuntime
     }
 
     /// <summary>要求を受け付け、切り替えを待機させる。</summary>
-    /// <param name="revision">要求元の世代。読み取りでは省略可。</param>
-    /// <param name="requireRevision">世代を必須にするか。</param>
-    /// <param name="error">拒否理由。受付可能なら null。</param>
-    /// <returns>完了時に破棄するハンドル。拒否時は null。</returns>
+    /// <param name="revision">要求元の世代。読み取りでは省略可</param>
+    /// <param name="requireRevision">世代を必須にするか</param>
+    /// <param name="error">拒否理由。受付可能なら null</param>
+    /// <returns>完了時に破棄するハンドル。拒否時は null</returns>
     public IDisposable? TryEnter(string? revision, bool requireRevision, out string? error)
     {
         lock (_stateLock)
@@ -66,10 +66,10 @@ public sealed class ProjectRuntime
     }
 
     /// <summary>切り替え状態と世代から受付可否を判定する。</summary>
-    /// <param name="revision">要求元の世代。</param>
-    /// <param name="requireRevision">世代を必須にするか。</param>
-    /// <returns>拒否理由。受付可能なら null。</returns>
-    /// <remarks>_stateLock の内側で呼び出すこと。</remarks>
+    /// <param name="revision">要求元の世代</param>
+    /// <param name="requireRevision">世代を必須にするか</param>
+    /// <returns>拒否理由。受付可能なら null</returns>
+    /// <remarks>_stateLock の内側で呼び出すこと</remarks>
     private string? GetAdmissionError(string? revision, bool requireRevision)
     {
         if (_isSwitching)
@@ -83,7 +83,7 @@ public sealed class ProjectRuntime
     }
 
     /// <summary>要求数を減らし、全件完了を通知する。</summary>
-    /// <returns>なし。</returns>
+    /// <returns>なし</returns>
     private void Exit()
     {
         lock (_stateLock)
@@ -95,11 +95,11 @@ public sealed class ProjectRuntime
     }
 
     /// <summary>Reusable by project creation (#196): pass a catalog ID after saving within Projects.</summary>
-    /// <param name="id">一覧で発行した識別子。</param>
-    /// <param name="revision">操作元の世代。</param>
-    /// <param name="cancellationToken">待機の中止通知。</param>
-    /// <returns>結果コードと処理後の状態。</returns>
-    /// <remarks>自身の要求受付ハンドルを保持したまま呼び出さないこと。</remarks>
+    /// <param name="id">一覧で発行した識別子</param>
+    /// <param name="revision">操作元の世代</param>
+    /// <param name="cancellationToken">待機の中止通知</param>
+    /// <returns>結果コードと処理後の状態</returns>
+    /// <remarks>自身の要求受付ハンドルを保持したまま呼び出さないこと</remarks>
     public async Task<ProjectSwitchResult> SwitchAsync(string id, string revision, CancellationToken cancellationToken)
     {
         Task requestsCompleted;
@@ -146,7 +146,7 @@ public sealed class ProjectRuntime
     }
 
     /// <summary>設定と参照先を適用し、失敗時は復元する。</summary>
-    /// <param name="target">検証済みの切り替え先。</param>
+    /// <param name="target">検証済みの切り替え先</param>
     /// <returns>なし。失敗時は復元後に例外を伝える。</returns>
     private void ApplyProject(ValidatedProject target)
     {
@@ -172,14 +172,14 @@ public sealed class ProjectRuntime
         }
     }
 
-    /// <summary>要求完了を一度だけ通知するハンドル。</summary>
-    /// <param name="runtime">要求数の管理元。</param>
+    /// <summary>要求完了を一度だけ通知するハンドル</summary>
+    /// <param name="runtime">要求数の管理元</param>
     private sealed class RequestLease(ProjectRuntime runtime) : IDisposable
     {
         private ProjectRuntime? _runtime = runtime;// null に交換することで二重解放を防ぐ。
 
         /// <summary>要求の完了を通知する。</summary>
-        /// <returns>なし。</returns>
+        /// <returns>なし</returns>
         public void Dispose() => Interlocked.Exchange(ref _runtime, null)?.Exit();
     }
 }

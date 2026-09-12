@@ -19,8 +19,8 @@ public class ProjectSettingsService
         "CollectionNameLabel", "UUIDLabel", "ManagementCodeLabel", "CategoryLabel", "FirstTagLabel", "SecondTagLabel", "ThirdTagLabel"];
 
     /// <summary>.crec の JSON 形式と必須設定を検証して読み込む。</summary>
-    /// <param name="path">読み込む .crec ファイルのパス。</param>
-    /// <returns>ファイル内のパス表記を維持したプロジェクト設定。</returns>
+    /// <param name="path">読み込む .crec ファイルのパス</param>
+    /// <returns>ファイル内のパス表記を維持したプロジェクト設定</returns>
     public static ProjectSettings ReadValidatedSettings(string path)
     {
         // Preserve the existing projectLocation value. Relative paths use the process working directory.

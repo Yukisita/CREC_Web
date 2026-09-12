@@ -440,7 +440,7 @@ function openCollectionWindow(collectionId, openEdit = false, targetWindow = nul
  * @param {FormData} formData - アップロードするフォームデータ
  * @param {HTMLElement|null} progressBar - プログレスバー要素
  * @param {HTMLElement|null} progressContainer - プログレスバーコンテナ要素
- * @returns {Promise<void>} アップロード成功時に完了し、通信失敗や世代不一致では拒否される Promise。
+ * @returns {Promise<void>} アップロード成功時に完了し、通信失敗や世代不一致では拒否される Promise
  */
 function uploadWithProgress(url, formData, progressBar, progressContainer) {
     if (progressContainer && progressBar) {
@@ -495,7 +495,7 @@ function uploadWithProgress(url, formData, progressBar, progressContainer) {
 
 /**
  * アップロード応答に世代不一致が含まれる場合、古い画面の再読み込みを案内する。
- * @param {XMLHttpRequest} xhr 応答を受信済みのアップロード要求。
+ * @param {XMLHttpRequest} xhr 応答を受信済みのアップロード要求
  * @returns {void} 他のエラーは呼び出し元の既存処理に任せる。
  */
 function checkUploadProjectRevision(xhr) {

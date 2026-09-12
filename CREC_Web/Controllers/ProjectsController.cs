@@ -4,9 +4,9 @@ using Microsoft.AspNetCore.Mvc;
 namespace CREC_Web.Controllers;
 
 /// <summary>プロジェクトの状態確認・候補一覧・切り替えを提供する。</summary>
-/// <param name="runtime">世代と切り替え処理を管理するサービス。</param>
-/// <param name="catalog">サーバー側の候補を探索・検証するサービス。</param>
-/// <param name="logger">切り替え失敗の詳細を記録するロガー。</param>
+/// <param name="runtime">世代と切り替え処理を管理するサービス</param>
+/// <param name="catalog">サーバー側の候補を探索・検証するサービス</param>
+/// <param name="logger">切り替え失敗の詳細を記録するロガー</param>
 [ApiController]
 [Route("api/projects")]
 public sealed class ProjectsController(ProjectRuntime runtime, ProjectCatalogService catalog,
@@ -22,13 +22,13 @@ public sealed class ProjectsController(ProjectRuntime runtime, ProjectCatalogSer
     }
 
     /// <summary>Projects 内の候補と、選択できない場合の理由を取得する。</summary>
-    /// <returns>候補一覧と一覧全体のエラー理由を含む HTTP 200 応答。</returns>
+    /// <returns>候補一覧と一覧全体のエラー理由を含む HTTP 200 応答</returns>
     [HttpGet]
     public IActionResult List() => Ok(catalog.List(runtime.Current.FilePath));
 
     /// <summary>指定した候補へ切り替える。</summary>
-    /// <param name="request">候補の識別子と操作元の世代。</param>
-    /// <returns>成功は200、世代不一致・競合は409、候補不正は400、予期しない失敗は500の応答。</returns>
+    /// <param name="request">候補の識別子と操作元の世代</param>
+    /// <returns>成功は200、世代不一致・競合は409、候補不正は400、予期しない失敗は500の応答</returns>
     [HttpPost("switch")]
     public async Task<IActionResult> Switch([FromBody] SwitchProjectRequest request)
     {
@@ -58,6 +58,6 @@ public sealed class ProjectsController(ProjectRuntime runtime, ProjectCatalogSer
 }
 
 /// <summary>画面から送信する切り替え要求。任意のファイルパスは受け付けない。</summary>
-/// <param name="Id">候補一覧で発行された識別子。</param>
-/// <param name="Revision">操作元の画面が保持する世代。</param>
+/// <param name="Id">候補一覧で発行された識別子</param>
+/// <param name="Revision">操作元の画面が保持する世代</param>
 public sealed record SwitchProjectRequest(string Id, string Revision);
