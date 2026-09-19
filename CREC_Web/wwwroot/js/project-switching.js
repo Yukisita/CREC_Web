@@ -106,12 +106,13 @@ document.addEventListener('DOMContentLoaded', function initializeProjectPicker()
             });
             const result = await response.json();
             if (!response.ok || result.code === 'projects-already-current') {
-                showStatus(result.code || 'projects-switch-failed');
+                showStatus(result.code || 'projects-switch-unknown');
                 return;
             }
             ProjectSession.navigateAfterSwitch();
         } catch (error) {
-            showStatus(ProjectSession.isStale() ? 'projects-stale' : error.projectCode || 'projects-switch-failed');
+            // 通信失敗時は、サーバー側で切り替え済みの可能性がある。
+            showStatus(ProjectSession.isStale() ? 'projects-stale' : error.projectCode || 'projects-switch-unknown');
         } finally {
             // 次の操作では、成否にかかわらず一覧を取得し直す。
             isSubmitting = false;

@@ -28,6 +28,7 @@ registerTranslations('de', {
     'projects-stale': 'Das Projekt wurde auf dem Server gewechselt. Ihre Eingaben bleiben erhalten. Zeigen Sie vor weiteren Aktionen das neue Projekt an.',
     'projects-origin-denied': 'Verwaltungsanfragen von anderen Websites sind nicht erlaubt.',
     'projects-switch-failed': 'Projektwechsel fehlgeschlagen. Das vorherige Projekt bleibt geöffnet.',
+    'projects-switch-unknown': 'Das Ergebnis des Projektwechsels konnte nicht ermittelt werden. Aktualisieren Sie die Liste, um das aktuelle Projekt zu prüfen.',
     'loading': 'Laden...',
     'search-results': 'Suchergebnisse',
     'items-found': 'Einträge gefunden',

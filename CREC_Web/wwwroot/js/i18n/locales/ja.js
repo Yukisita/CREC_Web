@@ -28,6 +28,7 @@ registerTranslations('ja', {
     'projects-stale': 'サーバーでプロジェクトが切り替わりました。入力は保持しています。新しいプロジェクトを表示してから操作してください。',
     'projects-origin-denied': 'このサイト以外からの管理操作は許可されていません。',
     'projects-switch-failed': 'プロジェクトを切り替えられませんでした。元のプロジェクトを維持しています。',
+    'projects-switch-unknown': 'プロジェクトの切り替え結果を確認できませんでした。一覧を更新して、現在のプロジェクトを確認してください。',
     'loading': '読み込み中...',
     'search-results': '検索結果',
     'items-found': '件見つかりました',

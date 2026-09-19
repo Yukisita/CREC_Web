@@ -28,6 +28,7 @@ registerTranslations('en', {
     'projects-stale': 'The server switched projects. Your input is preserved. Show the new project before continuing.',
     'projects-origin-denied': 'Management requests from other sites are not allowed.',
     'projects-switch-failed': 'Could not switch projects. The previous project is still active.',
+    'projects-switch-unknown': 'Could not confirm the result of the project switch. Refresh the list to check the current project.',
     'loading': 'Loading...',
     'search-results': 'Search Results',
     'items-found': 'items found',
