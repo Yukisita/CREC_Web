@@ -12,14 +12,13 @@ public sealed class ProjectRequestMiddleware(RequestDelegate next)
     /// <returns>ファイル送信を含む応答の完了を待つタスク</returns>
     public async Task InvokeAsync(HttpContext context, ProjectRuntime runtime)
     {
-        var request = context.Request;
-        var normalizedPath = request.Path.Value?.TrimEnd('/') ?? "";
-        var isManagementRequest = request.Path.StartsWithSegments("/api/projects", StringComparison.OrdinalIgnoreCase);
-        var isStatusRequest = normalizedPath.Equals("/api/projects/status", StringComparison.OrdinalIgnoreCase);
-        var isSwitchRequest = normalizedPath.Equals("/api/projects/switch", StringComparison.OrdinalIgnoreCase);
-        var isMutation = !HttpMethods.IsGet(request.Method) && !HttpMethods.IsHead(request.Method)
-            && !HttpMethods.IsOptions(request.Method);
-        var hasRequiredHeader = !isMutation || request.Headers["X-CREC-Request"] == "1";
+        var request = context.Request;// HttpRequest はスレッドセーフではないため、ローカル変数にコピーする。
+        var normalizedPath = request.Path.Value?.TrimEnd('/') ?? "";// パスの末尾のスラッシュを無視する。
+        var isManagementRequest = request.Path.StartsWithSegments("/api/projects", StringComparison.OrdinalIgnoreCase);// 管理操作の要求かどうか
+        var isStatusRequest = normalizedPath.Equals("/api/projects/status", StringComparison.OrdinalIgnoreCase);// 状態確認の要求かどうか
+        var isSwitchRequest = normalizedPath.Equals("/api/projects/switch", StringComparison.OrdinalIgnoreCase);// 切り替え要求かどうか
+        var isMutation = !HttpMethods.IsGet(request.Method) && !HttpMethods.IsHead(request.Method) && !HttpMethods.IsOptions(request.Method);// 変更を伴う要求かどうか
+        var hasRequiredHeader = !isMutation || request.Headers["X-CREC-Request"] == "1";// 管理操作の要求は、外部サイトからのアクセスを拒否するためにカスタムヘッダーを要求する。
 
         // 別プロジェクトの応答がキャッシュから混ざるのを防ぐ。
         context.Response.Headers.CacheControl = "no-store";
@@ -47,6 +46,7 @@ public sealed class ProjectRequestMiddleware(RequestDelegate next)
         using var requestLease = runtime.TryEnter(revision, isMutation, out var error);
         if (requestLease is null)
         {
+            // 要求を拒否する。切り替え待ち中は 503 Service Unavailable、世代不一致は 409 Conflict を返す。
             var statusCode = error == "projects-busy" ? StatusCodes.Status503ServiceUnavailable : StatusCodes.Status409Conflict;
             await WriteErrorAsync(context, statusCode, error!);
             return;
@@ -63,6 +63,7 @@ public sealed class ProjectRequestMiddleware(RequestDelegate next)
     private static bool IsSameOrigin(HttpRequest request)
     {
         var fetchSite = request.Headers["Sec-Fetch-Site"].ToString();
+        // Sec-Fetch-Site ヘッダーが存在する場合、same-origin または none 以外の値は拒否する。
         if (fetchSite.Length > 0 && fetchSite != "same-origin" && fetchSite != "none")
         {
             return false;
@@ -94,6 +95,7 @@ public sealed class ProjectRequestMiddleware(RequestDelegate next)
         context.Response.StatusCode = statusCode;
         if (statusCode == StatusCodes.Status503ServiceUnavailable)
         {
+            // 切り替え待ち中は、1 秒後に再試行するように指示する。
             context.Response.Headers.RetryAfter = "1";
         }
 
