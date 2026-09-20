@@ -127,7 +127,7 @@ internal sealed class WebServerHost
     /// <returns>受信終了と解放の完了。最大5秒待機</returns>
     private async Task StopStateChannelAsync()
     {
-        // EOF follows the final state after graceful shutdown. Read it before restarting.
+        // 通常終了時は最終状態の通知後に EOF が届く。再起動前に最後まで読み取る。
         if (_statePipe?.IsConnected != true) _stateCancellation?.Cancel();
         if (_stateReader is not null)
         {
@@ -162,7 +162,7 @@ internal sealed class WebServerHost
         }
         catch (Exception ex) when (ex is IOException or OperationCanceledException or ObjectDisposedException)
         {
-            // Server shutdown or canceled startup closes the private channel.
+            // サーバー停止や起動のキャンセルでは、専用の通知経路が閉じられる。
         }
     }
 
@@ -252,8 +252,8 @@ internal sealed class WebServerHost
 
         try
         {
-            // Verify the revision received over private IPC before opening the browser.
-            // An unrelated process listening on the requested port is not readiness.
+            // ブラウザを開く前に、専用の通知経路で受け取った世代と HTTP 応答の世代を照合する。
+            // 別プロセスが指定ポートで待ち受けているだけでは、起動完了とはみなさない。
             var status = await client.GetFromJsonAsync<DesktopServerStatus>(
                         $"http://127.0.0.1:{port}/api/projects/status", cancellationToken);
             return status?.Revision == expectedState.Revision;

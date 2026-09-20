@@ -94,7 +94,7 @@ if (projectSettings != null)
 }
 else
 {
-    // ProjectRuntime requires a loaded project; do not start against the working-directory fallback.
+    // ProjectRuntime は読み込み済みのプロジェクトを必要とするため、作業ディレクトリを代わりに使って起動しない。
     throw new InvalidOperationException("Failed to load the startup project settings.");
 }
 

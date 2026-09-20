@@ -11,7 +11,7 @@ public sealed record ProjectState(string Revision, string FilePath, string Name)
 /// <param name="State">処理後の状態</param>
 public sealed record ProjectSwitchResult(string Code, ProjectState State);
 
-/// <summary>Drains whole requests (including uploads and streamed results) before switching.</summary>
+/// <summary>アップロードや応答の送信を含むすべての要求の完了を待って、プロジェクトを切り替える。</summary>
 public sealed class ProjectRuntime
 {
     // 要求数と状態を保護する。I/O の間は保持しない。
@@ -25,7 +25,7 @@ public sealed class ProjectRuntime
     private TaskCompletionSource? _requestsDrained;// 要求完了の通知
     private ProjectState _currentState;
 
-    /// <summary>Drains whole requests (including uploads and streamed results) before switching.</summary>
+    /// <summary>現在の設定を使い、プロジェクトと世代の初期状態を作成する。</summary>
     /// <param name="configuration">現在の設定</param>
     /// <param name="settings">設定の反映先</param>
     /// <param name="data">データとキャッシュの管理</param>
@@ -94,7 +94,7 @@ public sealed class ProjectRuntime
         }
     }
 
-    /// <summary>Reusable by project creation (#196): pass a catalog ID after saving within Projects.</summary>
+    /// <summary>プロジェクト新規作成（#196）でも利用できる。Projects 内への保存後に候補の識別子を渡す。</summary>
     /// <param name="id">一覧で発行した識別子</param>
     /// <param name="revision">操作元の世代</param>
     /// <param name="cancellationToken">待機の中止通知</param>
@@ -150,7 +150,7 @@ public sealed class ProjectRuntime
     /// <returns>なし。失敗時は復元後に例外を伝える。</returns>
     private void ApplyProject(ValidatedProject target)
     {
-        // Only project keys change. Listener ports and publication settings are untouched.
+        // プロジェクト関連の設定のみを変更し、待ち受けポートと公開設定は維持する。
         var previousSettings = ProjectSettingsService.ConfigurationKeys.ToDictionary(key => key, key => _configuration[key]);
         try
         {

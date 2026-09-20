@@ -29,10 +29,10 @@ public sealed class ProjectAccessException(string code) : Exception(code)
     public string Code { get; } = code;
 }
 
-/// <summary>Lists server-owned project identifiers without accepting paths from clients.</summary>
+/// <summary>クライアントからパスを受け取らず、サーバー側で管理するプロジェクトの識別子を一覧化する。</summary>
 public sealed class ProjectCatalogService
 {
-    // Replace the map after each listing; never cache validation results.
+    // 一覧を取得するたびに対応表を置き換え、検証結果はキャッシュしない。
     private Dictionary<string, string> _listedLocations = new();
 
     /// <summary>.crec の探索元。実データの保存先は限定しない。</summary>
@@ -41,10 +41,10 @@ public sealed class ProjectCatalogService
     private static StringComparison PathComparison => OperatingSystem.IsWindows()
         ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
-    /// <summary>Lists server-owned project identifiers without accepting paths from clients.</summary>
+    /// <summary>アプリケーション配置先の Projects フォルダを探索元として初期化する。</summary>
     public ProjectCatalogService() : this(Path.Combine(AppContext.BaseDirectory, "Projects")) { }
 
-    /// <summary>Lists server-owned project identifiers without accepting paths from clients.</summary>
+    /// <summary>指定されたフォルダをプロジェクトの探索元として初期化する。</summary>
     /// <param name="projectsRoot">.crec の配置フォルダ</param>
     public ProjectCatalogService(string projectsRoot) => ProjectsRoot = Path.GetFullPath(projectsRoot);
 
@@ -143,7 +143,7 @@ public sealed class ProjectCatalogService
     {
         if (!Volatile.Read(ref _listedLocations).TryGetValue(id, out var location))
             throw new ProjectAccessException("projects-not-found");
-        // Reopen only the selected project, including its data tree and link checks.
+        // 選択されたプロジェクトだけを読み直し、実データ配下とリンクの有無も再検証する。
         return Validate(Path.Combine(ProjectsRoot, location));
     }
 
@@ -160,8 +160,8 @@ public sealed class ProjectCatalogService
                 throw new ProjectAccessException("projects-not-found");
 
             var settings = ProjectSettingsService.ReadValidatedSettings(filePath);
-            // Data may live outside Projects; only the server-listed .crec file is confined to it.
-            // Keep the same relative-path base as startup and existing file APIs.
+            // 実データは Projects の外にも置ける。候補として列挙する .crec の配置だけを Projects 内に限定する。
+            // 相対パスの基準は、起動時および既存のファイル API とそろえる。
             settings.ProjectDataPath = Path.GetFullPath(settings.ProjectDataPath);
             EnsureNoLinks(settings.ProjectDataPath);
             if (!Directory.Exists(settings.ProjectDataPath))
@@ -186,7 +186,7 @@ public sealed class ProjectCatalogService
     /// <returns>なし。アクセス不可・リンクありなら例外</returns>
     private static void ValidateDataTree(string directory)
     {
-        // Existing collection/file endpoints may traverse descendants: do not admit linked data.
+        // 既存のコレクション・ファイル API が配下を参照するため、リンクを含むデータは受け付けない。
         foreach (var entryPath in Directory.EnumerateFileSystemEntries(directory))
         {
             var attributes = File.GetAttributes(entryPath);
@@ -215,7 +215,7 @@ public sealed class ProjectCatalogService
     /// <returns>なし。リンクありなら例外</returns>
     private static void EnsureNoLinks(string fullPath)
     {
-        // Inspect each existing ancestor without following links.
+        // リンク先をたどらず、存在する対象と親ディレクトリを順に検査する。
         for (var ancestorPath = fullPath; ancestorPath is not null; ancestorPath = Path.GetDirectoryName(ancestorPath))
         {
             try

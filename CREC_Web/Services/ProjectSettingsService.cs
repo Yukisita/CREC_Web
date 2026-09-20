@@ -23,7 +23,7 @@ public class ProjectSettingsService
     /// <returns>ファイル内のパス表記を維持したプロジェクト設定</returns>
     public static ProjectSettings ReadValidatedSettings(string path)
     {
-        // Preserve the existing projectLocation value. Relative paths use the process working directory.
+        // 既存の projectLocation の値を保持する。相対パスにはプロセスの作業ディレクトリを基準として使う。
         return ReadSettings(ReadProjectFile(path));
     }
 
