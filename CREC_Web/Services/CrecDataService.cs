@@ -48,9 +48,8 @@ namespace CREC_Web.Services
         public CrecDataService(ILogger<CrecDataService> logger, IConfiguration configuration)
         {
             _logger = logger;
-            // プラグインとして実行される場合、WorkingDirectoryがデータフォルダに設定される
-            // コマンドライン引数で.crecファイルが指定された場合はそこからパスを取得
-            _dataFolderPath = configuration["ProjectDataPath"] ?? Environment.CurrentDirectory;
+            // 未選択状態では作業ディレクトリをデータとして読み込まない。
+            _dataFolderPath = configuration["ProjectDataPath"] ?? string.Empty;
             _logger.LogInformation($"Data folder path: {_dataFolderPath}");
         }
 

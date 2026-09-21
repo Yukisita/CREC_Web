@@ -48,8 +48,9 @@ internal sealed class WebServerHost
             throw new InvalidOperationException("The web server is already running.");
         }
         // 起動設定で指定しているプロジェクトファイルの存在を確認する
-        var projectFilePath = Path.GetFullPath(settings.ProjectFilePath);
-        if (!File.Exists(projectFilePath))
+        var projectFilePath = string.IsNullOrWhiteSpace(settings.ProjectFilePath)
+            ? null : Path.GetFullPath(settings.ProjectFilePath);
+        if (projectFilePath is not null && !File.Exists(projectFilePath))
         {
             throw new FileNotFoundException("The selected .crec project file was not found.", projectFilePath);
         }
@@ -155,7 +156,7 @@ internal sealed class WebServerHost
             while (await reader.ReadLineAsync(cancellationToken) is { } line)
             {
                 var state = JsonSerializer.Deserialize<DesktopProjectState>(line);
-                if (state is null || !Path.IsPathFullyQualified(state.FilePath)) continue;
+                if (state is null || (state.FilePath is not null && !Path.IsPathFullyQualified(state.FilePath))) continue;
                 Volatile.Write(ref _currentState, state);
                 ProjectChanged?.Invoke(state);
             }
@@ -174,7 +175,7 @@ internal sealed class WebServerHost
     /// <param name="port">使用するポート番号</param>
     /// <param name="publishToNetwork">ネットワーク公開フラグ</param>
     /// <returns>プロセスの起動情報</returns>
-    private static ProcessStartInfo CreateStartInfo(string webAppDirectory, string projectFilePath, int port, bool publishToNetwork)
+    private static ProcessStartInfo CreateStartInfo(string webAppDirectory, string? projectFilePath, int port, bool publishToNetwork)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -196,8 +197,11 @@ internal sealed class WebServerHost
         }
 
         startInfo.ArgumentList.Add("--non-interactive");
-        startInfo.ArgumentList.Add("--project");
-        startInfo.ArgumentList.Add(projectFilePath);
+        if (projectFilePath is not null)
+        {
+            startInfo.ArgumentList.Add("--project");
+            startInfo.ArgumentList.Add(projectFilePath);
+        }
         startInfo.ArgumentList.Add("--port");
         startInfo.ArgumentList.Add(port.ToString(CultureInfo.InvariantCulture));
         startInfo.ArgumentList.Add(publishToNetwork ? "--public" : "--local-only");
@@ -290,7 +294,7 @@ internal sealed class WebServerHost
 /// <param name="ProjectFilePath">プロジェクトファイルのパス</param>
 /// <param name="Port">使用するポート番号</param>
 /// <param name="PublishToNetwork">ネットワークに公開するかどうか</param>
-internal sealed record DesktopLaunchSettings(string ProjectFilePath, int Port, bool PublishToNetwork);
+internal sealed record DesktopLaunchSettings(string? ProjectFilePath, int Port, bool PublishToNetwork);
 
 /// <summary>
 /// デスクトップアプリから Web サーバーを起動した際のセッション情報を保持するレコード
@@ -301,9 +305,9 @@ internal sealed record WebServerSession(int Port, Uri FrontendUri);
 
 /// <summary>専用パイプから受信する、同じ時点のプロジェクト状態</summary>
 /// <param name="Revision">Web サーバーが発行する世代識別子</param>
-/// <param name="FilePath">次回起動で再利用する .crec ファイルの絶対パス</param>
-/// <param name="Name">ウィンドウタイトルに表示する名前</param>
-internal sealed record DesktopProjectState(string Revision, string FilePath, string Name);
+/// <param name="FilePath">次回起動で再利用する .crec ファイルの絶対パス。未選択なら null</param>
+/// <param name="Name">ウィンドウタイトルに表示する名前。未選択なら null</param>
+internal sealed record DesktopProjectState(string Revision, string? FilePath, string? Name);
 
 /// <summary>HTTP の起動確認で使うプロジェクト状態</summary>
 /// <param name="Revision">専用パイプの通知と照合する世代識別子</param>

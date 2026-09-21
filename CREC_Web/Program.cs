@@ -69,23 +69,25 @@ var builder = WebApplication.CreateBuilder(args);
 var projectSettingsService = new ProjectSettingsService(builder.Configuration);
 
 // CRECのプロジェクトファイルのパスを取得
-var crecFilePath = startupProjectPath?.Trim();
-if (string.IsNullOrWhiteSpace(crecFilePath))// コマンドライン引数で指定されていない場合は、標準入力から取得
+var crecFilePath = startupProjectPath?.Trim() ?? string.Empty;
+if (string.IsNullOrWhiteSpace(crecFilePath) && !Console.IsInputRedirected && !nonInteractive)// 対話起動では従来どおり標準入力から取得
 {
-    if (Console.IsInputRedirected)// 標準入力がリダイレクトされている場合は、ユーザーに入力を促すことができないため、例外をスロー
-    {
-        throw new InvalidOperationException("No .crec file specified. Please set the project path before startup.");
-    }
-
-    Console.WriteLine("No .crec file specified. Please enter the .crec file path:");
+    Console.WriteLine("No .crec file specified. Please enter the .crec file path (press Enter to select a project later):");
     crecFilePath = Console.ReadLine()?.Trim() ?? string.Empty;
 }
 
 ProjectSettings? projectSettings = null;
 
 // CRECのプロジェクトファイルを読み込み、プロジェクト設定を取得
-Console.WriteLine($"Loading project settings from: {crecFilePath}");
-projectSettings = projectSettingsService.LoadProjectSettings(crecFilePath);
+if (!string.IsNullOrWhiteSpace(crecFilePath))
+{
+    Console.WriteLine($"Loading project settings from: {crecFilePath}");
+    projectSettings = projectSettingsService.LoadProjectSettings(crecFilePath);
+    if (projectSettings is null)
+    {
+        throw new InvalidOperationException("Failed to load the startup project settings.");
+    }
+}
 
 // プロジェクト設定を適用
 if (projectSettings != null)
@@ -94,8 +96,9 @@ if (projectSettings != null)
 }
 else
 {
-    // ProjectRuntime は読み込み済みのプロジェクトを必要とするため、作業ディレクトリを代わりに使って起動しない。
-    throw new InvalidOperationException("Failed to load the startup project settings.");
+    // 未選択状態では、構成ファイルや作業ディレクトリをプロジェクトの代わりに使わない。
+    foreach (var key in ProjectSettingsService.ConfigurationKeys)
+        builder.Configuration[key] = null;
 }
 
 // wwwrootフォルダのパスを設定
@@ -247,7 +250,7 @@ if (projectSettings != null)
 }
 else
 {
-    logger.LogInformation("Data folder (current directory): {CurrentDirectory}", Environment.CurrentDirectory);
+    logger.LogInformation("No project selected. Open a project from the web interface.");
 }
 logger.LogInformation("Executable directory: {ExecutablePath}", executablePath);
 logger.LogInformation("Web root path: {WebRootPath}", webRootPath);

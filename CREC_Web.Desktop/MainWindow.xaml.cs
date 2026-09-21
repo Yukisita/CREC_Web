@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Text.Json;
 using System.Windows;
 using CREC_Web.Desktop.Services;
 using Microsoft.Web.WebView2.Core;
@@ -27,6 +28,8 @@ public partial class MainWindow : Window
     private bool _closeRequested;// ウィンドウの閉じる操作が要求されたかどうかを示すフラグ
     private bool _closeConfirmed;// ウィンドウの閉じる操作が確認されたかどうかを示すフラグ
     private bool _currentPublishToNetwork;// 現在の公開設定がネットワーク公開かどうかを示すフラグ
+    private Uri? _frontendUri;// このウィンドウが起動したサーバーの接続先
+    private bool _isSelectingProject;// ファイル選択の多重起動を防ぐ
 
     /// <summary>
     /// MainWindow クラスのコンストラクタ
@@ -56,7 +59,7 @@ public partial class MainWindow : Window
             }
 
             _currentProjectPath = state.FilePath;
-            Title = $"CREC Desktop - {state.Name}";
+            Title = state.FilePath is null ? "CREC Desktop" : $"CREC Desktop - {state.Name}";
         });
     }
 
@@ -93,19 +96,14 @@ public partial class MainWindow : Window
     /// <returns>なし</returns>
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        if (!string.IsNullOrWhiteSpace(_startupProjectPath))
-        {
-            await OpenProjectAsync(_startupProjectPath);
-        }
+        await OpenProjectAsync(_startupProjectPath);
     }
 
     /// <summary>
-    /// 「プロジェクトを開く」ボタンがクリックされたときに呼び出されるイベントハンドラ
+    /// 任意の場所にあるプロジェクトを選び、既存の起動処理へ渡す。
     /// </summary>
-    /// <param name="sender">イベント発生元</param>
-    /// <param name="e">イベント情報</param>
-    /// <returns>なし</returns>
-    private async void BrowseButton_Click(object sender, RoutedEventArgs e)
+    /// <returns>選択のキャンセル、または起動・画面表示の完了</returns>
+    private async Task BrowseProjectAsync()
     {
         var dialog = new OpenFileDialog
         {
@@ -121,6 +119,15 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>起動に失敗した場合、未選択状態で選択画面を開き直す。</summary>
+    /// <param name="sender">イベント発生元</param>
+    /// <param name="e">イベント情報</param>
+    /// <returns>なし</returns>
+    private async void RetryStartupButton_Click(object sender, RoutedEventArgs e)
+    {
+        await OpenProjectAsync(null);
+    }
+
     /// <summary>
     /// ネットワーク公開設定のチェックボックスがクリックされたときに呼び出されるイベントハンドラ
     /// </summary>
@@ -129,7 +136,7 @@ public partial class MainWindow : Window
     /// <returns>なし</returns>
     private async void PublishCheckBox_Click(object sender, RoutedEventArgs e)
     {
-        if (_closeRequested || !_webServerHost.IsRunning || string.IsNullOrWhiteSpace(_currentProjectPath))
+        if (_closeRequested || _isSelectingProject || !_webServerHost.IsRunning)
         {
             return;
         }
@@ -159,27 +166,35 @@ public partial class MainWindow : Window
     /// <summary>
     /// 指定されたプロジェクトファイルを開き、Web サーバーを起動して WebView2 に表示する非同期メソッド
     /// </summary>
-    /// <param name="projectPath">起動する .crec のパス</param>
+    /// <param name="projectPath">起動する .crec のパス。未選択なら null</param>
     /// <param name="preserveCurrentProject">停止直前のプロジェクトを引き継ぐか</param>
     /// <returns>起動・画面表示の完了</returns>
-    private async Task OpenProjectAsync(string projectPath, bool preserveCurrentProject = false)
+    private async Task OpenProjectAsync(string? projectPath, bool preserveCurrentProject = false)
     {
+        StartupErrorHost.Visibility = Visibility.Collapsed;
         try
         {
             var fullProjectPath = string.IsNullOrWhiteSpace(projectPath)
-                ? string.Empty : Path.GetFullPath(projectPath.Trim());
-            if (!File.Exists(fullProjectPath))
+                ? null : Path.GetFullPath(projectPath.Trim());
+            if (fullProjectPath is not null && !File.Exists(fullProjectPath))
             {
                 MessageBox.Show(this, "起動する .crec ファイルを指定してください。", "CREC Desktop", MessageBoxButton.OK, MessageBoxImage.Warning);
+                if (!_webServerHost.IsRunning) StartupErrorHost.Visibility = Visibility.Visible;
                 return;
             }
 
             if (!TryGetConfiguredPort(out var port))
             {
+                if (!_webServerHost.IsRunning) StartupErrorHost.Visibility = Visibility.Visible;
                 return;
             }
 
             ShowLoadingState(fullProjectPath);
+
+            // 古い画面の監視・通信を終了してから、サーバーの世代を切り替える。
+            await ClearBrowserAsync();
+            if (_closeRequested)
+                return;
 
             // プロジェクト切り替え時は既存サーバーを止めてから再起動し、読み込み中表示も同時に切り替える
             if (_webServerHost.IsRunning)
@@ -200,12 +215,15 @@ public partial class MainWindow : Window
                 return;
             }
 
-            Browser.Source = session.FrontendUri;
+            _frontendUri = session.FrontendUri;
+            // 同じ URL でも必ず新しい画面と世代を読み込む。
+            Browser.CoreWebView2.Navigate(session.FrontendUri.AbsoluteUri);
             BrowserHost.Visibility = Visibility.Visible;
             LoadingHost.Visibility = Visibility.Collapsed;
             _currentProjectPath = _webServerHost.CurrentProject?.FilePath ?? fullProjectPath;
             _currentPublishToNetwork = PublishCheckBox.IsChecked == true;
-            Title = $"CREC Desktop - {_webServerHost.CurrentProject?.Name ?? Path.GetFileNameWithoutExtension(fullProjectPath)}";
+            Title = _currentProjectPath is null ? "CREC Desktop"
+                : $"CREC Desktop - {_webServerHost.CurrentProject?.Name ?? Path.GetFileNameWithoutExtension(_currentProjectPath)}";
         }
         catch (Exception ex)
         {
@@ -215,12 +233,49 @@ public partial class MainWindow : Window
             }
             BrowserHost.Visibility = Visibility.Collapsed;
             LoadingHost.Visibility = Visibility.Collapsed;
+            StartupErrorHost.Visibility = Visibility.Visible;
             Title = "CREC Desktop";
             MessageBox.Show(this, ex.Message, "CREC Desktop", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {
             HideLoadingState();
+        }
+    }
+
+    /// <summary>空白ページへの遷移完了を待ち、切り替え前の画面を終了する。</summary>
+    /// <returns>古い画面の終了。初回起動で WebView2 が未初期化なら何もしない。</returns>
+    private async Task ClearBrowserAsync()
+    {
+        var browser = Browser.CoreWebView2;
+        if (browser is null)
+            return;
+
+        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        ulong? navigationId = null;
+        void OnStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
+        {
+            if (e.Uri == "about:blank") navigationId = e.NavigationId;
+        }
+        void OnCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
+        {
+            // 直前のページの読み込み中止通知を、空白ページの完了と取り違えない。
+            if (e.NavigationId != navigationId) return;
+            if (e.IsSuccess) completed.TrySetResult();
+            else completed.TrySetException(new InvalidOperationException("切り替え前の画面を終了できませんでした。"));
+        }
+
+        browser.NavigationStarting += OnStarting;
+        browser.NavigationCompleted += OnCompleted;
+        try
+        {
+            browser.Navigate("about:blank");
+            await completed.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        }
+        finally
+        {
+            browser.NavigationStarting -= OnStarting;
+            browser.NavigationCompleted -= OnCompleted;
         }
     }
 
@@ -237,8 +292,53 @@ public partial class MainWindow : Window
 
         Browser.CoreWebView2.NavigationStarting += Browser_NavigationStarting;
         Browser.CoreWebView2.NewWindowRequested += Browser_NewWindowRequested;
+        Browser.CoreWebView2.WebMessageReceived += Browser_WebMessageReceived;
         _browserInitialized = true;
     }
+
+    /// <summary>自分で起動したサーバーの画面から届いたファイル選択要求を受け付ける。</summary>
+    /// <param name="sender">イベント発生元</param>
+    /// <param name="e">送信元とメッセージ</param>
+    /// <returns>なし。ファイル選択はイベント処理終了後に開始する。</returns>
+    private void Browser_WebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
+    {
+        if (_closeRequested || _isSelectingProject || !PortTextBox.IsEnabled
+            || !IsCurrentAppPage(e.Source) || !IsCurrentAppPage(Browser.CoreWebView2.Source))
+            return;
+
+        using var message = JsonDocument.Parse(e.WebMessageAsJson);
+        if (message.RootElement.ValueKind != JsonValueKind.String
+            || message.RootElement.GetString() != "crec-open-project")
+            return;
+
+        _isSelectingProject = true;
+        // WebView2 のイベント内でモーダルを開かず、イベントが戻った後に表示する。
+        _ = Dispatcher.InvokeAsync(async () =>
+        {
+            try
+            {
+                if (!_closeRequested && IsCurrentAppPage(Browser.CoreWebView2.Source))
+                    await BrowseProjectAsync();
+            }
+            catch (Exception ex)
+            {
+                if (!_closeRequested)
+                    MessageBox.Show(this, ex.Message, "CREC Desktop", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                _isSelectingProject = false;
+            }
+        });
+    }
+
+    /// <summary>現在のサーバーと同じスキーム・ホスト・ポートの画面か確認する。</summary>
+    /// <param name="source">確認する画面の URL</param>
+    /// <returns>現在のサーバーの画面なら true</returns>
+    private bool IsCurrentAppPage(string source) => _webServerHost.IsRunning && _frontendUri is not null
+        && Uri.TryCreate(source, UriKind.Absolute, out var uri)
+        && uri.GetLeftPart(UriPartial.Authority).Equals(
+            _frontendUri.GetLeftPart(UriPartial.Authority), StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// WebView2 でナビゲーションが開始されたときに呼び出されるイベントハンドラ
@@ -371,7 +471,6 @@ public partial class MainWindow : Window
     /// <returns>なし</returns>
     private void SetLauncherControlsEnabled(bool isEnabled)
     {
-        OpenProjectButton.IsEnabled = isEnabled;
         PortTextBox.IsEnabled = isEnabled;
         PublishCheckBox.IsEnabled = isEnabled;
     }

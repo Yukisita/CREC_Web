@@ -51,7 +51,7 @@ public sealed class ProjectCatalogService
     /// <summary>候補を検証し、一覧と識別子を更新する。</summary>
     /// <param name="currentPath">現在の .crec のパス</param>
     /// <returns>保存場所順の一覧。失敗時は理由と空の一覧</returns>
-    public ProjectListing List(string currentPath)
+    public ProjectListing List(string? currentPath)
     {
         try
         {
@@ -89,7 +89,7 @@ public sealed class ProjectCatalogService
     /// <param name="currentPath">現在の .crec のパス</param>
     /// <param name="candidates">結果の追加先</param>
     /// <returns>なし</returns>
-    private void VisitDirectory(string directory, string currentPath, List<ProjectCandidate> candidates)
+    private void VisitDirectory(string directory, string? currentPath, List<ProjectCandidate> candidates)
     {
         try
         {
@@ -118,11 +118,12 @@ public sealed class ProjectCatalogService
     /// <param name="currentPath">現在の .crec のパス</param>
     /// <param name="isLink">探索時にリンクと判定されたか</param>
     /// <returns>検証結果を含む候補</returns>
-    private ProjectCandidate CreateCandidate(string entryPath, string currentPath, bool isLink)
+    private ProjectCandidate CreateCandidate(string entryPath, string? currentPath, bool isLink)
     {
         var location = Path.GetRelativePath(ProjectsRoot, entryPath).Replace('\\', '/');
         var name = Path.GetFileNameWithoutExtension(entryPath);
-        var isCurrent = Path.GetFullPath(entryPath).Equals(Path.GetFullPath(currentPath), PathComparison);
+        var isCurrent = currentPath is not null
+            && Path.GetFullPath(entryPath).Equals(Path.GetFullPath(currentPath), PathComparison);
         var errorCode = isLink ? "projects-link" : null;
         try
         {

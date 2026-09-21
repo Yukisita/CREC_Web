@@ -43,9 +43,22 @@ public sealed class ProjectRequestMiddleware(RequestDelegate next)
             revision = request.Query["projectRevision"].ToString();
         }
 
-        using var requestLease = runtime.TryEnter(revision, isMutation, out var error);
+        // ホーム画面と候補一覧は、プロジェクト未選択でも利用できる。
+        var isHomePage = HttpMethods.IsGet(request.Method)
+            && string.Equals(request.RouteValues["controller"]?.ToString(), "Home", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(request.RouteValues["action"]?.ToString(), "Index", StringComparison.OrdinalIgnoreCase);
+        using var requestLease = runtime.TryEnter(revision, isMutation, out var error,
+            requireProject: !isHomePage && !isManagementRequest);
         if (requestLease is null)
         {
+            // 未選択のまま詳細画面などを開いた場合は、プロジェクト選択へ案内する。
+            if (error == "projects-not-selected" && HttpMethods.IsGet(request.Method)
+                && !request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase)
+                && request.Headers.Accept.ToString().Contains("text/html", StringComparison.OrdinalIgnoreCase))
+            {
+                context.Response.Redirect("/");
+                return;
+            }
             // 要求を拒否する。切り替え待ち中は 503 Service Unavailable、世代不一致は 409 Conflict を返す。
             var statusCode = error == "projects-busy" ? StatusCodes.Status503ServiceUnavailable : StatusCodes.Status409Conflict;
             await WriteErrorAsync(context, statusCode, error!);

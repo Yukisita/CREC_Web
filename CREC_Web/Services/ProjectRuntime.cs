@@ -2,9 +2,13 @@ namespace CREC_Web.Services;
 
 /// <summary>現在のプロジェクトと世代</summary>
 /// <param name="Revision">起動・切り替えごとの世代</param>
-/// <param name="FilePath">現在の .crec の絶対パス</param>
-/// <param name="Name">表示名</param>
-public sealed record ProjectState(string Revision, string FilePath, string Name);
+/// <param name="FilePath">現在の .crec の絶対パス。未選択なら null</param>
+/// <param name="Name">表示名。未選択なら null</param>
+public sealed record ProjectState(string Revision, string? FilePath, string? Name)
+{
+    /// <summary>プロジェクトが選択されているかどうか</summary>
+    public bool HasProject => FilePath is not null;
+}
 
 /// <summary>切り替え結果とプロジェクト状態</summary>
 /// <param name="Code">処理結果を表す翻訳キー</param>
@@ -37,8 +41,11 @@ public sealed class ProjectRuntime
         _settingsService = settings;
         _dataService = data;
         _catalog = catalog;
-        _currentState = new(Guid.NewGuid().ToString("N"), Path.GetFullPath(configuration["CrecFilePath"]!),
-            configuration["ProjectName"] ?? "CREC Project");
+        var filePath = configuration["CrecFilePath"];
+        _currentState = string.IsNullOrWhiteSpace(filePath)
+            ? new(Guid.NewGuid().ToString("N"), null, null)
+            : new(Guid.NewGuid().ToString("N"), Path.GetFullPath(filePath),
+                configuration["ProjectName"] ?? "CREC Project");
     }
 
     /// <summary>同じ時点の世代・パス・名前を返す。</summary>
@@ -51,12 +58,13 @@ public sealed class ProjectRuntime
     /// <param name="revision">要求元の世代。読み取りでは省略可</param>
     /// <param name="requireRevision">世代を必須にするか</param>
     /// <param name="error">拒否理由。受付可能なら null</param>
+    /// <param name="requireProject">選択済みのプロジェクトを必要とするか</param>
     /// <returns>完了時に破棄するハンドル。拒否時は null</returns>
-    public IDisposable? TryEnter(string? revision, bool requireRevision, out string? error)
+    public IDisposable? TryEnter(string? revision, bool requireRevision, out string? error, bool requireProject = true)
     {
         lock (_stateLock)
         {
-            error = GetAdmissionError(revision, requireRevision);
+            error = GetAdmissionError(revision, requireRevision, requireProject);
             if (error is not null)
                 return null;
 
@@ -68,9 +76,10 @@ public sealed class ProjectRuntime
     /// <summary>切り替え状態と世代から受付可否を判定する。</summary>
     /// <param name="revision">要求元の世代</param>
     /// <param name="requireRevision">世代を必須にするか</param>
+    /// <param name="requireProject">選択済みのプロジェクトを必要とするか</param>
     /// <returns>拒否理由。受付可能なら null</returns>
     /// <remarks>_stateLock の内側で呼び出すこと</remarks>
-    private string? GetAdmissionError(string? revision, bool requireRevision)
+    private string? GetAdmissionError(string? revision, bool requireRevision, bool requireProject)
     {
         if (_isSwitching)
             return "projects-busy";
@@ -78,6 +87,9 @@ public sealed class ProjectRuntime
         var mustCheckRevision = requireRevision || !string.IsNullOrEmpty(revision);
         if (mustCheckRevision && revision != _currentState.Revision)
             return "projects-stale";
+
+        if (requireProject && !_currentState.HasProject)
+            return "projects-not-selected";
 
         return null;
     }
@@ -105,7 +117,7 @@ public sealed class ProjectRuntime
         Task requestsCompleted;
         lock (_stateLock)
         {
-            var admissionError = GetAdmissionError(revision, requireRevision: true);
+            var admissionError = GetAdmissionError(revision, requireRevision: true, requireProject: false);
             if (admissionError is not null)
                 return new(admissionError, _currentState);
 
@@ -167,7 +179,7 @@ public sealed class ProjectRuntime
         {
             foreach (var setting in previousSettings)
                 _configuration[setting.Key] = setting.Value;
-            _dataService.ResetProject(previousSettings["ProjectDataPath"]!);
+            _dataService.ResetProject(previousSettings["ProjectDataPath"] ?? string.Empty);
             throw;
         }
     }

@@ -5,6 +5,7 @@
 
     // 古い入力の誤送信を防ぐため、表示時点の世代を固定する。
     const revision = document.querySelector('meta[name="crec-project-revision"]').content;
+    const hasProject = document.querySelector('meta[name="crec-project-selected"]').content === 'true';
     const originalFetch = window.fetch.bind(window);
     const dirtyInputs = new Set();// 保存した編集欄だけを確認対象から外す。
     let hasProjectChanged = false;
@@ -139,7 +140,7 @@
     }
 
     window.ProjectSession = Object.freeze({
-        revision, url, markStale, confirmDiscard, reload, saved, navigateAfterSwitch,
+        revision, hasProject, url, markStale, confirmDiscard, reload, saved, navigateAfterSwitch,
         /** 画面の世代が古いか返す。
          * @returns {boolean} 切り替え検出済みなら true */
         isStale() { return hasProjectChanged; },

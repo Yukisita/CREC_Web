@@ -180,6 +180,14 @@ async function initializeApp() {
             { id: 'deleteCollectionBtn', event: 'click', handler: deleteCollection },// コレクション削除のイベントリスナ
         ]);
 
+        // 未選択のホーム画面では言語と選択操作だけを初期化する。
+        if (!ProjectSession.hasProject) {
+            buildLanguageDropdown();
+            updateUILanguage();
+            updateLanguageLabel();
+            return;
+        }
+
         // プロジェクト設定の読み込み
         await loadProjectSettings();
 
@@ -942,6 +950,7 @@ function selectLanguage(lang) {
     localStorage.setItem('crec_language', currentLanguage);
     updateLanguageLabel();
     updateUILanguage();
+    if (!ProjectSession.hasProject) return;
     updateUILabels();
     if (isMainSearchPage()) {
         updateTableHeaders();

@@ -6,6 +6,7 @@ This software is released under the MIT License.
 
 registerTranslations('ja', {
     'projects-open': 'プロジェクトを開く',
+    'projects-not-selected': 'プロジェクトが選択されていません。プロジェクトを開いてください。',
     'projects-current': '現在のプロジェクト',
     'projects-select': '選択',
     'projects-switch': 'このプロジェクトに切り替える',

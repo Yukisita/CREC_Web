@@ -3,6 +3,17 @@
 document.addEventListener('DOMContentLoaded', function initializeProjectPicker() {
     'use strict';
 
+    // デスクトップ内では、同じボタンから OS のファイル選択を呼び出す。
+    const desktop = window.chrome?.webview;
+    if (desktop) {
+        document.querySelectorAll('[data-project-open]').forEach(button => {
+            button.addEventListener('click', () => {
+                if (ProjectSession.confirmDiscard()) desktop.postMessage('crec-open-project');
+            });
+        });
+        return;
+    }
+
     const modalElement = document.getElementById('projectSwitchModal');
     const modal = new bootstrap.Modal(modalElement);
     const candidateList = document.getElementById('projectCandidates');
@@ -124,9 +135,11 @@ document.addEventListener('DOMContentLoaded', function initializeProjectPicker()
 
     /** 選択画面を開き、候補を取得する。
      * @returns {void} */
-    document.getElementById('openProjectBtn').addEventListener('click', () => {
-        modal.show();
-        loadProjects();
+    document.querySelectorAll('[data-project-open]').forEach(button => {
+        button.addEventListener('click', () => {
+            modal.show();
+            loadProjects();
+        });
     });
     document.getElementById('refreshProjectsBtn').addEventListener('click', loadProjects);
     document.getElementById('cancelProjectSelectionBtn').addEventListener('click', resetSelection);
@@ -139,4 +152,10 @@ document.addEventListener('DOMContentLoaded', function initializeProjectPicker()
     });
     modalElement.addEventListener('hidden.bs.modal', resetSelection);
     switchButton.addEventListener('click', switchProject);
+
+    // 未選択で起動した場合は、そのままプロジェクトの候補を表示する。
+    if (!ProjectSession.hasProject) {
+        modal.show();
+        loadProjects();
+    }
 });
