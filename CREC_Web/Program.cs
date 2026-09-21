@@ -5,6 +5,7 @@ This software is released under the MIT License.
 */
 
 using System.Net;
+using CREC_Web.Middleware;
 using CREC_Web.Services;
 using Microsoft.Extensions.FileProviders;
 
@@ -68,23 +69,25 @@ var builder = WebApplication.CreateBuilder(args);
 var projectSettingsService = new ProjectSettingsService(builder.Configuration);
 
 // CRECのプロジェクトファイルのパスを取得
-var crecFilePath = startupProjectPath?.Trim();
-if (string.IsNullOrWhiteSpace(crecFilePath))// コマンドライン引数で指定されていない場合は、標準入力から取得
+var crecFilePath = startupProjectPath?.Trim() ?? string.Empty;
+if (string.IsNullOrWhiteSpace(crecFilePath) && !Console.IsInputRedirected && !nonInteractive)// 対話起動では従来どおり標準入力から取得
 {
-    if (Console.IsInputRedirected)// 標準入力がリダイレクトされている場合は、ユーザーに入力を促すことができないため、例外をスロー
-    {
-        throw new InvalidOperationException("No .crec file specified. Please set the project path before startup.");
-    }
-
-    Console.WriteLine("No .crec file specified. Please enter the .crec file path:");
+    Console.WriteLine("No .crec file specified. Please enter the .crec file path (press Enter to select a project later):");
     crecFilePath = Console.ReadLine()?.Trim() ?? string.Empty;
 }
 
 ProjectSettings? projectSettings = null;
 
 // CRECのプロジェクトファイルを読み込み、プロジェクト設定を取得
-Console.WriteLine($"Loading project settings from: {crecFilePath}");
-projectSettings = projectSettingsService.LoadProjectSettings(crecFilePath);
+if (!string.IsNullOrWhiteSpace(crecFilePath))
+{
+    Console.WriteLine($"Loading project settings from: {crecFilePath}");
+    projectSettings = projectSettingsService.LoadProjectSettings(crecFilePath);
+    if (projectSettings is null)
+    {
+        throw new InvalidOperationException("Failed to load the startup project settings.");
+    }
+}
 
 // プロジェクト設定を適用
 if (projectSettings != null)
@@ -93,7 +96,9 @@ if (projectSettings != null)
 }
 else
 {
-    Console.WriteLine("Warning: Failed to parse .crec file or extract project settings");
+    // 未選択状態では、構成ファイルや作業ディレクトリをプロジェクトの代わりに使わない。
+    foreach (var key in ProjectSettingsService.ConfigurationKeys)
+        builder.Configuration[key] = null;
 }
 
 // wwwrootフォルダのパスを設定
@@ -109,6 +114,8 @@ builder.Services.AddSingleton(projectSettingsService);
 // Add CREC data service
 builder.Services.AddSingleton<CrecDataService>();
 builder.Services.AddSingleton<DataFileManagerService>();
+builder.Services.AddSingleton<ProjectCatalogService>();
+builder.Services.AddSingleton<ProjectRuntime>();
 
 // Add CORS for browser access
 builder.Services.AddCors(options =>
@@ -216,8 +223,6 @@ builder.WebHost.UseUrls($"http://{bindHost}:{port}", $"https://{bindHost}:{port 
 
 var app = builder.Build();
 
-app.UseCors();
-
 // Configure static files middleware
 if (Directory.Exists(webRootPath))
 {
@@ -228,6 +233,8 @@ if (Directory.Exists(webRootPath))
 }
 
 app.UseRouting();
+app.UseMiddleware<ProjectRequestMiddleware>();
+app.UseCors();
 
 app.MapControllers();
 app.MapControllerRoute(
@@ -243,7 +250,7 @@ if (projectSettings != null)
 }
 else
 {
-    logger.LogInformation("Data folder (current directory): {CurrentDirectory}", Environment.CurrentDirectory);
+    logger.LogInformation("No project selected. Open a project from the web interface.");
 }
 logger.LogInformation("Executable directory: {ExecutablePath}", executablePath);
 logger.LogInformation("Web root path: {WebRootPath}", webRootPath);
@@ -327,13 +334,35 @@ else
     });
 }
 
-app.Run();
+// デスクトップ起動時だけ、専用パイプへ状態を通知する。
+var desktopPipeName = Environment.GetEnvironmentVariable("CREC_DESKTOP_PIPE");
+await using var desktopPublisher = string.IsNullOrWhiteSpace(desktopPipeName)
+    ? null : await DesktopStatePublisher.ConnectAsync(desktopPipeName);
+using var desktopPublisherStop = new CancellationTokenSource();
+var desktopPublisherTask = desktopPublisher?.RunAsync(
+    app.Services.GetRequiredService<ProjectRuntime>(), desktopPublisherStop.Token);
+try
+{
+    app.Run();
+}
+finally
+{
+    // 処理中の要求が完了した後に、確定した最終状態を送る。
+    desktopPublisherStop.Cancel();
+    if (desktopPublisherTask is not null) await desktopPublisherTask;
+}
 
+/// <summary>HTTP と、その次の番号の HTTPS ポートが両方利用できるか確認する。</summary>
+/// <param name="port">HTTP に使用するポート番号</param>
+/// <returns>両方のポートを待ち受けに使用できる場合は true</returns>
 static bool ArePortsAvailable(int port)
 {
     return IsPortAvailable(port) && IsPortAvailable(port + 1);
 }
 
+/// <summary>指定されたポートで一時的に待ち受け、使用できるか確認する。</summary>
+/// <param name="port">検証するポート番号</param>
+/// <returns>有効な番号で待ち受けを開始できた場合は true</returns>
 static bool IsPortAvailable(int port)
 {
     // ポートが設定可能範囲内の数値か確認
@@ -363,7 +392,9 @@ static bool IsPortAvailable(int port)
     }
 }
 
-// デスクトップホストから標準入力経由で "shutdown" が送られたときだけ停止を受け付ける。
+/// <summary>デスクトップホストから標準入力経由で "shutdown" が送られたときだけ停止を受け付ける。</summary>
+/// <param name="lifetime">停止を要求する Web アプリケーションのライフタイム</param>
+/// <returns>なし。入力が閉じられるか、サーバーの停止が始まるまで監視する。</returns>
 static void MonitorShutdownCommands(IHostApplicationLifetime lifetime)
 {
     try

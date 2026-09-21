@@ -56,13 +56,7 @@
         <Border Grid.Row="0"
                 Margin="12,12,12,8">
             <DockPanel LastChildFill="False">
-                <Button x:Name="OpenProjectButton"
-                        Click="BrowseButton_Click"
-                        Content="プロジェクトを開く"
-                        DockPanel.Dock="Left"
-                        Style="{StaticResource RoundedBlueButtonStyle}" />
-                <StackPanel Margin="16,0,0,0"
-                            VerticalAlignment="Center"
+                <StackPanel VerticalAlignment="Center"
                             Orientation="Horizontal"
                             DockPanel.Dock="Left">
                     <TextBlock VerticalAlignment="Center"
@@ -94,6 +88,17 @@
                 Visibility="Collapsed">
             <wv2:WebView2 x:Name="Browser" />
         </Border>
+
+        <StackPanel x:Name="StartupErrorHost"
+                    Grid.Row="1"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Visibility="Collapsed">
+            <TextBlock Text="起動設定を確認して、再試行してください。" Margin="0,0,0,12" />
+            <Button Content="再試行"
+                    Click="RetryStartupButton_Click"
+                    Style="{StaticResource RoundedBlueButtonStyle}" />
+        </StackPanel>
 
         <Border x:Name="LoadingHost"
                 Grid.Row="1"
