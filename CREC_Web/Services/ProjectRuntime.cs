@@ -54,6 +54,16 @@ public sealed class ProjectRuntime
         get { lock (_stateLock) return _currentState; }
     }
 
+    /// <summary>設定保存後の名前を反映する。プロジェクトの世代とパスは維持する。</summary>
+    /// <returns>なし。</returns>
+    public void RefreshProjectName()
+    {
+        lock (_stateLock)
+        {
+            _currentState = _currentState with { Name = _configuration["ProjectName"] };
+        }
+    }
+
     /// <summary>要求を受け付け、切り替えを待機させる。</summary>
     /// <param name="revision">要求元の世代。読み取りでは省略可</param>
     /// <param name="requireRevision">世代を必須にするか</param>
