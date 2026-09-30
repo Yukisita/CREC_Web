@@ -116,7 +116,7 @@ function getCurrentCollectionId() {
 
 // DOMContentLoaded イベントで初期化
 document.addEventListener('DOMContentLoaded', function () {
-    initializeApp();
+    window.crecAppReady = initializeApp();
 });
 
 // UI 言語の更新
@@ -138,6 +138,15 @@ function updateUILanguage() {
 
         if (translation) {
             element.textContent = translation;
+        }
+    });
+
+    // Update placeholder for elements with data-lang-placeholder attribute
+    document.querySelectorAll('[data-lang-placeholder]').forEach(element => {
+        const key = element.getAttribute('data-lang-placeholder');
+        const translation = translations[lang]?.[key];
+        if (translation !== undefined) {
+            element.placeholder = translation;
         }
     });
 }

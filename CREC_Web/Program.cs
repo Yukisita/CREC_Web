@@ -6,6 +6,7 @@ This software is released under the MIT License.
 
 using System.Net;
 using CREC_Web.Services;
+using CREC_Web.Services.Chat;
 using Microsoft.Extensions.FileProviders;
 
 Console.WriteLine("Starting CREC Web Server...");
@@ -105,6 +106,19 @@ builder.Environment.WebRootPath = webRootPath;
 builder.Services.AddControllersWithViews();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSingleton(projectSettingsService);
+
+builder.Services.AddOptions<McpClientOptions>()
+    .Bind(builder.Configuration.GetSection(McpClientOptions.SectionName))
+    .Validate(options => Uri.TryCreate(options.Url, UriKind.Absolute, out var uri)
+        && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+        && string.IsNullOrEmpty(uri.Query) && string.IsNullOrEmpty(uri.Fragment),
+        "McpServer:Url must be an HTTP(S) base URL without a query or fragment.")
+    .Validate(options => options.TimeoutSeconds > 0 && options.TimeoutSeconds <= 3600,
+        "McpServer:TimeoutSeconds must be between 1 and 3600.")
+    .ValidateOnStart();
+builder.Services.AddHttpClient(McpChatClient.HttpClientName,
+    client => client.Timeout = Timeout.InfiniteTimeSpan);
+builder.Services.AddSingleton<IMcpChatClient, McpChatClient>();
 
 // Add CREC data service
 builder.Services.AddSingleton<CrecDataService>();

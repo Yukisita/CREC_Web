@@ -4,6 +4,10 @@
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     <CopyToPublishDirectory>Always</CopyToPublishDirectory>
   </Content>
+  <Content Include="Prompts\**\*">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+  </Content>
 </ItemGroup>
 <ItemGroup>
   <PackageReference Include="SkiaSharp" Version="3.119.2" />

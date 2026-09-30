@@ -377,9 +377,11 @@
 
                 displaySearchResults(result);
                 updatePagination(result);
+                return true;
             } catch (error) {
                 console.error('Error searching collections:', error);
                 showError(t('error-loading') + ': ' + error.message);
+                return false;
             } finally {
                 showLoading(false);
             }
@@ -715,6 +717,8 @@
         function createCollectionCard(collection) {
             const colDiv = document.createElement('div');
             colDiv.className = 'col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 mb-4';
+            colDiv.dataset.collectionId = collection.indexData?.systemData?.id || '';
+            colDiv.dataset.collectionName = collection.indexData?.values?.name || '';
 
             const inventoryStatusText = getInventoryStatusText(
                 collection.collectionInventoryStatus,
@@ -822,11 +826,15 @@
 
                 const collection = await response.json();
                 displayCollectionOverviewPanel(collection);
+                return true;
             } catch (error) {
                 console.error('Error loading collection overview:', error);
                 alert(t('error-loading') + ': ' + error.message);
+                return false;
             }
         }
+        // Expose to chat.js (AI chat panel openCollectionByName / showCollectionPanel actions)
+        window.showCollectionOverview = showCollectionOverview;
 
         /**
          * コレクションの概要パネルに情報を表示する
