@@ -1595,7 +1595,7 @@
         });
 
         // ページ読み込み時の処理
-        document.addEventListener('DOMContentLoaded', async () => {
+        async function initializeCollectionPage() {
 			// タイトルを読み込み中として設定
             document.getElementById('collectionTitle').textContent = t('loading');
             document.getElementById('historyTitle').textContent = t('loading');
@@ -1636,6 +1636,10 @@
                 history.replaceState(null, '', url.toString());
                 openEditIndexModal(currentCollection);
             }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            window.crecCollectionReady = initializeCollectionPage();
         });
     </script>
 }

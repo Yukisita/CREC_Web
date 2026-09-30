@@ -377,9 +377,11 @@
 
                 displaySearchResults(result);
                 updatePagination(result);
+                return true;
             } catch (error) {
                 console.error('Error searching collections:', error);
                 showError(t('error-loading') + ': ' + error.message);
+                return false;
             } finally {
                 showLoading(false);
             }
@@ -824,9 +826,11 @@
 
                 const collection = await response.json();
                 displayCollectionOverviewPanel(collection);
+                return true;
             } catch (error) {
                 console.error('Error loading collection overview:', error);
                 alert(t('error-loading') + ': ' + error.message);
+                return false;
             }
         }
         // Expose to chat.js (AI chat panel openCollectionByName / showCollectionPanel actions)

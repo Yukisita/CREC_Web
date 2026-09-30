@@ -113,7 +113,7 @@ function getCurrentCollectionId() {
 
 // DOMContentLoaded イベントで初期化
 document.addEventListener('DOMContentLoaded', function () {
-    initializeApp();
+    window.crecAppReady = initializeApp();
 });
 
 // UI 言語の更新
