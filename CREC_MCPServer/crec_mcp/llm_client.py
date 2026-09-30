@@ -7,18 +7,12 @@ from __future__ import annotations
 
 import logging
 import time
-from dataclasses import dataclass
 from typing import Any, Sequence
 
 import httpx
 
 from .conversation import ChatMessage
-
-
-@dataclass(frozen=True, slots=True)
-class LlmResponse:
-    text: str
-    duration_ms: int
+from .models import LlmResponse
 
 
 class OpenAIChatClient:

@@ -6,6 +6,23 @@ from crec_mcp.conversation import PromptBuilder, build_messages, normalize_histo
 
 
 class ConversationTests(unittest.TestCase):
+    def test_zero_history_turns_disables_history(self) -> None:
+        messages = build_messages(
+            system_prompt="system", user_message="current", max_history_turns=0,
+            history=[{"role": "user", "content": "old"}, {"role": "assistant", "content": "answer"}],
+        )
+        self.assertEqual(["system", "current"], [message["content"] for message in messages])
+
+    def test_history_limit_counts_complete_turns_after_normalization(self) -> None:
+        messages = build_messages(
+            system_prompt="", user_message="current", max_history_turns=1,
+            history=[{"role": "user", "content": "old"}, {"role": "assistant", "content": "answer"}, {"role": "user", "content": "orphan"}],
+        )
+        self.assertEqual(["old", "answer", "current"], [message["content"] for message in messages])
+
+    def test_invalid_history_values_are_ignored(self) -> None:
+        self.assertEqual([], normalize_history([None, 3, {"role": [], "content": "text"}, {"role": "user", "content": 3}]))
+
     def test_normalize_history_keeps_latest_consecutive_message(self) -> None:
         history = [
             {"role": "assistant", "content": "leading"},

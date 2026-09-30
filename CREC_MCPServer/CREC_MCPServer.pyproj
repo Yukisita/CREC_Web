@@ -26,6 +26,7 @@
     <Compile Include="crec_mcp\config.py" />
     <Compile Include="crec_mcp\conversation.py" />
     <Compile Include="crec_mcp\llm_client.py" />
+    <Compile Include="crec_mcp\models.py" />
     <Compile Include="server.py" />
     <Compile Include="tests\test_actions.py" />
     <Compile Include="tests\test_chat_service.py" />

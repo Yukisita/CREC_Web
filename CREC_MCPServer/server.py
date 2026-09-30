@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from mcp.server.fastmcp import FastMCP
 
-from crec_mcp.actions import ActionPolicy, format_action
+from crec_mcp.actions import ActionPolicy, format_action, is_local_path
 from crec_mcp.audit_log import ChatLogger
 from crec_mcp.chat_service import ChatService
 from crec_mcp.config import Settings
@@ -74,7 +74,7 @@ def search_collections(keyword: str) -> str:
 def navigate(path: str) -> str:
     """Return a browser action for a same-origin absolute path."""
 
-    if not path.startswith("/") or path.startswith("//"):
+    if not is_local_path(path):
         return (
             f'[ERROR] Invalid path "{path}": '
             "must be an absolute same-origin path."

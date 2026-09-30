@@ -30,6 +30,7 @@ LLM Backend (Ollama / LM Studio / etc.)
 | `crec_mcp/audit_log.py` | Write structured, rotating XML audit logs. |
 | `crec_mcp/conversation.py` | Render the system prompt and normalize browser conversation history. |
 | `crec_mcp/llm_client.py` | Call the OpenAI-compatible chat-completions endpoint. |
+| `crec_mcp/models.py` | Transport-independent LLM response value. |
 | `crec_mcp/chat_service.py` | Coordinate prompt building, LLM calls, response policy, and audit logging. |
 | `tests/` | Unit tests for action policy, conversations, prompts, and chat orchestration. |
 
@@ -112,9 +113,8 @@ From the `CREC_MCPServer` directory:
 python -m unittest discover -s tests -v
 ```
 
-The tests use Python's standard `unittest` framework. Install
-`requirements.txt` first because the chat-service module imports the configured
-HTTP client implementation.
+The tests use Python's standard `unittest` framework and do not require the
+server's third-party dependencies or a running LLM.
 
 ---
 
@@ -235,7 +235,8 @@ Configure the following in CREC Web's `appsettings.json`:
 ```json
 {
   "McpServer": {
-    "Url": "http://127.0.0.1:8765"
+    "Url": "http://127.0.0.1:8765",
+    "TimeoutSeconds": 150
   }
 }
 ```
@@ -243,6 +244,9 @@ Configure the following in CREC Web's `appsettings.json`:
 > **Note**: `McpServer:Url` must match this server's `MCP_HOST:MCP_PORT`.
 > LLM configuration belongs to the MCP server process and is not read from
 > CREC Web's `appsettings.json`.
+
+`TimeoutSeconds` limits the entire C# request, including session initialization
+and response-body reads. Keep it longer than the MCP server's `LLM_TIMEOUT`.
 
 ---
 

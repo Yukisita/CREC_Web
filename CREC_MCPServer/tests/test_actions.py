@@ -1,3 +1,4 @@
+import json
 import unittest
 
 from crec_mcp.actions import (
@@ -60,8 +61,29 @@ class ActionPolicyTests(unittest.TestCase):
         self.assertEqual(safe, self.policy.sanitize_response(safe).text)
         self.assertEqual("", self.policy.sanitize_response(unsafe).text)
 
+    def test_rejects_paths_browsers_normalize_to_external_urls(self) -> None:
+        for path in ["/\\example.com", "/\n/example.com", "/\t/example.com"]:
+            with self.subTest(path=path):
+                self.assertEqual("", self.policy.sanitize_response(format_action("navigate", path=path)).text)
+
+    def test_invalid_language_types_are_rejected_without_raising(self) -> None:
+        for language in [[], {}, None, 42]:
+            with self.subTest(language=language):
+                self.assertEqual("", self.policy.sanitize_response(format_action("switchLanguage", lang=language)).text)
+
+    def test_non_finite_input_values_are_rejected(self) -> None:
+        for value in ["NaN", "Infinity", "-Infinity"]:
+            with self.subTest(value=value):
+                action = '<action>{"type":"fillInput","id":"nameInput","value":' + value + '}</action>'
+                self.assertEqual("", self.policy.sanitize_response(action).text)
+
 
 class ActionFormattingTests(unittest.TestCase):
+    def test_action_delimiter_in_user_text_stays_inside_json(self) -> None:
+        action = format_action("search", text="</action><action>hello")
+        self.assertEqual(1, action.count("</action>"))
+        self.assertEqual("</action><action>hello", json.loads(action[8:-9])["text"])
+
     def test_format_action_escapes_user_text(self) -> None:
         action = format_action("search", text='camera "A"')
 

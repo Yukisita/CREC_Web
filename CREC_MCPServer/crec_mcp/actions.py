@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 from dataclasses import dataclass
 from typing import Any, Mapping
@@ -118,7 +119,11 @@ class ActionPolicy:
                 ):
                     return ""
                 value = command.get("value")
-                if isinstance(value, bool) or not isinstance(value, (str, int, float)):
+                if (
+                    isinstance(value, bool)
+                    or not isinstance(value, (str, int, float))
+                    or (isinstance(value, float) and not math.isfinite(value))
+                ):
                     return ""
             elif not _has_valid_payload(action_type, command):
                 return ""
@@ -147,13 +152,10 @@ def _has_valid_payload(action_type: str, command: Mapping[str, Any]) -> bool:
         return _has_non_empty_string(command, "name")
     if action_type == "navigate":
         path = command.get("path")
-        return (
-            isinstance(path, str)
-            and path.startswith("/")
-            and not path.startswith("//")
-        )
+        return is_local_path(path)
     if action_type == "switchLanguage":
-        return command.get("lang") in _LANGUAGE_CODES
+        language = command.get("lang")
+        return isinstance(language, str) and language in _LANGUAGE_CODES
     return action_type in {"showAdminPanel", "createNewCollection", "navigateHome"}
 
 
@@ -162,14 +164,28 @@ def _has_non_empty_string(command: Mapping[str, Any], key: str) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
 
+def is_local_path(path: Any) -> bool:
+    """Reject URL forms that browsers normalize to another origin."""
+    return (
+        isinstance(path, str)
+        and path.startswith("/")
+        and not path.startswith("//")
+        and "\\" not in path
+        and not any(ord(character) < 32 or ord(character) == 127 for character in path)
+    )
+
+
 def format_action(action_type: str, **arguments: Any) -> str:
     """Create an action tag using a compact, correctly escaped JSON payload."""
 
     payload = json.dumps(
         {"type": action_type, **arguments},
         ensure_ascii=False,
+        allow_nan=False,
         separators=(",", ":"),
     )
+    # Keep user-provided </action> text inside JSON instead of ending the tag.
+    payload = payload.replace("<", r"\u003c")
     return f"<action>{payload}</action>"
 
 

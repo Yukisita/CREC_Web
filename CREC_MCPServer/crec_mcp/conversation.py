@@ -68,8 +68,11 @@ def build_messages(
 ) -> list[ChatMessage]:
     """Build a model-compatible message list from untrusted browser history."""
 
-    recent_history = history[-max_history_turns * 2 :] if history else []
-    normalized_history = normalize_history(recent_history)
+    normalized_history = (
+        normalize_history(history)[-max_history_turns * 2 :]
+        if max_history_turns > 0
+        else []
+    )
 
     messages: list[ChatMessage] = []
     if system_prompt:
@@ -91,9 +94,16 @@ def normalize_history(
     normalized: list[ChatMessage] = []
 
     for item in history:
+        if not isinstance(item, Mapping):
+            continue
         role = item.get("role", "")
         content = item.get("content", "")
-        if role not in {"user", "assistant"} or not content:
+        if (
+            not isinstance(role, str)
+            or role not in {"user", "assistant"}
+            or not isinstance(content, str)
+            or not content.strip()
+        ):
             continue
 
         message = {"role": role, "content": content}

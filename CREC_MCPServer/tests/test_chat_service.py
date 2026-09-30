@@ -8,7 +8,7 @@ from crec_mcp.chat_service import (
     ChatService,
 )
 from crec_mcp.conversation import ChatMessage, PromptBuilder
-from crec_mcp.llm_client import LlmResponse
+from crec_mcp.models import LlmResponse
 
 
 class FakeLlmClient:

@@ -10,7 +10,7 @@ from typing import Mapping, Protocol, Sequence
 
 from .actions import ActionPolicy, has_hallucinated_action, strip_actions
 from .conversation import ChatMessage, PromptBuilder, build_messages
-from .llm_client import LlmResponse
+from .models import LlmResponse
 
 
 DELETION_BLOCKED_MESSAGE = (
