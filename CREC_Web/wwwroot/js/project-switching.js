@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', function initializeProjectPicker()
     const switchButton = document.getElementById('confirmProjectSwitchBtn');
     let selectedProject = null;// 確認中の候補。送信後は破棄する。
     let isSubmitting = false;// 二重送信と送信中の画面終了を防ぐ。
+    let isLoading = false;// 候補一覧の取得が重なることを防ぐ。
 
     /** 状態メッセージを更新する。
      * @param {string|null} code 翻訳キー。null なら表示を消す。
@@ -86,6 +87,8 @@ document.addEventListener('DOMContentLoaded', function initializeProjectPicker()
     /** 前回の選択を破棄し、最新の候補を取得する。
      * @returns {Promise<void>} 一覧の取得・描画の完了 */
     async function loadProjects() {
+        if (isLoading) return;
+        isLoading = true;
         resetSelection();
         candidateList.replaceChildren();
         showStatus('loading');
@@ -97,6 +100,8 @@ document.addEventListener('DOMContentLoaded', function initializeProjectPicker()
             else renderProjects(result.projects);
         } catch {
             showStatus(ProjectSession.isStale() ? 'projects-stale' : 'projects-list-failed');
+        } finally {
+            isLoading = false;
         }
     }
 
