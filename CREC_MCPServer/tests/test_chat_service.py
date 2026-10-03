@@ -4,7 +4,6 @@ from typing import Any, Sequence
 
 from crec_mcp.actions import ActionPolicy
 from crec_mcp.chat_service import (
-    DELETION_BLOCKED_MESSAGE,
     ChatService,
 )
 from crec_mcp.conversation import ChatMessage, PromptBuilder
@@ -57,14 +56,15 @@ class ChatServiceTests(unittest.IsolatedAsyncioTestCase):
         )
         return service, llm_client, audit_logger
 
-    async def test_adds_text_when_model_returns_only_an_action(self) -> None:
+    async def test_returns_actions_separately_from_display_text(self) -> None:
         action = '<action>{"type":"clickButton","id":"saveButton"}</action>'
         service, _, audit_logger = self.create_service(action)
 
         response = await service.process(message="save", history=[])
 
-        self.assertEqual(f"Executing operation.\n{action}", response)
-        self.assertEqual(response, audit_logger.entries[0]["final_response"])
+        self.assertEqual("", response.text)
+        self.assertEqual([{"type": "clickButton", "id": "saveButton"}], response.actions)
+        self.assertEqual(response.to_json(), audit_logger.entries[0]["final_response"])
 
     async def test_replaces_blocked_deletion_response(self) -> None:
         action = '<action>{"type":"clickButton","id":"deleteButton"}</action>'
@@ -72,9 +72,10 @@ class ChatServiceTests(unittest.IsolatedAsyncioTestCase):
 
         response = await service.process(message="delete", history=[])
 
-        self.assertEqual(DELETION_BLOCKED_MESSAGE, response)
+        self.assertEqual("deletion_blocked", response.warning)
+        self.assertEqual([], response.actions)
         self.assertEqual(
-            ["blocked_deletion"],
+            ["deletion_blocked"],
             audit_logger.entries[0]["warnings"],
         )
 

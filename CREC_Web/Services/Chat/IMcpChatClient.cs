@@ -4,5 +4,5 @@ namespace CREC_Web.Services.Chat;
 
 public interface IMcpChatClient
 {
-    Task<string?> ProcessChatAsync(ChatRequest request, CancellationToken cancellationToken);
+    Task<ChatResponse?> ProcessChatAsync(ChatRequest request, CancellationToken cancellationToken);
 }

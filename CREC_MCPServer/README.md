@@ -26,11 +26,11 @@ LLM Backend (Ollama / LM Studio / etc.)
 |------|----------------|
 | `server.py` | Compose dependencies, register MCP tools, and start the Streamable HTTP server. |
 | `crec_mcp/config.py` | Load environment variables and define default allowlists. |
-| `crec_mcp/actions.py` | Format and validate browser action tags. Malformed or unknown actions are rejected. |
+| `crec_mcp/actions.py` | Parse model action tags into a complete validated action plan. One invalid action rejects the entire plan. |
 | `crec_mcp/audit_log.py` | Write structured, rotating XML audit logs. |
 | `crec_mcp/conversation.py` | Render the system prompt and normalize browser conversation history. |
 | `crec_mcp/llm_client.py` | Call the OpenAI-compatible chat-completions endpoint. |
-| `crec_mcp/models.py` | Transport-independent LLM response value. |
+| `crec_mcp/models.py` | Transport-independent LLM output and structured chat response. |
 | `crec_mcp/chat_service.py` | Coordinate prompt building, LLM calls, response policy, and audit logging. |
 | `tests/` | Unit tests for action policy, conversations, prompts, and chat orchestration. |
 
@@ -86,6 +86,10 @@ export LLM_MODEL="llama3.2"
 
 `.env.example` is a reference template. `server.py` reads process environment
 variables directly and does not load `.env` files automatically.
+
+The requirements intentionally use MCP 1.x (`mcp<2`): the server uses the v1
+`FastMCP` API. A major SDK upgrade requires updating the transport integration
+and rerunning the integration test, rather than only changing this constraint.
 
 ---
 
@@ -210,6 +214,20 @@ not loaded automatically.
 | `show_admin_panel()` | Returns an admin panel display action tag. |
 | `click_button(button_id)` | Returns a whitelist-validated button click action tag. |
 | `fill_input(field_id, value)` | Returns a whitelist-validated form input action tag. |
+
+`process_chat` returns a JSON string in the MCP text content:
+
+```json
+{"text":"I will search.","actions":[{"type":"search","text":"camera"}],"warning":null}
+```
+
+The C# client deserializes this into `ChatResponse` and the Web API forwards the
+same object to the browser. Only `actions` can execute; `text` is display-only.
+An invalid plan returns no actions and the warning `invalid_actions` (or
+`deletion_blocked`). The browser translates these warnings. Plans are limited to
+32 actions and are validated again before execution, including after navigation.
+Model output still uses action tags internally, but these tags are parsed only
+by the Python policy. See [the development and test guide](../tests/README.md).
 
 ---
 

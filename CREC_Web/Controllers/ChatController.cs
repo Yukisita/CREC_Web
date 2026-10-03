@@ -22,8 +22,8 @@ public class ChatController(IMcpChatClient chatClient, ILogger<ChatController> l
 
         try
         {
-            var text = await chatClient.ProcessChatAsync(request, cancellationToken);
-            return text == null ? Ok(new { error = "empty_response" }) : Ok(new { text });
+            var response = await chatClient.ProcessChatAsync(request, cancellationToken);
+            return response == null ? Ok(new { error = "empty_response" }) : Ok(response);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

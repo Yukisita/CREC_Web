@@ -1,4 +1,4 @@
-"""Action formatting and validation for browser-executable AI responses."""
+"""Parse model output into display text and a validated, indivisible action plan."""
 
 # Copyright (c) 2026 S.Yukisita
 # SPDX-License-Identifier: MIT
@@ -8,62 +8,29 @@ from __future__ import annotations
 import json
 import math
 import re
-from dataclasses import dataclass
 from typing import Any, Mapping
 
+from .models import ChatResponse
 
-ACTION_PATTERN = re.compile(r"<action>([\s\S]*?)</action>")
-
-FRONTEND_ACTION_TYPES = frozenset(
-    {
-        "search",
-        "showCollectionPanel",
-        "openCollectionByName",
-        "navigateToCollectionByName",
-        "showAdminPanel",
-        "createNewCollection",
-        "navigateHome",
-        "navigate",
-        "clickButton",
-        "fillInput",
-        "switchLanguage",
-    }
-)
-
-_HALLUCINATION_PHRASES = (
-    "保存しました",
-    "クリックしました",
-    "入力しました",
-    "実行しました",
-    "操作しました",
-    "変更しました",
-    "設定しました",
-    "登録しました",
-    "削除しました",
-    "追加しました",
-    "更新しました",
-    "検索しました",
-    "遷移しました",
-    "切り替えました",
-    "押しました",
-    "開きました",
-    "閉じました",
-)
-
-_QUESTION_LOOKAHEAD = 5
-_LANGUAGE_CODES = frozenset({"ja", "en", "de"})
-
-
-@dataclass(frozen=True, slots=True)
-class SanitizationResult:
-    """Result of validating all action tags in an LLM response."""
-
-    text: str
-    blocked_deletion: bool = False
+ACTION_PATTERN = re.compile(r"<action>(.*?)</action>", re.DOTALL)
+ACTION_FIELDS = {
+    "search": {"type", "text"},
+    "showCollectionPanel": {"type", "id"},
+    "openCollectionByName": {"type", "name"},
+    "navigateToCollectionByName": {"type", "name"},
+    "showAdminPanel": {"type"},
+    "createNewCollection": {"type"},
+    "navigateHome": {"type"},
+    "navigate": {"type", "path"},
+    "clickButton": {"type", "id"},
+    "fillInput": {"type", "id", "value"},
+    "switchLanguage": {"type", "lang"},
+}
+MAX_ACTIONS = 32
 
 
 class ActionPolicy:
-    """Validate LLM-generated actions against the frontend contract."""
+    """Validate the entire plan before any part of it reaches the browser."""
 
     def __init__(
         self,
@@ -75,88 +42,87 @@ class ActionPolicy:
         self.safe_input_ids = safe_input_ids
         self.blocked_button_ids = blocked_button_ids
 
-    def sanitize_response(self, text: str) -> SanitizationResult:
-        """Remove malformed, unknown, or disallowed actions.
-
-        Validation is fail-closed: an action is returned to the browser only
-        when its JSON payload and required fields are valid.
-        """
-
+    def parse_response(self, text: str) -> ChatResponse:
+        actions: list[dict[str, Any]] = []
+        invalid = False
         blocked_deletion = False
-
-        def validate_match(match: re.Match[str]) -> str:
-            nonlocal blocked_deletion
-
+        for match in ACTION_PATTERN.finditer(text):
             try:
-                command = json.loads(match.group(1).strip())
-            except json.JSONDecodeError:
-                return ""
-
-            if not isinstance(command, dict):
-                return ""
-
-            action_type = command.get("type")
+                command = json.loads(match.group(1), object_pairs_hook=_unique_object)
+            except ValueError:
+                invalid = True
+                continue
             if (
-                not isinstance(action_type, str)
-                or action_type not in FRONTEND_ACTION_TYPES
+                isinstance(command, dict)
+                and command.get("type") == "clickButton"
+                and isinstance(command.get("id"), str)
+                and command["id"] in self.blocked_button_ids
             ):
-                return ""
+                blocked_deletion = True
+            if not self.is_action_allowed(command):
+                invalid = True
+            else:
+                actions.append(command)
 
-            if action_type == "clickButton":
-                button_id = command.get("id")
-                if not isinstance(button_id, str):
-                    return ""
-                if button_id in self.blocked_button_ids:
-                    blocked_deletion = True
-                    return ""
-                if button_id not in self.safe_button_ids:
-                    return ""
-            elif action_type == "fillInput":
-                field_id = command.get("id")
-                if (
-                    not isinstance(field_id, str)
-                    or field_id not in self.safe_input_ids
-                ):
-                    return ""
-                value = command.get("value")
-                if (
-                    isinstance(value, bool)
-                    or not isinstance(value, (str, int, float))
-                    or (isinstance(value, float) and not math.isfinite(value))
-                ):
-                    return ""
-            elif not _has_valid_payload(action_type, command):
-                return ""
+        display_text = ACTION_PATTERN.sub("", text)
+        # A truncated tag must never leave a later save button executable.
+        invalid |= "<action" in display_text.lower() or "</action" in display_text.lower()
+        if blocked_deletion:
+            return ChatResponse(warning="deletion_blocked")
+        if invalid or len(actions) > MAX_ACTIONS:
+            return ChatResponse(warning="invalid_actions")
 
-            return match.group(0)
+        display_text = re.sub(r"```[^\n]*\n\s*```", "", display_text)
+        display_text = re.sub(r"`\s*`", "", display_text)
+        display_text = re.sub(r"^[ \t]*[`{}\[\]]+[ \t]*$", "", display_text, flags=re.MULTILINE)
+        display_text = re.sub(r"\n{3,}", "\n\n", display_text).strip()
+        return ChatResponse(text=display_text, actions=actions)
 
-        sanitized = ACTION_PATTERN.sub(validate_match, text)
-        return SanitizationResult(sanitized, blocked_deletion)
+    def is_action_allowed(self, command: Any) -> bool:
+        if not isinstance(command, dict):
+            return False
+        action_type = command.get("type")
+        if not isinstance(action_type, str) or action_type not in ACTION_FIELDS:
+            return False
+        if command.keys() != ACTION_FIELDS[action_type]:
+            return False
+        if action_type == "clickButton":
+            return isinstance(command["id"], str) and self.is_button_allowed(command["id"])
+        if action_type == "fillInput":
+            value = command["value"]
+            return (
+                isinstance(command["id"], str)
+                and self.is_input_allowed(command["id"])
+                and not isinstance(value, bool)
+                and isinstance(value, (str, int, float))
+                and (not isinstance(value, (int, float)) or abs(value) <= 9007199254740991 and math.isfinite(value))
+            )
+        if action_type == "search":
+            return isinstance(command["text"], str)
+        if action_type == "showCollectionPanel":
+            return _has_non_empty_string(command, "id")
+        if action_type in {"openCollectionByName", "navigateToCollectionByName"}:
+            return _has_non_empty_string(command, "name")
+        if action_type == "navigate":
+            return is_local_path(command["path"])
+        if action_type == "switchLanguage":
+            return isinstance(command["lang"], str) and command["lang"] in {"ja", "en", "de"}
+        return True
 
     def is_button_allowed(self, button_id: str) -> bool:
-        return (
-            button_id in self.safe_button_ids
-            and button_id not in self.blocked_button_ids
-        )
+        return button_id in self.safe_button_ids and button_id not in self.blocked_button_ids
 
     def is_input_allowed(self, field_id: str) -> bool:
         return field_id in self.safe_input_ids
 
 
-def _has_valid_payload(action_type: str, command: Mapping[str, Any]) -> bool:
-    if action_type == "search":
-        return isinstance(command.get("text"), str)
-    if action_type == "showCollectionPanel":
-        return _has_non_empty_string(command, "id")
-    if action_type in {"openCollectionByName", "navigateToCollectionByName"}:
-        return _has_non_empty_string(command, "name")
-    if action_type == "navigate":
-        path = command.get("path")
-        return is_local_path(path)
-    if action_type == "switchLanguage":
-        language = command.get("lang")
-        return isinstance(language, str) and language in _LANGUAGE_CODES
-    return action_type in {"showAdminPanel", "createNewCollection", "navigateHome"}
+def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"Duplicate action field: {key}")
+        result[key] = value
+    return result
 
 
 def _has_non_empty_string(command: Mapping[str, Any], key: str) -> bool:
@@ -165,7 +131,6 @@ def _has_non_empty_string(command: Mapping[str, Any], key: str) -> bool:
 
 
 def is_local_path(path: Any) -> bool:
-    """Reject URL forms that browsers normalize to another origin."""
     return (
         isinstance(path, str)
         and path.startswith("/")
@@ -176,40 +141,8 @@ def is_local_path(path: Any) -> bool:
 
 
 def format_action(action_type: str, **arguments: Any) -> str:
-    """Create an action tag using a compact, correctly escaped JSON payload."""
-
     payload = json.dumps(
-        {"type": action_type, **arguments},
-        ensure_ascii=False,
-        allow_nan=False,
-        separators=(",", ":"),
-    )
-    # Keep user-provided </action> text inside JSON instead of ending the tag.
-    payload = payload.replace("<", r"\u003c")
+        {"type": action_type, **arguments}, ensure_ascii=False,
+        allow_nan=False, separators=(",", ":"),
+    ).replace("<", r"\u003c")
     return f"<action>{payload}</action>"
-
-
-def contains_actions(text: str) -> bool:
-    return ACTION_PATTERN.search(text) is not None
-
-
-def strip_actions(text: str) -> str:
-    return ACTION_PATTERN.sub("", text)
-
-
-def has_hallucinated_action(text: str) -> bool:
-    """Detect Japanese completion claims that contain no executable action."""
-
-    if contains_actions(text):
-        return False
-
-    for phrase in _HALLUCINATION_PHRASES:
-        index = text.find(phrase)
-        if index == -1:
-            continue
-        suffix_start = index + len(phrase)
-        suffix = text[suffix_start : suffix_start + _QUESTION_LOOKAHEAD]
-        if "か" not in suffix and "？" not in suffix:
-            return True
-
-    return False

@@ -222,6 +222,11 @@ registerTranslations('en', {
     'chat-error-empty-response': 'Response was empty. Please try again.',
     'chat-error-network': 'Could not connect to the AI server. Please check your network connection.',
     'chat-error-server': 'An error occurred on the AI server. Please try again later.',
-    'chat-error-timeout': 'The AI response timed out. Please try again.'
+    'chat-error-timeout': 'The AI response timed out. Please try again.',
+    "chat-invalid-actions": "The action plan was invalid. No actions were executed. Please check your request and try again.",
+    "chat-deletion-blocked": "AI cannot delete collections. Please use the delete button on the page.",
+    "chat-operation-failed": "The operation failed. Remaining actions were stopped.",
+    "chat-operation-completed": "The operation completed.",
+    "chat-actions-planned": "I will perform the requested operation."
 });
 

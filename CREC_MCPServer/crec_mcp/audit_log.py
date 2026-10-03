@@ -14,7 +14,6 @@ from pathlib import Path
 from typing import Any
 from xml.sax.saxutils import escape as xml_escape
 
-from .actions import ACTION_PATTERN
 
 
 class _XmlFormatter(logging.Formatter):
@@ -132,6 +131,11 @@ class ChatLogger:
     def _write(self, xml_content: str) -> None:
         self._logger.info("", extra={"xml_content": xml_content})
 
+    def close(self) -> None:
+        for handler in self._logger.handlers[:]:
+            self._logger.removeHandler(handler)
+            handler.close()
+
 
 def _create_logger(log_dir: Path, retention_days: int) -> logging.Logger:
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -158,17 +162,11 @@ def _create_logger(log_dir: Path, retention_days: int) -> logging.Logger:
 
 
 def _extract_actions(text: str) -> list[str]:
-    actions: list[str] = []
-    for match in ACTION_PATTERN.finditer(text):
-        raw_action = match.group(1).strip()
-        try:
-            parsed: Any = json.loads(raw_action)
-            actions.append(
-                json.dumps(parsed, ensure_ascii=False, separators=(",", ":"))
-            )
-        except json.JSONDecodeError:
-            actions.append(raw_action)
-    return actions
+    try:
+        response = json.loads(text)
+        return [json.dumps(action, ensure_ascii=False) for action in response.get("actions", [])]
+    except (ValueError, AttributeError):
+        return []
 
 
 def _utc_now() -> str:

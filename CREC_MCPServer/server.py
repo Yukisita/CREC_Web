@@ -54,13 +54,14 @@ async def process_chat(
 ) -> str:
     """Generate a validated AI response for one CREC Web chat message."""
 
-    return await chat_service.process(
+    response = await chat_service.process(
         message=message,
         history=history,
         page_context=page_context,
         page_title=page_title,
         project_name=project_name,
     )
+    return response.to_json()
 
 
 @mcp.tool()
@@ -118,12 +119,15 @@ def main() -> None:
     )
     print(f"LLM backend: {settings.llm_url}  model: {settings.llm_model}")
 
-    uvicorn.run(
-        mcp.streamable_http_app(),
-        host=settings.mcp_host,
-        port=settings.mcp_port,
-        log_level="info",
-    )
+    try:
+        uvicorn.run(
+            mcp.streamable_http_app(),
+            host=settings.mcp_host,
+            port=settings.mcp_port,
+            log_level="info",
+        )
+    finally:
+        chat_log.close()
 
 
 if __name__ == "__main__":

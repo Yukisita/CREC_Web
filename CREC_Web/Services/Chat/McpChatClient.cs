@@ -33,7 +33,7 @@ public sealed class McpChatClient : IMcpChatClient, IDisposable
         _timeout = TimeSpan.FromSeconds(options.Value.TimeoutSeconds);
     }
 
-    public async Task<string?> ProcessChatAsync(ChatRequest request, CancellationToken cancellationToken)
+    public async Task<ChatResponse?> ProcessChatAsync(ChatRequest request, CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(_timeout);
@@ -59,7 +59,7 @@ public sealed class McpChatClient : IMcpChatClient, IDisposable
                 }, id, session);
                 using var response = await SendAsync(client, message, deadline.Token);
                 var result = await McpResponseReader.ReadAsync(response.Content, id, deadline.Token);
-                return ReadToolText(result);
+                return ReadToolResponse(result);
             }
             catch (HttpRequestException ex) when (
                 ex.StatusCode == HttpStatusCode.NotFound && session.Id != null)
@@ -138,7 +138,7 @@ public sealed class McpChatClient : IMcpChatClient, IDisposable
         }
     }
 
-    private static string? ReadToolText(JsonElement result)
+    private static ChatResponse? ReadToolResponse(JsonElement result)
     {
         if (result.TryGetProperty("isError", out var isError) && isError.ValueKind != JsonValueKind.False)
             throw new McpException("MCP chat tool failed.");
@@ -157,7 +157,22 @@ public sealed class McpChatClient : IMcpChatClient, IDisposable
                 throw new McpException("MCP chat tool returned invalid text.");
             text.Append(value.GetString());
         }
-        return text.Length == 0 ? null : text.ToString();
+        if (text.Length == 0) return null;
+        try
+        {
+            var reply = JsonSerializer.Deserialize<ChatResponse>(text.ToString(), JsonOptions);
+            if (reply?.Text == null || reply.Actions == null || reply.Actions.Length > 32 ||
+                reply.Actions.Any(action => action.ValueKind != JsonValueKind.Object ||
+                    !action.TryGetProperty("type", out var type) || type.ValueKind != JsonValueKind.String) ||
+                (reply.Warning != null && (reply.Actions.Length > 0 ||
+                    reply.Warning is not ("invalid_actions" or "deletion_blocked"))))
+                throw new McpException("MCP chat tool returned an invalid action plan.");
+            return reply.Text.Length == 0 && reply.Actions.Length == 0 && reply.Warning == null ? null : reply;
+        }
+        catch (JsonException ex)
+        {
+            throw new McpException("MCP chat tool returned invalid response JSON.", ex);
+        }
     }
 
     public void Dispose() => _initializationLock.Dispose();

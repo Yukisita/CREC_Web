@@ -4,29 +4,34 @@ Copyright (c) [2025 - 2026] [S.Yukisita]
 This software is released under the MIT License.
 */
 
-/** Parse only valid JSON. Never repair rejected commands into executable actions. */
-function parseChatResponse(text) {
-    const actions = [];
-    const plainText = text.replace(/<action>([\s\S]*?)<\/action>/g, (_, json) => {
-        try {
-            const command = JSON.parse(json);
-            if (command && typeof command.type === 'string') actions.push(command);
-        } catch { /* Malformed action tags are removed from display and never executed. */ }
-        return '';
-    });
-    return {
-        actions,
-        text: plainText
-            .replace(/```[^\n]*\n\s*```/g, '')
-            .replace(/`\s*`/g, '')
-            .replace(/^[ \t]*`+[ \t]*$/gm, '')
-            .replace(/^[ \t]*[{}\[\]]+[ \t]*$/gm, '')
-            .replace(/\n{3,}/g, '\n\n').trim()
-    };
-}
+const CHAT_ACTION_FIELDS = {
+    search: ['text'], showCollectionPanel: ['id'], openCollectionByName: ['name'],
+    navigateToCollectionByName: ['name'], showAdminPanel: [], createNewCollection: [],
+    navigateHome: [], navigate: ['path'], clickButton: ['id'], fillInput: ['id', 'value'],
+    switchLanguage: ['lang']
+};
 
-function stripChatActions(text) {
-    return parseChatResponse(text).text;
+/** Validate the full plan before executing its first action, including restored plans. */
+function validateChatActions(actions) {
+    if (!Array.isArray(actions) || actions.length > 32) throw new Error(t('chat-invalid-actions'));
+    for (const action of actions) {
+        if (!action || typeof action !== 'object' || Array.isArray(action) || typeof action.type !== 'string')
+            throw new Error(t('chat-invalid-actions'));
+        const fields = action && Object.hasOwn(CHAT_ACTION_FIELDS, action.type) ? CHAT_ACTION_FIELDS[action.type] : null;
+        if (!fields || Object.keys(action).length !== fields.length + 1 ||
+            fields.some(field => !Object.hasOwn(action, field))) throw new Error(t('chat-invalid-actions'));
+        for (const field of fields) {
+            if (field === 'value' && typeof action.value === 'number' &&
+                Number.isFinite(action.value) && Math.abs(action.value) <= Number.MAX_SAFE_INTEGER) continue;
+            if (typeof action[field] !== 'string' || (!['text', 'value'].includes(field) && !action[field].trim()))
+                throw new Error(t('chat-invalid-actions'));
+        }
+        if (action.type === 'navigate') chatNavigationUrl(action.path);
+        if (action.type === 'switchLanguage' && !['ja', 'en', 'de'].includes(action.lang))
+            throw new Error(t('chat-invalid-actions'));
+        if (action.type === 'clickButton' && action.id === 'deleteCollectionBtn')
+            throw new Error(t('chat-deletion-blocked'));
+    }
 }
 
 let chatActionGeneration = 0;
@@ -40,8 +45,9 @@ function cancelChatActions() {
 async function executeChatActions(actions) {
     const generation = chatActionGeneration;
     try {
+        validateChatActions(actions);
         await window.crecAppReady;
-        await window.crecCollectionReady;
+        await window.crecPageReady;
         for (let index = 0; index < actions.length; index++) {
             // Allow Bootstrap transitions to finish; network operations are awaited.
             await new Promise(resolve => setTimeout(resolve, 400));
@@ -49,13 +55,18 @@ async function executeChatActions(actions) {
             const destination = await executeChatAction(actions[index]);
             if (generation !== chatActionGeneration) return;
             if (destination) {
+                const url = chatNavigationUrl(destination);
                 const remaining = actions.slice(index + 1);
-                if (remaining.length && !savePendingChatActions(remaining))
-                    throw new Error('Unable to save the remaining actions for page navigation.');
-                if (navigateChatPage(destination)) return;
-                clearPendingChatActions();
+                if (chatPageWillReload(url)) {
+                    if (remaining.length && !savePendingChatActions(remaining, url))
+                        throw new Error('Unable to save the remaining actions for page navigation.');
+                    navigateChatPage(destination);
+                    return;
+                }
+                navigateChatPage(destination);
             }
         }
+        if (actions.length && generation === chatActionGeneration) reportActionCompletion();
     } catch (error) {
         clearPendingChatActions();
         if (generation === chatActionGeneration) reportActionFailure(error.message);
@@ -72,13 +83,17 @@ function chatNavigationUrl(path) {
     return url;
 }
 
+function chatPageWillReload(url) {
+    const current = new URL(window.location.href);
+    return url.pathname !== current.pathname || url.search !== current.search;
+}
+
 function navigateChatPage(path) {
     const url = chatNavigationUrl(path);
     if (url.href === window.location.href) return false;
-    const current = new URL(window.location.href);
+    const reloads = chatPageWillReload(url);
     window.location.href = url.href;
-    // Fragment changes do not reload the page, so continue the sequence here.
-    return url.pathname !== current.pathname || url.search !== current.search;
+    return reloads;
 }
 
 function findCollectionIdByName(name) {
@@ -98,7 +113,7 @@ function requireChatString(command, property) {
 
 function requireChatElement(id) {
     const element = document.getElementById(id);
-    if (!element || element.disabled || element.getAttribute('aria-disabled') === 'true' ||
+    if (!element || element.disabled || element.readOnly || element.getAttribute('aria-disabled') === 'true' ||
         !isChatContextElement(element)) {
         throw new Error(`"${id}" is not available. Please open the required page, modal or panel.`);
     }
@@ -159,10 +174,20 @@ async function executeChatAction(command) {
             const id = requireChatString(command, 'id');
             if (id === 'deleteCollectionBtn') throw new Error('Collection deletion must be performed manually.');
             const element = requireChatElement(id);
+            if (element.form && !element.form.checkValidity()) throw new Error('The form contains invalid values.');
             if (id === 'searchButton' && typeof searchCollections === 'function') {
                 if (await searchCollections() === false) throw new Error('Failed to search collections.');
             }
-            else element.click();
+            else if (typeof element.chatAction === 'function') {
+                element.disabled = true;
+                try {
+                    if (await element.chatAction() !== true) throw new Error(t('chat-operation-failed'));
+                } finally {
+                    element.disabled = false;
+                }
+            } else if (['saveIndexEdit', 'inventoryOperationSave', 'inventoryManagementSettingsSave', 'projectEditSaveBtn'].includes(id)) {
+                throw new Error('The save operation is not ready. Please reopen the form.');
+            } else element.click();
             return;
         }
         case 'fillInput': {
@@ -170,7 +195,14 @@ async function executeChatAction(command) {
             if (typeof value !== 'string' && !(typeof value === 'number' && Number.isFinite(value)))
                 throw new Error('Invalid input value.');
             const element = requireChatElement(requireChatString(command, 'id'));
+            if (!element.matches('input:not([type="hidden"]):not([type="password"]),select,textarea'))
+                throw new Error('The target is not an editable field.');
+            const previous = element.value;
             element.value = String(value);
+            if (element.value !== String(value) || !element.checkValidity()) {
+                element.value = previous;
+                throw new Error('The value is not valid for this field.');
+            }
             element.dispatchEvent(new Event('input', { bubbles: true }));
             element.dispatchEvent(new Event('change', { bubbles: true }));
             return;
@@ -188,6 +220,10 @@ async function executeChatAction(command) {
 function executePendingChatActions() {
     const pending = loadPendingChatActions();
     clearPendingChatActions();
-    if (Array.isArray(pending) && pending.length) return executeChatActions(pending);
+    const current = new URL(window.location.href);
+    if (pending && pending.destination === current.pathname + current.search &&
+        Number.isFinite(pending.expiresAt) && pending.expiresAt > Date.now()) {
+        return executeChatActions(pending.actions);
+    }
     return Promise.resolve();
 }

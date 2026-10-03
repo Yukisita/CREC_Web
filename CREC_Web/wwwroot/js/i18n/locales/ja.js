@@ -222,6 +222,11 @@ registerTranslations('ja', {
     'chat-error-empty-response': '応答が空でした。もう一度お試しください。',
     'chat-error-network': 'AIサーバーに接続できませんでした。ネットワーク接続を確認してください。',
     'chat-error-server': 'AIサーバーでエラーが発生しました。しばらく待ってからもう一度お試しください。',
-    'chat-error-timeout': 'AIの応答がタイムアウトしました。もう一度お試しください。'
+    'chat-error-timeout': 'AIの応答がタイムアウトしました。もう一度お試しください。',
+    "chat-invalid-actions": "操作内容に不備があったため、操作は実行していません。指示を確認して再度お試しください。",
+    "chat-deletion-blocked": "AIからコレクションは削除できません。画面の削除ボタンを使用してください。",
+    "chat-operation-failed": "操作に失敗したため、後続の操作を停止しました。",
+    "chat-operation-completed": "操作が完了しました。",
+    "chat-actions-planned": "指定された操作を実行します。"
 });
 

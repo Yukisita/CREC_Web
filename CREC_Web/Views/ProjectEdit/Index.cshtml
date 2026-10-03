@@ -120,7 +120,7 @@
 
 @section Scripts {
     <script>
-        (async function initProjectEditPage() {
+        window.crecPageReady = (async function initProjectEditPage() {
             // Load current settings
             try {
                 let settings;
@@ -147,8 +147,7 @@
             }
 
             // Save handler
-            document.getElementById('projectEditForm').addEventListener('submit', async function (e) {
-                e.preventDefault();
+            async function saveProjectSettings() {
 
                 const saveBtn = document.getElementById('projectEditSaveBtn');
                 saveBtn.disabled = true;
@@ -177,12 +176,19 @@
                     }
 
                     alert(t('edit-project-success'));
+                    return true;
                 } catch (error) {
                     console.error('Error saving project settings:', error);
                     alert(t('edit-project-error') + ': ' + error.message);
+                    return false;
                 } finally {
                     saveBtn.disabled = false;
                 }
+            }
+            document.getElementById('projectEditSaveBtn').chatAction = saveProjectSettings;
+            document.getElementById('projectEditForm').addEventListener('submit', async event => {
+                event.preventDefault();
+                await saveProjectSettings();
             });
         })();
     </script>

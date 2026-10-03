@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
+if (args is ["--mcp-url", var mcpUrl]) return await IntegrationTest.RunAsync(mcpUrl);
+
 var tests = new (string Name, Func<Task> Run)[]
 {
     ("JSON tool calls preserve arguments and reuse the initialized session", JsonAndSession),
@@ -21,6 +23,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Tool failures are errors and do not discard a working session", ToolError),
     ("Invalid JSON, RPC errors and mismatched responses are rejected", InvalidResponses),
     ("Empty text remains an empty response", EmptyResponse),
+    ("Structured chat responses reject malformed plans", InvalidChatPlans),
     ("Cancellation interrupts response body reads", CancelBodyRead),
     ("Deadline includes response body reads", TimeoutBodyRead),
     ("Controller maps upstream errors and propagates caller cancellation", ControllerErrors)
@@ -53,14 +56,15 @@ static async Task JsonAndSession()
         Equal("user", arguments.GetProperty("history")[0].GetProperty("role").GetString());
         Equal("CREC Web", arguments.GetProperty("page_title").GetString());
         Equal("", arguments.GetProperty("page_context").GetString());
+        var json = JsonSerializer.Serialize(new { text = "Hello world", actions = Array.Empty<object>() });
         return Task.FromResult(FakeMcpServer.Result(body, new
         {
-            content = new[] { new { type = "text", text = "Hello " }, new { type = "text", text = "world" } }
+            content = new[] { new { type = "text", text = json[..10] }, new { type = "text", text = json[10..] } }
         }));
     };
     var request = new ChatRequest { Message = "保存", History = [new() { Role = "user", Content = "before" }] };
-    Equal("Hello world", await client.ProcessChatAsync(request, default));
-    Equal("Hello world", await client.ProcessChatAsync(request, default));
+    Equal("Hello world", (await client.ProcessChatAsync(request, default))?.Text);
+    Equal("Hello world", (await client.ProcessChatAsync(request, default))?.Text);
     Equal(1, server.Initializations);
     Equal(1, server.Notifications);
     Equal(2, server.ToolCalls);
@@ -87,10 +91,10 @@ static async Task SseResponse()
             ": keepalive\n\ndata:{\"jsonrpc\":\"2.0\",\"method\":\"notifications/progress\"}\n\n" +
             "data:{\"jsonrpc\":\"2.0\",\"id\":-1,\"result\":{}}\n\n" +
             $"event: message\r\ndata:{{\"jsonrpc\":\"2.0\",\"id\":{id},\r\n" +
-            "data: \"result\":{\"content\":[{\"type\":\"text\",\"text\":\"SSE answer\"}]}}\r\n\r\n");
+            "data: \"result\":" + JsonSerializer.Serialize(new { content = new[] { new { type = "text", text = "{\"text\":\"SSE answer\",\"actions\":[]}" } } }) + "}\r\n\r\n");
         return Task.FromResult(Sse(stream));
     };
-    Equal("SSE answer", await client.ProcessChatAsync(new() { Message = "one" }, default));
+    Equal("SSE answer", (await client.ProcessChatAsync(new() { Message = "one" }, default))?.Text);
 }
 
 static async Task ConcurrentInitialization()
@@ -116,7 +120,7 @@ static async Task ExpiredSession()
     using var client = server.CreateClient();
     server.Tool = (body, session, _) => Task.FromResult(session == "session-1"
         ? new HttpResponseMessage(HttpStatusCode.NotFound) : FakeMcpServer.Text(body, "recovered"));
-    Equal("recovered", await client.ProcessChatAsync(new() { Message = "one" }, default));
+    Equal("recovered", (await client.ProcessChatAsync(new() { Message = "one" }, default))?.Text);
     Equal(2, server.Initializations);
     Equal(2, server.ToolCalls);
 
@@ -145,7 +149,7 @@ static async Task LateExpiredSession()
     await arrived.Task;
     await client.ProcessChatAsync(new() { Message = "fast" }, default);
     release.SetResult();
-    Equal("recovered", await slow);
+    Equal("recovered", (await slow)?.Text);
     Equal(2, server.Initializations);
 }
 
@@ -168,7 +172,7 @@ static async Task ToolError()
     server.Tool = (body, _, _) => Task.FromResult(FakeMcpServer.Result(body, new { isError = true, content = new[] { new { type = "text", text = "failure" } } }));
     await Throws<McpException>(() => client.ProcessChatAsync(new() { Message = "first" }, default));
     server.Tool = null;
-    Equal("ok", await client.ProcessChatAsync(new() { Message = "second" }, default));
+    Equal("ok", (await client.ProcessChatAsync(new() { Message = "second" }, default))?.Text);
     Equal(1, server.Initializations);
 }
 
@@ -192,7 +196,21 @@ static async Task EmptyResponse()
     using var server = new FakeMcpServer();
     using var client = server.CreateClient();
     server.Tool = (body, _, _) => Task.FromResult(FakeMcpServer.Text(body, ""));
-    Equal<string?>(null, await client.ProcessChatAsync(new() { Message = "test" }, default));
+    Equal<string?>(null, (await client.ProcessChatAsync(new() { Message = "test" }, default))?.Text);
+}
+
+static async Task InvalidChatPlans()
+{
+    using var server = new FakeMcpServer();
+    using var client = server.CreateClient();
+    foreach (var json in new[] { "plain text", "{}", "{\"text\":null,\"actions\":[]}",
+        "{\"text\":\"x\",\"actions\":null}", "{\"text\":\"x\",\"actions\":[{}]}",
+        "{\"text\":\"x\",\"actions\":[{\"type\":\"search\"}],\"warning\":\"invalid_actions\"}" })
+    {
+        server.Tool = (body, _, _) => Task.FromResult(FakeMcpServer.Result(body,
+            new { content = new[] { new { type = "text", text = json } } }));
+        await Throws<McpException>(() => client.ProcessChatAsync(new() { Message = "test" }, default));
+    }
 }
 
 static async Task CancelBodyRead()
@@ -258,7 +276,7 @@ static async Task Throws<T>(Func<Task> action) where T : Exception
 
 sealed class FailingClient(Exception exception) : IMcpChatClient
 {
-    public Task<string?> ProcessChatAsync(ChatRequest request, CancellationToken token) => Task.FromException<string?>(exception);
+    public Task<ChatResponse?> ProcessChatAsync(ChatRequest request, CancellationToken token) => Task.FromException<ChatResponse?>(exception);
 }
 
 sealed class FakeMcpServer : HttpMessageHandler, IHttpClientFactory
@@ -302,7 +320,7 @@ sealed class FakeMcpServer : HttpMessageHandler, IHttpClientFactory
         }
     }
 
-    public static HttpResponseMessage Text(JsonElement body, string text) => Result(body, new { content = new[] { new { type = "text", text } }, isError = false });
+    public static HttpResponseMessage Text(JsonElement body, string text) => Result(body, new { content = new[] { new { type = "text", text = JsonSerializer.Serialize(new { text, actions = Array.Empty<object>() }) } }, isError = false });
     public static HttpResponseMessage Result(JsonElement body, object result) => new(HttpStatusCode.OK)
     {
         Content = new StringContent(JsonSerializer.Serialize(new { jsonrpc = "2.0", id = body.GetProperty("id").GetInt64(), result }), Encoding.UTF8, "application/json")

@@ -5,8 +5,7 @@ This software is released under the MIT License.
 
 Chat requests are handled by the CREC Web server (/api/Chat), which forwards
 them to the Python MCP server's process_chat tool.  The MCP server calls the
-configured LLM backend and returns a validated AI response.  No data is sent
-to any external service.
+configured LLM backend and returns a validated AI response.
 */
 
 const CHAT_PAGE_CONTEXT_MAX = 4000;

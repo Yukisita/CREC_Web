@@ -5,13 +5,12 @@ This software is released under the MIT License.
 
 Chat requests are handled by the CREC Web server (/api/Chat), which forwards
 them to the Python MCP server's process_chat tool.  The MCP server calls the
-configured LLM backend and returns a validated AI response.  No data is sent
-to any external service.
+configured LLM backend and returns a validated AI response.
 */
 
 const CHAT_HISTORY_MAX           = 20;   // Maximum messages to keep in context
-const CHAT_SESSION_KEY           = 'crec_chat_history_v1';         // sessionStorage key
-const CHAT_PENDING_ACTIONS_KEY   = 'crec_chat_pending_actions_v1'; // sessionStorage key for post-nav actions
+const CHAT_SESSION_KEY           = 'crec_chat_history_v2';         // text-only conversation history
+const CHAT_PENDING_ACTIONS_KEY   = 'crec_chat_pending_actions_v2'; // structured post-navigation plan
 const CHAT_PANEL_STATE_KEY       = 'crec_chat_panel_open_v1';      // sessionStorage key for panel open/close state
 
 // Chat state
@@ -45,7 +44,9 @@ function sessionDel(key) {
 }
 
 function saveChatSession() {
-    chatMessages = chatMessages.slice(-CHAT_HISTORY_MAX);
+    // Keep complete history pairs while one user message is awaiting its reply.
+    const pendingUser = chatMessages.at(-1)?.role === 'user' ? 1 : 0;
+    chatMessages = chatMessages.slice(-(CHAT_HISTORY_MAX + pendingUser));
     sessionSet(CHAT_SESSION_KEY, chatMessages);
 }
 function loadChatSession() {
@@ -56,7 +57,13 @@ function loadChatSession() {
 }
 function clearChatSession()         { sessionDel(CHAT_SESSION_KEY); }
 
-function savePendingChatActions(a)  { return sessionSet(CHAT_PENDING_ACTIONS_KEY, a); }
+function savePendingChatActions(actions, destination) {
+    return sessionSet(CHAT_PENDING_ACTIONS_KEY, {
+        actions,
+        destination: destination.pathname + destination.search,
+        expiresAt: Date.now() + 5 * 60 * 1000
+    });
+}
 function loadPendingChatActions()   { return sessionGet(CHAT_PENDING_ACTIONS_KEY); }
 function clearPendingChatActions()  { sessionDel(CHAT_PENDING_ACTIONS_KEY); }
 
@@ -114,15 +121,19 @@ async function sendChatToServer(userText, signal) {
         if (!response.ok) return { error: true, message: t('chat-error-server') };
         const data = await response.json();
 
+        if (data.error === 'empty_response') {
+            return { error: true, message: t('chat-error-empty-response') };
+        }
         if (data.error) {
             return { error: true, message: t('chat-error-server') };
         }
 
-        if (typeof data.text !== 'string' || !data.text) {
-            return { error: true, message: t('chat-error-empty-response') };
-        }
-
-        return { error: false, text: data.text };
+        if (typeof data.text !== 'string') throw new Error('Invalid chat response.');
+        validateChatActions(data.actions);
+        const warnings = { invalid_actions: 'chat-invalid-actions', deletion_blocked: 'chat-deletion-blocked' };
+        if (data.warning && (!Object.hasOwn(warnings, data.warning) || data.actions.length))
+            throw new Error('Invalid chat warning.');
+        return { error: false, text: data.warning ? t(warnings[data.warning]) : data.text, actions: data.actions };
     } catch (e) {
         if (e instanceof TypeError) {
             // TypeError from fetch usually means a network error ("Failed to fetch")
@@ -165,8 +176,8 @@ function appendChatMessage(role, htmlContent, elementId) {
 /**
  * Display an action execution failure message in the chat panel.
  * Called when a chat action cannot be executed (element not found, API error, etc.).
- * The message is appended as a warning bubble to the DOM but NOT pushed to the
- * chatMessages array, so it is excluded from future LLM request history.
+ * Execution results are also recorded in history so future replies know whether
+ * an operation actually completed.
  * @param {string} reason - Plain-text explanation of why the action failed.
  *   The entire string is HTML-escaped before rendering, so dynamic values
  *   (e.g. collection names or element IDs from the LLM response) are safe to
@@ -177,6 +188,20 @@ function reportActionFailure(reason) {
         'assistant',
         `<span class="text-warning"><i class="bi bi-exclamation-circle-fill me-1"></i>${escapeHtml(reason)}</span>`
     );
+    recordChatOperationResult('Failed: ' + reason);
+}
+
+function reportActionCompletion() {
+    appendChatMessage('assistant', escapeHtml(t('chat-operation-completed')));
+    recordChatOperationResult('Completed.');
+}
+
+function recordChatOperationResult(result) {
+    const last = chatMessages.at(-1);
+    if (last?.role === 'assistant') {
+        last.content += '\n[Browser operation result] ' + result;
+        saveChatSession();
+    }
 }
 
 /**
@@ -265,13 +290,13 @@ async function submitChatMessage() {
                 `<span class="text-danger"><i class="bi bi-exclamation-triangle-fill"></i> ${escapeHtml(result.message)}</span>`
             );
         } else {
-            const parsed = parseChatResponse(result.text);
-            const renderedHtml = renderChatMarkdown(parsed.text);
+            const text = result.text || t('chat-actions-planned');
+            const renderedHtml = renderChatMarkdown(text);
             appendChatMessage('assistant', renderedHtml);
 
-            chatMessages.push({ role: 'assistant', content: result.text });
+            chatMessages.push({ role: 'assistant', content: text });
             saveChatSession();
-            await executeChatActions(parsed.actions);
+            await executeChatActions(result.actions);
         }
     } finally {
         document.getElementById(thinkingId)?.remove();
@@ -357,8 +382,7 @@ async function initializeChat() {
             if (msg.role === 'user') {
                 appendChatMessage('user', escapeHtml(msg.content));
             } else if (msg.role === 'assistant') {
-                const clean = stripChatActions(msg.content);
-                appendChatMessage('assistant', renderChatMarkdown(clean));
+                appendChatMessage('assistant', renderChatMarkdown(msg.content));
             }
         });
     } else {
