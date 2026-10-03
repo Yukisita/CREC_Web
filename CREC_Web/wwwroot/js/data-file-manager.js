@@ -324,7 +324,7 @@ class DataFileManager {
                     <td class="data-file-manager-optional-column">${escapeHtml(this.formatDate(entry.lastModifiedUtc))}</td>
                     <td>
                         <div class="data-file-manager-actions">
-                            <a href="${escapeHtml(downloadUrl)}" class="btn btn-sm btn-outline-primary" title="${escapeHtml(isDirectory ? t('data-download-folder') : t('data-download'))}" aria-label="${escapeHtml(isDirectory ? t('data-download-folder') : t('data-download'))}">
+                            <a href="${escapeHtml(ProjectSession.url(downloadUrl))}" class="btn btn-sm btn-outline-primary" title="${escapeHtml(isDirectory ? t('data-download-folder') : t('data-download'))}" aria-label="${escapeHtml(isDirectory ? t('data-download-folder') : t('data-download'))}">
                                 <i class="bi bi-download"></i>
                             </a>
                             <button type="button" class="btn btn-sm btn-outline-secondary" data-data-action="rename" data-path="${escapeHtml(entry.relativePath)}" title="${escapeHtml(t('data-rename'))}" aria-label="${escapeHtml(t('data-rename'))}">
