@@ -43,16 +43,18 @@ const MIN_COLUMN_WIDTH = (() => {
  * @param {string} url
  * @param {HTMLCanvasElement} canvas
  * @param {'cover'|'natural'} [fit='natural']
- * @returns {Promise<void>}
+ * @returns {Promise<boolean>} 描画できた場合はtrue、画像なし（204）の場合はfalse。
  */
 function drawUrlToCanvas(url, canvas, fit) {
     return fetch(url)
         .then(r => { 
             if (!r.ok) throw new Error(`HTTP ${r.status}`); 
+            if (r.status === 204) return null;
             return r.blob(); 
         })
-        .then(blob => createImageBitmap(blob))
+        .then(blob => blob === null ? null : createImageBitmap(blob))
         .then(bitmap => {
+            if (bitmap === null) return false;
             const ctx = canvas.getContext('2d');
             if (!ctx) { 
                 bitmap.close(); 
@@ -73,6 +75,7 @@ function drawUrlToCanvas(url, canvas, fit) {
             } finally {
                 bitmap.close();
             }
+            return true;
         });
 }
 
@@ -185,6 +188,14 @@ async function initializeApp() {
             { id: 'editProjectBtn', event: 'click', handler: openProjectEdit },// プロジェクト編集のイベントリスナ
             { id: 'deleteCollectionBtn', event: 'click', handler: deleteCollection },// コレクション削除のイベントリスナ
         ]);
+
+        // 未選択のホーム画面では言語と選択操作だけを初期化する。
+        if (!ProjectSession.hasProject) {
+            buildLanguageDropdown();
+            updateUILanguage();
+            updateLanguageLabel();
+            return;
+        }
 
         // プロジェクト設定の読み込み
         await loadProjectSettings();
@@ -446,7 +457,7 @@ function openCollectionWindow(collectionId, openEdit = false, targetWindow = nul
  * @param {FormData} formData - アップロードするフォームデータ
  * @param {HTMLElement|null} progressBar - プログレスバー要素
  * @param {HTMLElement|null} progressContainer - プログレスバーコンテナ要素
- * @returns {Promise<void>}
+ * @returns {Promise<void>} アップロード成功時に完了し、通信失敗や世代不一致では拒否される Promise
  */
 function uploadWithProgress(url, formData, progressBar, progressContainer) {
     if (progressContainer && progressBar) {
@@ -459,6 +470,10 @@ function uploadWithProgress(url, formData, progressBar, progressContainer) {
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', url);
+        // XHR は fetch の共通処理を通らないため、画面の世代と処理中の件数をここで登録する。
+        xhr.setRequestHeader('X-CREC-Project', ProjectSession.revision);
+        ProjectSession.beginUpload();
+        xhr.addEventListener('loadend', () => ProjectSession.endUpload());
 
         xhr.upload.addEventListener('progress', (event) => {
             if (event.lengthComputable && progressBar) {
@@ -471,6 +486,11 @@ function uploadWithProgress(url, formData, progressBar, progressContainer) {
         });
 
         xhr.addEventListener('load', () => {
+            checkUploadProjectRevision(xhr);
+            if (ProjectSession.isStale()) {
+                reject(new Error(t('projects-stale')));
+                return;
+            }
             if (progressBar) {
                 progressBar.style.width = '100%';
                 progressBar.textContent = '100%';
@@ -479,7 +499,7 @@ function uploadWithProgress(url, formData, progressBar, progressContainer) {
             if (xhr.status >= 200 && xhr.status < 300) {
                 resolve();
             } else {
-                reject(new Error(`HTTP error! status: ${xhr.status}`));
+                reject(new Error(xhr.status === 503 ? t('projects-busy') : `HTTP error! status: ${xhr.status}`));
             }
         });
 
@@ -488,6 +508,25 @@ function uploadWithProgress(url, formData, progressBar, progressContainer) {
 
         xhr.send(formData);
     });
+}
+
+/**
+ * アップロード応答に世代不一致が含まれる場合、古い画面の再読み込みを案内する。
+ * @param {XMLHttpRequest} xhr 応答を受信済みのアップロード要求
+ * @returns {void} 他のエラーは呼び出し元の既存処理に任せる。
+ */
+function checkUploadProjectRevision(xhr) {
+    if (xhr.status !== 409) {
+        return;
+    }
+    try {
+        const problem = JSON.parse(xhr.responseText);
+        if (problem.code === 'projects-stale') {
+            ProjectSession.markStale();
+        }
+    } catch {
+        // JSON 以外のエラー本文もあるため、解析失敗は通常の HTTP エラーとして扱う。
+    }
 }
 
 /**
@@ -564,7 +603,7 @@ async function setCollectionThumbnail(collectionId, fileName) {
         const baseUrl = `/api/Files/thumbnail/${encodeURIComponent(collectionId)}`;
         const cacheBustedUrl = `${baseUrl}?t=${Date.now()}`;
         document.querySelectorAll(`img[src^="${baseUrl}"]`).forEach(img => {
-            img.src = cacheBustedUrl;
+            img.src = ProjectSession.url(cacheBustedUrl);
         });
 
         alert(t('set-thumbnail-success'));
@@ -920,6 +959,7 @@ function selectLanguage(lang) {
     localStorage.setItem('crec_language', currentLanguage);
     updateLanguageLabel();
     updateUILanguage();
+    if (!ProjectSession.hasProject) return;
     updateUILabels();
     if (isMainSearchPage()) {
         updateTableHeaders();

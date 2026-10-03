@@ -121,11 +121,11 @@
       "externalReferences": [
         {
           "type": "vcs",
-          "url": "https://github.com/cozmo/jsQR"
+          "url": "https://github.com/cozmo/jsQR/tree/49a9633931fb8030ac2fc9cecc121d6e5a19f9a3"
         },
         {
           "type": "distribution",
-          "url": "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"
+          "url": "https://registry.npmjs.org/jsqr/-/jsqr-1.4.0.tgz"
         }
       ]
     },

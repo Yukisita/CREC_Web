@@ -91,10 +91,10 @@
       </licenses>
       <externalReferences>
         <reference type="vcs">
-          <url>https://github.com/cozmo/jsQR</url>
+          <url>https://github.com/cozmo/jsQR/tree/49a9633931fb8030ac2fc9cecc121d6e5a19f9a3</url>
         </reference>
         <reference type="distribution">
-          <url>https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js</url>
+          <url>https://registry.npmjs.org/jsqr/-/jsqr-1.4.0.tgz</url>
         </reference>
       </externalReferences>
     </component>

@@ -6,14 +6,12 @@ This software is released under the MIT License.
 
 using Microsoft.AspNetCore.Mvc;
 
-namespace CREC_Web.Controllers
+namespace CREC_Web.Controllers;
+public class ProjectEditController : Controller
 {
-    public class ProjectEditController : Controller
+    [Route("ProjectEdit")]
+    public IActionResult Index()
     {
-        [Route("ProjectEdit")]
-        public IActionResult Index()
-        {
-            return View();
-        }
+        return View();
     }
 }

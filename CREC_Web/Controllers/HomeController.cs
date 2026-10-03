@@ -6,13 +6,12 @@ This software is released under the MIT License.
 
 using Microsoft.AspNetCore.Mvc;
 
-namespace CREC_Web.Controllers
+namespace CREC_Web.Controllers;
+
+public class HomeController : Controller
 {
-    public class HomeController : Controller
+    public IActionResult Index([FromServices] CREC_Web.Services.ProjectRuntime runtime)
     {
-        public IActionResult Index()
-        {
-            return View();
-        }
+        return runtime.Current.HasProject ? View() : View("SelectProject");
     }
 }

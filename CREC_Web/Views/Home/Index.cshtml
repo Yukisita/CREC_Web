@@ -635,9 +635,9 @@
             thumbnailPlaceholder.style.display = 'flex';
             thumbnailPlaceholder.innerHTML = '<i class="bi bi-image"></i>';
 
-            drawUrlToCanvas(thumbnailUrl, thumbnailCanvas, 'cover').then(() => {
-                thumbnailCanvas.style.display = 'block';
-                thumbnailPlaceholder.style.display = 'none';
+            drawUrlToCanvas(thumbnailUrl, thumbnailCanvas, 'cover').then(drawn => {
+                thumbnailCanvas.style.display = drawn ? 'block' : 'none';
+                thumbnailPlaceholder.style.display = drawn ? 'none' : 'flex';
             }).catch(() => {
                 thumbnailCanvas.style.display = 'none';
                 thumbnailPlaceholder.style.display = 'flex';
@@ -764,9 +764,9 @@
             thumbnailContainer.appendChild(thumbnailCanvas);
             thumbnailContainer.appendChild(thumbnailPlaceholder);
 
-            drawUrlToCanvas(thumbnailUrl, thumbnailCanvas).then(() => {
-                thumbnailCanvas.style.display = 'block';
-                thumbnailPlaceholder.style.display = 'none';
+            drawUrlToCanvas(thumbnailUrl, thumbnailCanvas).then(drawn => {
+                thumbnailCanvas.style.display = drawn ? 'block' : 'none';
+                thumbnailPlaceholder.style.display = drawn ? 'none' : 'flex';
             }).catch(() => {
                 thumbnailCanvas.style.display = 'none';
                 thumbnailPlaceholder.style.display = 'flex';
@@ -1233,6 +1233,12 @@
             statusElement.style.display = 'block';
             errorElement.style.display = 'none';
 
+            // QRコード読取ライブラリの読み込みをチェック
+            if (typeof window.jsQR !== 'function') {
+                showQrScannerError(t('qr-scanner-error-library'));
+                return;
+            }
+
             // カメラサポートをチェック
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 // HTTPSチェック（カメラAPIはセキュアコンテキストが必要）
@@ -1365,19 +1371,25 @@
                 // 画像データを取得
                 const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
 
-                // jsQRでQRコードを検出
-                if (typeof jsQR !== 'undefined') {
-                    const qrCode = jsQR(imageData.data, imageData.width, imageData.height, {
-                        inversionAttempts: 'dontInvert'
-                    });
+                // スキャン中にライブラリが利用できなくなった場合は停止する
+                if (typeof window.jsQR !== 'function') {
+                    showQrScannerError(t('qr-scanner-error-library'));
+                    clearInterval(qrTask);
+                    qrTask = null;
+                    return;
+                }
 
-                    if (qrCode && qrCode.data) {
-                        // QRコードが検出された
-                        handleQrCodeDetected(qrCode.data);
-                        clearInterval(qrTask); // スキャンを停止
-                        qrTask = null; // タスクをクリア
-                        return;
-                    }
+                // jsQRでQRコードを検出
+                const qrCode = window.jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: 'dontInvert'
+                });
+
+                if (qrCode && qrCode.data) {
+                    // QRコードが検出された
+                    handleQrCodeDetected(qrCode.data);
+                    clearInterval(qrTask); // スキャンを停止
+                    qrTask = null; // タスクをクリア
+                    return;
                 }
             }
 
@@ -1513,6 +1525,7 @@
         function closeInventoryOperationModal() {
             const modal = document.getElementById('inventoryOperationModal');
             const overlay = document.getElementById('inventoryOperationOverlay');
+            ProjectSession.saved(modal);
 
             if (modal) modal.classList.remove('show');
             if (overlay) overlay.classList.remove('show');
@@ -1587,6 +1600,7 @@
                     throw new Error(errorText || `HTTP error! status: ${response.status}`);
                 }
 
+                ProjectSession.saved(document.getElementById('inventoryOperationForm'));
                 // 概要パネルを再読み込み
                 await showCollectionOverview(currentInventoryCollectionId);
 
@@ -1932,6 +1946,7 @@
                     throw new Error(errorText || `HTTP error! status: ${response.status}`);
                 }
 
+                ProjectSession.saved(document.getElementById('inventoryManagementSettingsForm'));
                 // 概要パネルを再読み込み
                 await showCollectionOverview(currentInventoryCollectionId);
 

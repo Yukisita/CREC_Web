@@ -16,15 +16,18 @@ public class ProjectSettingsController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly ILogger<ProjectSettingsController> _logger;
     private readonly ProjectSettingsService _projectSettingsService;
+    private readonly ProjectRuntime _projectRuntime;
 
     public ProjectSettingsController(
         IConfiguration configuration,
         ILogger<ProjectSettingsController> logger,
-        ProjectSettingsService projectSettingsService)
+        ProjectSettingsService projectSettingsService,
+        ProjectRuntime projectRuntime)
     {
         _configuration = configuration;
         _logger = logger;
         _projectSettingsService = projectSettingsService;
+        _projectRuntime = projectRuntime;
     }
 
     [HttpGet]
@@ -58,6 +61,7 @@ public class ProjectSettingsController : ControllerBase
 
         if (_projectSettingsService.UpdateProjectSettings(request, out var message))
         {
+            _projectRuntime.RefreshProjectName();
             _logger.LogInformation("Project settings updated successfully");
             return Ok(new { message });
         }
