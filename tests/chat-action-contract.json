@@ -9,6 +9,9 @@
     { "type": "navigateHome" },
     { "type": "navigate", "path": "/Collection/one?edit=1" },
     { "type": "clickButton", "id": "saveIndexEdit" },
+    { "type": "clickButton", "id": "openProjectBtn" },
+    { "type": "clickButton", "id": "refreshProjectsBtn" },
+    { "type": "clickButton", "id": "cancelProjectSelectionBtn" },
     { "type": "fillInput", "id": "editName", "value": "New name" },
     { "type": "fillInput", "id": "operationQuantity", "value": -3 },
     { "type": "switchLanguage", "lang": "ja" }

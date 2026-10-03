@@ -122,6 +122,7 @@ function requireChatElement(id) {
 
 /** Returns a destination path when the sequence must continue on another page. */
 async function executeChatAction(command) {
+    if (!isChatProjectAvailable()) throw new Error(chatProjectMessage());
     if (!command || typeof command.type !== 'string') throw new Error('Invalid chat action.');
     switch (command.type) {
         case 'search':
@@ -221,7 +222,8 @@ function executePendingChatActions() {
     const pending = loadPendingChatActions();
     clearPendingChatActions();
     const current = new URL(window.location.href);
-    if (pending && pending.destination === current.pathname + current.search &&
+    if (isChatProjectAvailable() && pending?.revision === ProjectSession.revision &&
+        pending.destination === current.pathname + current.search &&
         Number.isFinite(pending.expiresAt) && pending.expiresAt > Date.now()) {
         return executeChatActions(pending.actions);
     }

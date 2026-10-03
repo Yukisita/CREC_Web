@@ -9,8 +9,8 @@ configured LLM backend and returns a validated AI response.
 */
 
 const CHAT_HISTORY_MAX           = 20;   // Maximum messages to keep in context
-const CHAT_SESSION_KEY           = 'crec_chat_history_v2';         // text-only conversation history
-const CHAT_PENDING_ACTIONS_KEY   = 'crec_chat_pending_actions_v2'; // structured post-navigation plan
+const CHAT_SESSION_KEY           = 'crec_chat_history_v3';         // project-bound conversation history
+const CHAT_PENDING_ACTIONS_KEY   = 'crec_chat_pending_actions_v3'; // project-bound post-navigation plan
 const CHAT_PANEL_STATE_KEY       = 'crec_chat_panel_open_v1';      // sessionStorage key for panel open/close state
 
 // Chat state
@@ -18,6 +18,21 @@ let chatMessages = []; // { role: 'user'|'assistant', content: string }
 let chatIsOpen = false;
 let chatIsSending = false;
 let chatRequestController = null;
+
+function isChatProjectAvailable() {
+    return ProjectSession.hasProject && !ProjectSession.isStale();
+}
+
+function chatProjectMessage() {
+    return t(ProjectSession.isStale() ? 'projects-stale' : 'projects-not-selected');
+}
+
+function updateChatAvailability() {
+    const input = document.getElementById('chatInput');
+    const sendButton = document.getElementById('chatSendBtn');
+    if (input) input.disabled = !isChatProjectAvailable();
+    if (sendButton) sendButton.disabled = chatIsSending || !isChatProjectAvailable();
+}
 
 // =====================
 // SessionStorage helpers
@@ -44,13 +59,19 @@ function sessionDel(key) {
 }
 
 function saveChatSession() {
+    if (!isChatProjectAvailable()) { clearChatSession(); return; }
     // Keep complete history pairs while one user message is awaiting its reply.
     const pendingUser = chatMessages.at(-1)?.role === 'user' ? 1 : 0;
     chatMessages = chatMessages.slice(-(CHAT_HISTORY_MAX + pendingUser));
-    sessionSet(CHAT_SESSION_KEY, chatMessages);
+    sessionSet(CHAT_SESSION_KEY, { revision: ProjectSession.revision, messages: chatMessages });
 }
 function loadChatSession() {
-    const history = sessionGet(CHAT_SESSION_KEY);
+    const saved = sessionGet(CHAT_SESSION_KEY);
+    if (saved?.revision !== ProjectSession.revision) {
+        clearChatSession();
+        return [];
+    }
+    const history = saved.messages;
     return Array.isArray(history) ? history.filter(message => message &&
         ['user', 'assistant'].includes(message.role) && typeof message.content === 'string')
         .slice(-CHAT_HISTORY_MAX) : [];
@@ -59,6 +80,7 @@ function clearChatSession()         { sessionDel(CHAT_SESSION_KEY); }
 
 function savePendingChatActions(actions, destination) {
     return sessionSet(CHAT_PENDING_ACTIONS_KEY, {
+        revision: ProjectSession.revision,
         actions,
         destination: destination.pathname + destination.search,
         expiresAt: Date.now() + 5 * 60 * 1000
@@ -92,24 +114,27 @@ function renderChatMarkdown(text) {
  * @returns {Promise<{error: boolean, text?: string, message?: string}>}
  */
 async function sendChatToServer(userText, signal) {
-    const pageContext = getChatPageContext();
-    const pageTitle = document.title || 'CREC Web';
-    const projectName = (typeof projectSettings !== 'undefined' && projectSettings.projectName)
-        ? projectSettings.projectName
-        : 'CREC Web';
-
-    // The current user message is sent separately, not as an orphaned history turn.
-    const history = chatMessages.slice(0, -1).slice(-CHAT_HISTORY_MAX);
-
-    const requestBody = {
-        message: userText,
-        history,
-        pageContext,
-        pageTitle,
-        projectName
-    };
-
     try {
+        await window.crecAppReady;
+        await window.crecPageReady;
+        if (!isChatProjectAvailable()) return { error: true, message: chatProjectMessage() };
+        const pageContext = getChatPageContext();
+        const pageTitle = document.title || 'CREC Web';
+        const projectName = (typeof projectSettings !== 'undefined' && projectSettings.projectName)
+            ? projectSettings.projectName
+            : 'CREC Web';
+
+        // The current user message is sent separately, not as an orphaned history turn.
+        const history = chatMessages.slice(0, -1).slice(-CHAT_HISTORY_MAX);
+
+        const requestBody = {
+            message: userText,
+            history,
+            pageContext,
+            pageTitle,
+            projectName
+        };
+
         const response = await fetch('/api/Chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -120,6 +145,7 @@ async function sendChatToServer(userText, signal) {
         if (response.status === 504) return { error: true, message: t('chat-error-timeout') };
         if (!response.ok) return { error: true, message: t('chat-error-server') };
         const data = await response.json();
+        if (!isChatProjectAvailable()) return { error: true, message: chatProjectMessage() };
 
         if (data.error === 'empty_response') {
             return { error: true, message: t('chat-error-empty-response') };
@@ -135,6 +161,7 @@ async function sendChatToServer(userText, signal) {
             throw new Error('Invalid chat warning.');
         return { error: false, text: data.warning ? t(warnings[data.warning]) : data.text, actions: data.actions };
     } catch (e) {
+        if (e?.projectCode) return { error: true, message: t(e.projectCode) };
         if (e instanceof TypeError) {
             // TypeError from fetch usually means a network error ("Failed to fetch")
             return { error: true, message: t('chat-error-network') };
@@ -240,7 +267,7 @@ function scrollChatToBottom() {
  * Send user message and display AI response.
  */
 async function submitChatMessage() {
-    if (chatIsSending) return;
+    if (chatIsSending || !isChatProjectAvailable()) return;
 
     const input = document.getElementById('chatInput');
     if (!input) return;
@@ -302,7 +329,7 @@ async function submitChatMessage() {
         document.getElementById(thinkingId)?.remove();
         chatRequestController = null;
         chatIsSending = false;
-        if (sendBtn) sendBtn.disabled = false;
+        updateChatAvailability();
         if (input) input.focus();
     }
 }
@@ -348,7 +375,8 @@ function clearChatHistory() {
     const messages = document.getElementById('chatMessages');
     if (messages) {
         messages.innerHTML = '';
-        appendChatWelcome();
+        if (isChatProjectAvailable()) appendChatWelcome();
+        else appendChatMessage('assistant', escapeHtml(chatProjectMessage()));
     }
 }
 
@@ -357,6 +385,14 @@ function clearChatHistory() {
 // =====================
 
 async function initializeChat() {
+    document.addEventListener('crec-project-stale', () => {
+        clearChatHistory();
+        updateChatAvailability();
+    });
+    if (!isChatProjectAvailable()) {
+        clearChatSession();
+        clearPendingChatActions();
+    }
     setupEventListeners([
         { id: 'chatToggleBtn', event: 'click', handler: toggleChatPanel },
         { id: 'chatCloseBtn',  event: 'click', handler: closeChatPanel },
@@ -385,8 +421,10 @@ async function initializeChat() {
                 appendChatMessage('assistant', renderChatMarkdown(msg.content));
             }
         });
-    } else {
+    } else if (isChatProjectAvailable()) {
         appendChatWelcome();
+    } else {
+        appendChatMessage('assistant', escapeHtml(chatProjectMessage()));
     }
 
     // Restore panel open/close state from before page navigation
@@ -417,7 +455,7 @@ async function initializeChat() {
         await executePendingChatActions();
     } finally {
         chatIsSending = false;
-        if (sendButton) sendButton.disabled = false;
+        updateChatAvailability();
     }
 }
 

@@ -238,7 +238,8 @@ async function initializeApp() {
 }
 
 // API からプロジェクト設定を読み込む
-async function loadProjectSettings() {
+async function loadProjectSettings(forceReload = false) {
+    if (forceReload) projectSettingsLoadPromise = null;
     if (projectSettingsLoadPromise) {
         return projectSettingsLoadPromise;
     }
@@ -246,6 +247,7 @@ async function loadProjectSettings() {
     projectSettingsLoadPromise = (async () => {
         try {
             const response = await fetch('/api/ProjectSettings');
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             if (response.ok) {
                 const settings = await response.json();
                 projectSettings = {
@@ -272,6 +274,7 @@ async function loadProjectSettings() {
                 });
             }
         } catch (error) {
+            if (forceReload) throw error;
             console.warn('Could not load project settings, using defaults:', error);
             // 既に初期化されたデフォルト値を保持
         }

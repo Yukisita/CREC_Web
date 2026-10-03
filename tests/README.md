@@ -23,7 +23,9 @@ None of these tests call a live LLM or modify collection data.
 The integration test starts the real Python MCP application, a temporary ASP.NET
 Web API host with the production chat controller/client, and a deterministic
 local HTTP endpoint in place of an LLM. It verifies the entire request path and
-cleans up its listeners and temporary audit logs:
+the production project middleware, including selection, switching and rejection
+of chat requests without a current project revision. It uses temporary project
+files and cleans up its listeners, projects and audit logs:
 
 ```powershell
 python -m venv CREC_MCPServer/.venv
@@ -59,6 +61,13 @@ Source responsibilities:
 
 Validation is all-or-nothing; execution is not a transaction. Successful earlier
 operations are not rolled back if a later operation fails. Results are appended
-to conversation history. Pending navigation plans are destination-bound, expire
-after five minutes, and are consumed once. The v2 storage keys intentionally do
-not replay actions from the old tag-based browser implementation.
+to conversation history. History and pending navigation plans are bound to the
+project revision. Pending plans also match the destination, expire after five
+minutes, and are consumed once. A stale project notification aborts the chat
+request, clears its history/plans and disables submission until the page reloads.
+The v3 storage keys discard older history and plans without a project revision.
+
+The project picker can be opened through chat; selection and confirmation remain
+in the picker or the desktop file dialog. Project settings saved through chat
+reload their values without reloading the page, so later actions wait for the
+saved defaults. Manual form submission retains Develop's page reload behavior.

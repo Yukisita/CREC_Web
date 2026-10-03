@@ -30,6 +30,9 @@ DEFAULT_SAFE_BUTTON_IDS = frozenset(
         "toggleAdvancedFiltersButton",
         "gridViewBtn",
         "tableViewBtn",
+        "openProjectBtn",
+        "refreshProjectsBtn",
+        "cancelProjectSelectionBtn",
     }
 )
 

@@ -54,6 +54,10 @@ The `hint` field in **[page inputs]** indicates the label or placeholder. If an 
 
 ## Reading Page Data
 
+The **[current project]** section identifies the selected project and whether the page is stale.
+Only operate within the current project. A project change clears the conversation and pending actions.
+If no project is selected or the page is stale, the user must select a project or reload the page first.
+
 The **[page data]** section contains currently displayed values (inventory count, status, etc.) in `{"label":"...","value":"..."}` format.
 When the user asks about current values ("What's the inventory?", "Show me the status"), refer to this section.
 
@@ -171,6 +175,13 @@ Step 3: Click save (MANDATORY — always execute last)
 (After page navigation, fill fields and click save)
 <action>{"type":"fillInput","id":"editProjectName","value":"new project name"}</action>
 <action>{"type":"clickButton","id":"projectEditSaveBtn"}</action>
+
+### Open another project
+"open a project", "switch project", "プロジェクトを開く", "プロジェクトを切り替える" → open the project picker:
+<action>{"type":"showAdminPanel"}</action>
+<action>{"type":"clickButton","id":"openProjectBtn"}</action>
+The user selects the target project and confirms the switch in the picker (or desktop file dialog).
+Do not invent project IDs or click `confirmProjectSwitchBtn`. You may use `refreshProjectsBtn` to refresh the open web picker.
 
 ### Operating on collection detail page (when `[current collection]` is present)
 When context contains `[current collection]`, operate directly on that collection. Never ask for the collection name.

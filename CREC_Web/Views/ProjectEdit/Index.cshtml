@@ -122,11 +122,11 @@
     <script>
         window.crecPageReady = (async function initProjectEditPage() {
             // Load current settings
-            try {
+            async function loadSettings(forceReload = false) {
                 let settings;
 
                 if (typeof loadProjectSettings === 'function') {
-                    settings = await loadProjectSettings();
+                    settings = await loadProjectSettings(forceReload);
                 } else {
                     const response = await fetch('/api/ProjectSettings');
                     if (!response.ok) throw new Error('Failed to load settings');
@@ -142,6 +142,9 @@
                 document.getElementById('editTag1Label').value = settings.tag1Name || '';
                 document.getElementById('editTag2Label').value = settings.tag2Name || '';
                 document.getElementById('editTag3Label').value = settings.tag3Name || '';
+            }
+            try {
+                await loadSettings();
             } catch (error) {
                 console.error('Error loading project settings:', error);
             }
@@ -175,9 +178,11 @@
                         throw new Error(text || `HTTP error! status: ${response.status}`);
                     }
 
+                    // 設定を読み直し、チャットの後続操作にも保存された既定値を反映する。
+                    await loadSettings(true);
+                    updateUILabels();
+                    ProjectSession.saved(document.getElementById('projectEditForm'));
                     alert(t('edit-project-success'));
-                    // サーバー側で補われたデフォルト値を入力欄へ反映するため、設定を読み込み直す
-                    window.location.reload();
                     return true;
                 } catch (error) {
                     console.error('Error saving project settings:', error);
@@ -190,7 +195,7 @@
             document.getElementById('projectEditSaveBtn').chatAction = saveProjectSettings;
             document.getElementById('projectEditForm').addEventListener('submit', async event => {
                 event.preventDefault();
-                await saveProjectSettings();
+                if (await saveProjectSettings()) window.location.reload();
             });
         })();
     </script>

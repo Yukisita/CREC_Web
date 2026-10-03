@@ -28,6 +28,7 @@ const CHAT_EXCLUDED_BUTTON_IDS = new Set([
     'editProjectBtn',        // use navigate /ProjectEdit action instead
     'overviewPanelClose',    // close button – AI should not close the overview panel
     'openCollectionWindowBtn', // opens new window; use navigate or navigateToCollectionByName instead
+    'confirmProjectSwitchBtn', // project selection and confirmation are performed in the picker
 ]);
 
 /**
@@ -44,6 +45,8 @@ const CHAT_EXCLUDED_BUTTON_IDS = new Set([
  * @returns {boolean}
  */
 function isChatContextElement(el) {
+    if (el.disabled || el.readOnly || el.getAttribute('aria-disabled') === 'true') return false;
+    if (el.closest('[hidden], .d-none')) return false;
     // Sliding panels: visible only when the .open class is present
     if (el.closest('.admin-panel:not(.open)')) return false;
     if (el.closest('.detail-panel:not(.open)')) return false;
@@ -69,7 +72,12 @@ function isChatContextElement(el) {
  * @returns {string}
  */
 function getChatPageContext() {
-    let structuredContext = '';
+    const project = {
+        selected: ProjectSession.hasProject,
+        stale: ProjectSession.isStale(),
+        name: typeof projectSettings !== 'undefined' ? projectSettings.projectName : ''
+    };
+    let structuredContext = '[current project]\n' + JSON.stringify(project) + '\n\n';
 
     // --- Current collection page (Collection/Index.cshtml exposes this after async load) ---
     if (window.currentPageCollection && window.currentPageCollection.id) {
@@ -84,19 +92,6 @@ function getChatPageContext() {
         if (col.category) colData.category = col.category;
         if (col.location) colData.location = col.location;
         structuredContext += `[current collection]\n` + JSON.stringify(colData) + '\n\n';
-    }
-
-    // --- Visible collections ---
-    const collectionEls = document.querySelectorAll('[data-collection-id]:not([data-collection-id=""])');
-    if (collectionEls.length > 0) {
-        const items = Array.from(collectionEls)
-            .filter(el => el.dataset.collectionId)
-            .map(el => {
-                const name = el.dataset.collectionName || '';
-                const id = el.dataset.collectionId;
-                return JSON.stringify({ name, id, url: `/Collection/${encodeURIComponent(id)}` });
-            });
-        structuredContext += `[visible collections (${items.length})]\n` + items.join('\n') + '\n\n';
     }
 
     // --- Page buttons (clickButton action targets) ---
@@ -142,6 +137,7 @@ function getChatPageContext() {
     const dataItems = [];
     document.querySelectorAll('[data-chat-label]').forEach(el => {
         if (el.closest('#chatPanel')) return;
+        if (!isChatContextElement(el)) return;
         const label = el.getAttribute('data-chat-label');
         if (!label) return;
         // data-chat-value attribute takes priority; otherwise use element text content
@@ -152,6 +148,19 @@ function getChatPageContext() {
     });
     if (dataItems.length > 0) {
         structuredContext += `[page data (${dataItems.length})]\n` + dataItems.join('\n') + '\n\n';
+    }
+
+    // Controls precede the collection list so large result sets cannot truncate form IDs.
+    const collectionEls = document.querySelectorAll('[data-collection-id]:not([data-collection-id=""])');
+    if (collectionEls.length > 0) {
+        const items = Array.from(collectionEls)
+            .filter(el => el.dataset.collectionId)
+            .map(el => {
+                const name = el.dataset.collectionName || '';
+                const id = el.dataset.collectionId;
+                return JSON.stringify({ name, id, url: `/Collection/${encodeURIComponent(id)}` });
+            });
+        structuredContext += `[visible collections (${items.length})]\n` + items.join('\n') + '\n\n';
     }
 
     // --- Remaining visible page text ---
