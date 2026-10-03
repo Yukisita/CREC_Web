@@ -6,6 +6,7 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <DefaultItemExcludes>$(DefaultItemExcludes);Projects\**;web\Projects\**</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="CREC.ico" />
@@ -42,7 +43,7 @@
 
   <Target Name="CopyWebAppOutput" AfterTargets="Build">
     <ItemGroup>
-      <WebAppOutput Include="..\CREC_Web\bin\$(Configuration)\net8.0\**\*" />
+      <WebAppOutput Include="..\CREC_Web\bin\$(Configuration)\net8.0\**\*" Exclude="..\CREC_Web\bin\$(Configuration)\net8.0\Projects\**\*" />
     </ItemGroup>
     <Copy SourceFiles="@(WebAppOutput)" DestinationFiles="@(WebAppOutput->'$(OutDir)web\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
