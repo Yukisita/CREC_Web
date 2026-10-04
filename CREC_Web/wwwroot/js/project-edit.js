@@ -18,6 +18,13 @@
         secondTagLabel: 'editTag2Label',
         thirdTagLabel: 'editTag3Label'
     };
+    const editableInputs = Object.values(fields).map(id => document.getElementById(id));
+
+    function setSaving(saving) {
+        isSaving = saving;
+        saveButton.disabled = saving;
+        editableInputs.forEach(input => { input.disabled = saving; });
+    }
 
     function showError(message) {
         errorNotice.textContent = message;
@@ -61,9 +68,9 @@
             return;
         }
 
-        isSaving = true;
-        saveButton.disabled = true;
+        setSaving(true);
         errorNotice.hidden = true;
+        let didSave = false;
         try {
             const response = await fetch(isNewProject ? '/api/projects/create' : '/api/ProjectSettings', {
                 method: isNewProject ? 'POST' : 'PUT',
@@ -78,6 +85,7 @@
                 throw new Error(await response.text());
             }
 
+            didSave = true;
             ProjectSession.saved(form);
             if (isNewProject) {
                 ProjectSession.navigateAfterSwitch();
@@ -89,8 +97,8 @@
             showError(error.projectCode ? t(error.projectCode)
                 : (isNewProject ? t('projects-create-error') : t('edit-project-error')) + ': ' + error.message);
         } finally {
-            isSaving = false;
-            saveButton.disabled = false;
+            // 成功時は画面遷移まで入力をロックし、失敗時だけ再編集を許可する。
+            if (!didSave) setSaving(false);
         }
     });
 })();
