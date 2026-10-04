@@ -11,6 +11,8 @@
     let hasProjectChanged = false;
     let hasStartedNavigation = false;// 遷移後は定期確認を止める。
     let activeUploadCount = 0;// アップロード中も破棄確認を行う。
+    const draftForm = document.querySelector('#projectEditForm[data-new-project="true"]');
+    let hasUnsavedDraft = !!draftForm;
 
     /** 翻訳文を取得する。
      * @param {string} key 翻訳キー
@@ -33,7 +35,8 @@
             if (!input.isConnected || (input.type === 'file' && input.files.length === 0))
                 dirtyInputs.delete(input);
         }
-        return (dirtyInputs.size === 0 && activeUploadCount === 0) || window.confirm(message('projects-discard'));
+        return (!hasUnsavedDraft && dirtyInputs.size === 0 && activeUploadCount === 0)
+            || window.confirm(message(hasUnsavedDraft ? 'projects-create-discard' : 'projects-discard'));
     }
 
     /** 保存・破棄済みの入力を確認対象から外す。
@@ -49,7 +52,9 @@
      * @returns {void} */
     function navigateAfterSwitch() {
         hasStartedNavigation = true;
-        window.location.assign('/');
+        hasUnsavedDraft = false;
+        if (draftForm) window.location.replace('/');
+        else window.location.assign('/');
     }
 
     /** 破棄を確認して再読み込みする。
@@ -169,5 +174,15 @@
         window.setInterval(checkProject, 2000);
     });
     window.addEventListener('pageshow', checkProject);
+    // ブラウザバック・再読み込み・タブを閉じる操作にはブラウザー標準の警告を使う。
+    window.addEventListener('beforeunload', event => {
+        if (!hasUnsavedDraft) return;
+        event.preventDefault();
+        event.returnValue = '';
+    });
+    window.addEventListener('pageshow', event => {
+        // 戻る・進むで破棄済みの下書きを復元しない。
+        if (draftForm && event.persisted) navigateAfterSwitch();
+    });
     window.addEventListener('focus', checkProject);
 })();

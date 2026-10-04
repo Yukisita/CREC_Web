@@ -116,13 +116,40 @@ public sealed class ProjectRuntime
         }
     }
 
-    /// <summary>プロジェクト新規作成（#196）でも利用できる。Projects 内への保存後に候補の識別子を渡す。</summary>
+    /// <summary>一覧で選択した既存プロジェクトに切り替える。</summary>
     /// <param name="id">一覧で発行した識別子</param>
     /// <param name="revision">操作元の世代</param>
     /// <param name="cancellationToken">待機の中止通知</param>
     /// <returns>結果コードと処理後の状態</returns>
     /// <remarks>自身の要求受付ハンドルを保持したまま呼び出さないこと</remarks>
-    public async Task<ProjectSwitchResult> SwitchAsync(string id, string revision, CancellationToken cancellationToken)
+    public Task<ProjectSwitchResult> SwitchAsync(string id, string revision, CancellationToken cancellationToken)
+        => ChangeProjectAsync(revision, cancellationToken, () =>
+        {
+            var target = _catalog.Resolve(id);
+            var pathComparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            if (target.FilePath.Equals(Current.FilePath, pathComparison))
+                return "projects-already-current";
+
+            ApplyProject(target);
+            return "projects-switched";
+        });
+
+    /// <summary>既存要求の完了後に新規プロジェクトを保存して開く。</summary>
+    /// <param name="request">新規プロジェクトの名前と表示ラベル</param>
+    /// <param name="revision">操作元の世代</param>
+    /// <param name="cancellationToken">待機の中止通知</param>
+    /// <returns>作成結果と処理後の状態</returns>
+    public Task<ProjectSwitchResult> CreateAsync(UpdateProjectSettingsRequest request, string revision,
+        CancellationToken cancellationToken)
+        => ChangeProjectAsync(revision, cancellationToken, () =>
+        {
+            _catalog.Create(request, ApplyProject);
+            return "projects-created";
+        });
+
+    /// <summary>切り替えと作成を直列化し、要求受付の停止・再開と世代確認を共用する。</summary>
+    private async Task<ProjectSwitchResult> ChangeProjectAsync(string revision,
+        CancellationToken cancellationToken, Func<string> changeProject)
     {
         Task requestsCompleted;
         lock (_stateLock)
@@ -144,13 +171,7 @@ public sealed class ProjectRuntime
             await requestsCompleted.WaitAsync(cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
 
-            var target = _catalog.Resolve(id);
-            var pathComparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-            if (target.FilePath.Equals(Current.FilePath, pathComparison))
-                return new("projects-already-current", Current);
-
-            ApplyProject(target);
-            return new("projects-switched", Current);
+            return new(changeProject(), Current);
         }
         catch (ProjectAccessException ex)
         {

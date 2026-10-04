@@ -5,6 +5,13 @@ This software is released under the MIT License.
 */
 
 registerTranslations('de', {
+    'projects-create': 'Neues Projekt erstellen',
+    'projects-create-location': 'Beim Speichern werden das Projekt und ein leerer Datenordner im Ordner Projects der Anwendung erstellt.',
+    'projects-create-help': 'Leere Bezeichnungen verwenden die Standardwerte. Beim Speichern wird das Projekt für alle mit diesem Server verbundenen Ansichten gewechselt.',
+    'projects-create-discard': 'Das neue Projekt wurde noch nicht gespeichert. Eingaben verwerfen und die Seite verlassen?',
+    'projects-name-required': 'Geben Sie einen Projektnamen ein.',
+    'projects-create-failed': 'Das Projekt konnte nicht erstellt werden. Prüfen Sie die Zugriffsrechte und den freien Speicherplatz.',
+    'projects-create-error': 'Die Projekterstellung konnte nicht bestätigt werden. Ihre Eingaben bleiben erhalten. Prüfen Sie die Projektliste vor dem erneuten Speichern',
     'projects-open': 'Projekt öffnen',
     'projects-not-selected': 'Es ist kein Projekt ausgewählt. Bitte öffnen Sie ein Projekt.',
     'projects-current': 'Aktuelles Projekt',

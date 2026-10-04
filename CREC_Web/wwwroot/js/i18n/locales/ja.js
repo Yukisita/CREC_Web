@@ -5,6 +5,13 @@ This software is released under the MIT License.
 */
 
 registerTranslations('ja', {
+    'projects-create': '新規プロジェクト作成',
+    'projects-create-location': '保存時に、アプリケーションの Projects フォルダ内へプロジェクトと空のデータフォルダを作成します。',
+    'projects-create-help': 'ラベルを空欄にすると既定値を使用します。保存後、このサーバーに接続している画面のプロジェクトが切り替わります。',
+    'projects-create-discard': '新規プロジェクトは保存されていません。入力を破棄して移動しますか？',
+    'projects-name-required': 'プロジェクト名を入力してください。',
+    'projects-create-failed': 'プロジェクトを作成できませんでした。保存先のアクセス権と空き容量を確認してください。',
+    'projects-create-error': '新規作成の結果を確認できませんでした。入力は保持しています。再保存する前に、プロジェクト一覧を確認してください',
     'projects-open': 'プロジェクトを開く',
     'projects-not-selected': 'プロジェクトが選択されていません。プロジェクトを開いてください。',
     'projects-current': '現在のプロジェクト',

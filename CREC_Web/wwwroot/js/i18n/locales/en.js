@@ -5,6 +5,13 @@ This software is released under the MIT License.
 */
 
 registerTranslations('en', {
+    'projects-create': 'Create new project',
+    'projects-create-location': 'Saving creates the project and an empty data folder in the application’s Projects folder.',
+    'projects-create-help': 'Leave labels blank to use defaults. Saving switches the project for all screens connected to this server.',
+    'projects-create-discard': 'The new project has not been saved. Discard your input and leave?',
+    'projects-name-required': 'Enter a project name.',
+    'projects-create-failed': 'Could not create the project. Check the destination permissions and available disk space.',
+    'projects-create-error': 'Could not confirm project creation. Your input is retained. Check the project list before saving again',
     'projects-open': 'Open project',
     'projects-not-selected': 'No project is selected. Please open a project.',
     'projects-current': 'Current project',

@@ -159,7 +159,7 @@ document.addEventListener('DOMContentLoaded', function initializeProjectPicker()
     switchButton.addEventListener('click', switchProject);
 
     // 未選択で起動した場合は、そのままプロジェクトの候補を表示する。
-    if (!ProjectSession.hasProject) {
+    if (!ProjectSession.hasProject && !document.querySelector('#projectEditForm[data-new-project="true"]')) {
         modal.show();
         loadProjects();
     }
