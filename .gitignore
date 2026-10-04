@@ -26,7 +26,6 @@ Thumbs.db
 obj/
 [Rr]elease*/
 _ReSharper*/
-[Tt]est[Rr]esult*
 .vs/
 .idea/
 #Nuget packages folder

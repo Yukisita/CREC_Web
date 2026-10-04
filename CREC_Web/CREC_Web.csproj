@@ -4,7 +4,7 @@
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     <CopyToPublishDirectory>Always</CopyToPublishDirectory>
   </Content>
-  <Content Include="Prompts\**\*">
+  <Content Include="Prompts\ChatSystem.txt">
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     <CopyToPublishDirectory>Always</CopyToPublishDirectory>
   </Content>
