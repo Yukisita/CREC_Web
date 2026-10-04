@@ -729,15 +729,15 @@
             let tagsHtml = '';
             if (collection.indexData?.values?.firstTag && collection.indexData?.values?.firstTag !== ' - ') {
                 const tag1Label = projectSettings.tag1Name || (currentLanguage === 'ja' ? 'タグ 1' : 'Tag 1');
-                tagsHtml += `<small class="text-muted">${tag1Label}: ${escapeHtml(collection.indexData?.values?.firstTag)}</small><br>`;
+                tagsHtml += `<small class="text-muted">${escapeHtml(tag1Label)}: ${escapeHtml(collection.indexData?.values?.firstTag)}</small><br>`;
             }
             if (collection.indexData?.values?.secondTag && collection.indexData?.values?.secondTag !== ' - ') {
                 const tag2Label = projectSettings.tag2Name || (currentLanguage === 'ja' ? 'タグ 2' : 'Tag 2');
-                tagsHtml += `<small class="text-muted">${tag2Label}: ${escapeHtml(collection.indexData?.values?.secondTag)}</small><br>`;
+                tagsHtml += `<small class="text-muted">${escapeHtml(tag2Label)}: ${escapeHtml(collection.indexData?.values?.secondTag)}</small><br>`;
             }
             if (collection.indexData?.values?.thirdTag && collection.indexData?.values?.thirdTag !== ' - ') {
                 const tag3Label = projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3');
-                tagsHtml += `<small class="text-muted">${tag3Label}: ${escapeHtml(collection.indexData?.values?.thirdTag)}</small><br>`;
+                tagsHtml += `<small class="text-muted">${escapeHtml(tag3Label)}: ${escapeHtml(collection.indexData?.values?.thirdTag)}</small><br>`;
             }
 
             // Use the collection ID (which is the folder name) for the thumbnail URL
@@ -773,8 +773,8 @@
             cardBody.innerHTML = `
                 <h6 class="card-title">${escapeHtml(collection.indexData.values.name)}</h6>
                 <p class="card-text">
-                    <small class="text-muted">${projectSettings.uuidName}: ${escapeHtml(collection.indexData.systemData.id)}</small><br>
-                    <small class="text-muted">${projectSettings.categoryName}: ${escapeHtml(collection.indexData.values.category)}</small><br>
+                    <small class="text-muted">${escapeHtml(projectSettings.uuidName)}: ${escapeHtml(collection.indexData.systemData.id)}</small><br>
+                    <small class="text-muted">${escapeHtml(projectSettings.categoryName)}: ${escapeHtml(collection.indexData.values.category)}</small><br>
                     ${tagsHtml}
                     ${collection.collectionCurrentInventory !== null ?
                         `<small class="text-muted">${t('inventory')}: ${collection.collectionCurrentInventory}</small><br>` : ''}
@@ -877,17 +877,17 @@
 
             panelBody.innerHTML = `
                 <div class="detail-section">
-                    <h6>${projectSettings.uuidName}</h6>
+                    <h6>${escapeHtml(projectSettings.uuidName)}</h6>
                     <p>${escapeHtml(collection.indexData.systemData.id)}</p>
                 </div>
 
                 <div class="detail-section">
-                    <h6>${projectSettings.managementCodeName}</h6>
+                    <h6>${escapeHtml(projectSettings.managementCodeName)}</h6>
                     <p>${escapeHtml(collection.indexData.values.managementCode)}</p>
                 </div>
 
                 <div class="detail-section">
-                    <h6>${projectSettings.categoryName}</h6>
+                    <h6>${escapeHtml(projectSettings.categoryName)}</h6>
                     <p>${escapeHtml(collection.indexData.values.category)}</p>
                 </div>
 
@@ -924,9 +924,9 @@
                 <div class="detail-section">
                     <h6>${t('tags')}</h6>
                     <div>
-                        ${collection.indexData?.values?.firstTag && collection.indexData?.values?.firstTag !== ' - ' ? `<p>${projectSettings.tag1Name || (currentLanguage === 'ja' ? 'タグ 1' : 'Tag 1')}: ${escapeHtml(collection.indexData?.values?.firstTag)}</p>` : ''}
-                        ${collection.indexData?.values?.secondTag && collection.indexData?.values?.secondTag !== ' - ' ? `<p>${projectSettings.tag2Name || (currentLanguage === 'ja' ? 'タグ 2' : 'Tag 2')}: ${escapeHtml(collection.indexData?.values?.secondTag)}</p>` : ''}
-                        ${collection.indexData?.values?.thirdTag && collection.indexData?.values?.thirdTag !== ' - ' ? `<p>${projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3')}: ${escapeHtml(collection.indexData?.values?.thirdTag)}</p>` : ''}
+                        ${collection.indexData?.values?.firstTag && collection.indexData?.values?.firstTag !== ' - ' ? `<p>${escapeHtml(projectSettings.tag1Name || (currentLanguage === 'ja' ? 'タグ 1' : 'Tag 1'))}: ${escapeHtml(collection.indexData?.values?.firstTag)}</p>` : ''}
+                        ${collection.indexData?.values?.secondTag && collection.indexData?.values?.secondTag !== ' - ' ? `<p>${escapeHtml(projectSettings.tag2Name || (currentLanguage === 'ja' ? 'タグ 2' : 'Tag 2'))}: ${escapeHtml(collection.indexData?.values?.secondTag)}</p>` : ''}
+                        ${collection.indexData?.values?.thirdTag && collection.indexData?.values?.thirdTag !== ' - ' ? `<p>${escapeHtml(projectSettings.tag3Name || (currentLanguage === 'ja' ? 'タグ 3' : 'Tag 3'))}: ${escapeHtml(collection.indexData?.values?.thirdTag)}</p>` : ''}
                         ${(!collection.indexData?.values?.firstTag || collection.indexData?.values?.firstTag === ' - ') &&
                             (!collection.indexData?.values?.secondTag || collection.indexData?.values?.secondTag === ' - ') &&
                             (!collection.indexData?.values?.thirdTag || collection.indexData?.values?.thirdTag === ' - ') ? `<p>${t('not-set')}</p>` : ''}

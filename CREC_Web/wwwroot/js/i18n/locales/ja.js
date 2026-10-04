@@ -5,6 +5,13 @@ This software is released under the MIT License.
 */
 
 registerTranslations('ja', {
+    'projects-create': '新規プロジェクト作成',
+    'projects-create-location': '保存時に、アプリケーションの Projects フォルダ内へプロジェクトと空のデータフォルダを作成します。',
+    'projects-create-help': 'ラベルを空欄にすると既定値を使用します。保存後、このサーバーに接続している画面のプロジェクトが切り替わります。',
+    'projects-create-discard': '新規プロジェクトは保存されていません。入力を破棄して移動しますか？',
+    'projects-name-required': 'プロジェクト名を入力してください。',
+    'projects-create-failed': 'プロジェクトを作成できませんでした。保存先のアクセス権と空き容量を確認してください。',
+    'projects-create-error': '新規作成の結果を確認できませんでした。入力は保持しています。再保存する前に、プロジェクト一覧を確認してください',
     'projects-open': 'プロジェクトを開く',
     'projects-not-selected': 'プロジェクトが選択されていません。プロジェクトを開いてください。',
     'projects-current': '現在のプロジェクト',
@@ -13,7 +20,7 @@ registerTranslations('ja', {
     'projects-refresh': '一覧を更新',
     'projects-reload': '新しいプロジェクトを表示',
     'projects-confirm-impact': '選択したプロジェクトを開きます。このサーバーに接続しているすべてのブラウザ・タブ・デスクトップ画面に影響します。続行しますか？',
-    'projects-discard': '未保存の入力や処理中のアップロードがあります。入力を破棄して、新しいプロジェクトの画面へ移動しますか？',
+    'projects-discard': '未保存の入力や処理中のアップロードがあります。入力を破棄して、この画面を離れますか？',
     'projects-switching': '実行中の保存・アップロードなどの完了を待って、プロジェクトを切り替えています…',
     'projects-already-current': 'このプロジェクトはすでに開いています。',
     'projects-missing': 'サーバーの Projects フォルダが存在しません。現在のプロジェクトを維持します。',

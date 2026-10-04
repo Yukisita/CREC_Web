@@ -1,5 +1,7 @@
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @{
-    ViewData["Title"] = "Project Edit";
+    var isNewProject = ViewData["IsNewProject"] is true;
+    ViewData["Title"] = isNewProject ? "New Project" : "Project Edit";
     Layout = "_Layout";
 }
 
@@ -50,20 +52,24 @@
 <div class="project-edit-container">
     <div class="project-edit-card">
         <div class="project-edit-header">
-            <h3 data-lang="edit-project"></h3>
+            <h3 data-lang="@(isNewProject ? "projects-create" : "edit-project")"></h3>
         </div>
 
-        <form id="projectEditForm" novalidate>
+        <form id="projectEditForm" data-new-project="@(isNewProject ? "true" : "false")" autocomplete="off" novalidate>
             <!-- Project Name -->
             <div class="mb-3">
                 <label for="editProjectName" class="form-label" data-lang="project-name"></label>
-                <input type="text" class="form-control" id="editProjectName" />
+                <input type="text" class="form-control" id="editProjectName" required="@isNewProject" />
             </div>
 
             <!-- Project Data Path (read-only) -->
             <div class="mb-3">
                 <label for="editProjectDataPath" class="form-label" data-lang="project-data-path"></label>
                 <input type="text" class="form-control" id="editProjectDataPath" readonly />
+                @if (isNewProject)
+                {
+                    <div class="form-text" data-lang="projects-create-location"></div>
+                }
             </div>
 
             <div class="section-label" data-lang="label-settings"></div>
@@ -110,8 +116,17 @@
                 <input type="text" class="form-control" id="editTag3Label" />
             </div>
 
+            @if (isNewProject)
+            {
+                <p class="form-text" data-lang="projects-create-help"></p>
+            }
+            <div id="projectEditError" class="alert alert-danger" role="alert" hidden></div>
             <div class="d-flex gap-2 mt-4">
                 <button type="submit" class="btn btn-primary" id="projectEditSaveBtn" data-lang="save"></button>
+                @if (isNewProject)
+                {
+                    <a href="/" class="btn btn-outline-secondary" data-lang="cancel"></a>
+                }
             </div>
         </form>
 
@@ -119,73 +134,5 @@
 </div>
 
 @section Scripts {
-    <script>
-        (async function initProjectEditPage() {
-            // Load current settings
-            try {
-                let settings;
-
-                if (typeof loadProjectSettings === 'function') {
-                    settings = await loadProjectSettings();
-                } else {
-                    const response = await fetch('/api/ProjectSettings');
-                    if (!response.ok) throw new Error('Failed to load settings');
-                    settings = await response.json();
-                }
-
-                document.getElementById('editProjectName').value = settings.projectName || '';
-                document.getElementById('editProjectDataPath').value = settings.projectDataPath || '';
-                document.getElementById('editCollectionNameLabel').value = settings.objectNameLabel || '';
-                document.getElementById('editUUIDLabel').value = settings.uuidName || '';
-                document.getElementById('editManagementCodeLabel').value = settings.managementCodeName || '';
-                document.getElementById('editCategoryLabel').value = settings.categoryName || '';
-                document.getElementById('editTag1Label').value = settings.tag1Name || '';
-                document.getElementById('editTag2Label').value = settings.tag2Name || '';
-                document.getElementById('editTag3Label').value = settings.tag3Name || '';
-            } catch (error) {
-                console.error('Error loading project settings:', error);
-            }
-
-            // Save handler
-            document.getElementById('projectEditForm').addEventListener('submit', async function (e) {
-                e.preventDefault();
-
-                const saveBtn = document.getElementById('projectEditSaveBtn');
-                saveBtn.disabled = true;
-
-                const payload = {
-                    projectName: document.getElementById('editProjectName').value,
-                    collectionNameLabel: document.getElementById('editCollectionNameLabel').value,
-                    uuidLabel: document.getElementById('editUUIDLabel').value,
-                    managementCodeLabel: document.getElementById('editManagementCodeLabel').value,
-                    categoryLabel: document.getElementById('editCategoryLabel').value,
-                    firstTagLabel: document.getElementById('editTag1Label').value,
-                    secondTagLabel: document.getElementById('editTag2Label').value,
-                    thirdTagLabel: document.getElementById('editTag3Label').value
-                };
-
-                try {
-                    const response = await fetch('/api/ProjectSettings', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (!response.ok) {
-                        const text = await response.text();
-                        throw new Error(text || `HTTP error! status: ${response.status}`);
-                    }
-
-                    alert(t('edit-project-success'));
-                    // サーバー側で補われたデフォルト値を入力欄へ反映するため、設定を読み込み直す
-                    window.location.reload();
-                } catch (error) {
-                    console.error('Error saving project settings:', error);
-                    alert(t('edit-project-error') + ': ' + error.message);
-                } finally {
-                    saveBtn.disabled = false;
-                }
-            });
-        })();
-    </script>
+    <script src="~/js/project-edit.js" asp-append-version="true"></script>
 }

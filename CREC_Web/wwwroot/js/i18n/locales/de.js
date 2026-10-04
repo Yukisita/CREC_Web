@@ -5,6 +5,13 @@ This software is released under the MIT License.
 */
 
 registerTranslations('de', {
+    'projects-create': 'Neues Projekt erstellen',
+    'projects-create-location': 'Beim Speichern werden das Projekt und ein leerer Datenordner im Ordner Projects der Anwendung erstellt.',
+    'projects-create-help': 'Leere Bezeichnungen verwenden die Standardwerte. Beim Speichern wird das Projekt für alle mit diesem Server verbundenen Ansichten gewechselt.',
+    'projects-create-discard': 'Das neue Projekt wurde noch nicht gespeichert. Eingaben verwerfen und die Seite verlassen?',
+    'projects-name-required': 'Geben Sie einen Projektnamen ein.',
+    'projects-create-failed': 'Das Projekt konnte nicht erstellt werden. Prüfen Sie die Zugriffsrechte und den freien Speicherplatz.',
+    'projects-create-error': 'Die Projekterstellung konnte nicht bestätigt werden. Ihre Eingaben bleiben erhalten. Prüfen Sie die Projektliste vor dem erneuten Speichern',
     'projects-open': 'Projekt öffnen',
     'projects-not-selected': 'Es ist kein Projekt ausgewählt. Bitte öffnen Sie ein Projekt.',
     'projects-current': 'Aktuelles Projekt',
@@ -13,7 +20,7 @@ registerTranslations('de', {
     'projects-refresh': 'Liste aktualisieren',
     'projects-reload': 'Neues Projekt anzeigen',
     'projects-confirm-impact': 'Das ausgewählte Projekt öffnen? Dies betrifft alle mit diesem Server verbundenen Browser, Tabs und Desktopfenster.',
-    'projects-discard': 'Es gibt ungespeicherte Eingaben oder einen laufenden Upload. Eingaben verwerfen und zum neuen Projekt wechseln?',
+    'projects-discard': 'Es gibt ungespeicherte Eingaben oder einen laufenden Upload. Eingaben verwerfen und diese Ansicht verlassen?',
     'projects-switching': 'Vor dem Projektwechsel wird auf laufende Speicherungen, Uploads und andere Anfragen gewartet…',
     'projects-already-current': 'Dieses Projekt ist bereits geöffnet.',
     'projects-missing': 'Der Ordner Projects auf dem Server fehlt. Das aktuelle Projekt bleibt geöffnet.',

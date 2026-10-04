@@ -17,6 +17,7 @@ public sealed class ProjectRequestMiddleware(RequestDelegate next)
         var isManagementRequest = request.Path.StartsWithSegments("/api/projects", StringComparison.OrdinalIgnoreCase);// 管理操作の要求かどうか
         var isStatusRequest = normalizedPath.Equals("/api/projects/status", StringComparison.OrdinalIgnoreCase);// 状態確認の要求かどうか
         var isSwitchRequest = normalizedPath.Equals("/api/projects/switch", StringComparison.OrdinalIgnoreCase);// 切り替え要求かどうか
+        var isCreateRequest = normalizedPath.Equals("/api/projects/create", StringComparison.OrdinalIgnoreCase);
         var isMutation = !HttpMethods.IsGet(request.Method) && !HttpMethods.IsHead(request.Method) && !HttpMethods.IsOptions(request.Method);// 変更を伴う要求かどうか
         var hasRequiredHeader = !isMutation || request.Headers["X-CREC-Request"] == "1";// 管理操作の要求は、外部サイトからのアクセスを拒否するためにカスタムヘッダーを要求する。
 
@@ -29,8 +30,8 @@ public sealed class ProjectRequestMiddleware(RequestDelegate next)
             return;
         }
 
-        // 状態確認は切り替え待ち中も可能にする。切り替え要求自身は完了待ちの対象に含めない。
-        if (isStatusRequest || isSwitchRequest)
+        // 状態確認は切り替え待ち中も可能にする。切り替え・作成要求自身は完了待ちの対象に含めない。
+        if (isStatusRequest || isSwitchRequest || isCreateRequest)
         {
             await next(context);
             return;
@@ -43,12 +44,15 @@ public sealed class ProjectRequestMiddleware(RequestDelegate next)
             revision = request.Query["projectRevision"].ToString();
         }
 
-        // ホーム画面と候補一覧は、プロジェクト未選択でも利用できる。
+        // ホーム画面・新規作成画面・候補一覧は、プロジェクト未選択でも利用できる。
         var isHomePage = HttpMethods.IsGet(request.Method)
             && string.Equals(request.RouteValues["controller"]?.ToString(), "Home", StringComparison.OrdinalIgnoreCase)
             && string.Equals(request.RouteValues["action"]?.ToString(), "Index", StringComparison.OrdinalIgnoreCase);
+        var isCreatePage = HttpMethods.IsGet(request.Method)
+            && string.Equals(request.RouteValues["controller"]?.ToString(), "ProjectEdit", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(request.RouteValues["action"]?.ToString(), "Create", StringComparison.OrdinalIgnoreCase);
         using var requestLease = runtime.TryEnter(revision, isMutation, out var error,
-            requireProject: !isHomePage && !isManagementRequest);
+            requireProject: !isHomePage && !isCreatePage && !isManagementRequest);
         if (requestLease is null)
         {
             // 未選択のまま詳細画面などを開いた場合は、プロジェクト選択へ案内する。

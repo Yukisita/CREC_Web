@@ -14,4 +14,11 @@ public class ProjectEditController : Controller
     {
         return View();
     }
+
+    [HttpGet("ProjectEdit/Create")]
+    public IActionResult Create()
+    {
+        ViewData["IsNewProject"] = true;
+        return View("Index");
+    }
 }
