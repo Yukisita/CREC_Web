@@ -10,6 +10,7 @@
     const dirtyInputs = new Set();// 保存した編集欄だけを確認対象から外す。
     let hasProjectChanged = false;
     let hasStartedNavigation = false;// 遷移後は定期確認を止める。
+    let hasStartedDesktopNavigation = false;// ファイル選択後、ホストが画面を閉じる間だけ警告を止める。
     let activeUploadCount = 0;// アップロード中も破棄確認を行う。
     const draftForm = document.querySelector('#projectEditForm[data-new-project="true"]');
     let hasUnsavedDraft = !!draftForm;
@@ -61,6 +62,22 @@
      * @returns {void} */
     function reload() {
         if (confirmDiscard()) navigateAfterSwitch();
+    }
+
+    /** デスクトップで画面を閉じる前に、破棄確認と離脱警告の解除を行う。
+     * @param {boolean} discardConfirmed ファイル選択前に破棄を承認済みか
+     * @returns {boolean} 画面を閉じてよい場合は true */
+    function prepareDesktopNavigation(discardConfirmed) {
+        if (!discardConfirmed && !confirmDiscard()) return false;
+        hasStartedDesktopNavigation = true;
+        return true;
+    }
+
+    /** 画面を閉じられなかった場合、下書きの警告と定期確認を再開する。
+     * @returns {boolean} 再開できた場合は true */
+    function cancelDesktopNavigation() {
+        hasStartedDesktopNavigation = false;
+        return true;
     }
 
     /** このアプリの API か確認する。
@@ -135,7 +152,7 @@
     /** 別画面での切り替えを検出する。
      * @returns {Promise<void>} 確認完了 */
     async function checkProject() {
-        if (hasProjectChanged || hasStartedNavigation) return;
+        if (hasProjectChanged || hasStartedNavigation || hasStartedDesktopNavigation) return;
         try {
             const response = await originalFetch('/api/projects/status', { cache: 'no-store' });
             if (response.ok && (await response.json()).revision !== revision) markStale();
@@ -146,6 +163,7 @@
 
     window.ProjectSession = Object.freeze({
         revision, hasProject, url, markStale, confirmDiscard, reload, saved, navigateAfterSwitch,
+        prepareDesktopNavigation, cancelDesktopNavigation,
         /** 画面の世代が古いか返す。
          * @returns {boolean} 切り替え検出済みなら true */
         isStale() { return hasProjectChanged; },
@@ -176,7 +194,7 @@
     window.addEventListener('pageshow', checkProject);
     // ブラウザバック・再読み込み・タブを閉じる操作にはブラウザー標準の警告を使う。
     window.addEventListener('beforeunload', event => {
-        if (!hasUnsavedDraft) return;
+        if (!hasUnsavedDraft || hasStartedDesktopNavigation) return;
         event.preventDefault();
         event.returnValue = '';
     });

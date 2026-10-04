@@ -115,7 +115,7 @@ public partial class MainWindow : Window
 
         if (dialog.ShowDialog(this) == true)
         {
-            await OpenProjectAsync(dialog.FileName);
+            await OpenProjectAsync(dialog.FileName, discardConfirmed: true);
         }
     }
 
@@ -168,9 +168,12 @@ public partial class MainWindow : Window
     /// </summary>
     /// <param name="projectPath">起動する .crec のパス。未選択なら null</param>
     /// <param name="preserveCurrentProject">停止直前のプロジェクトを引き継ぐか</param>
+    /// <param name="discardConfirmed">ファイル選択前に未保存入力の破棄を承認済みか</param>
     /// <returns>起動・画面表示の完了</returns>
-    private async Task OpenProjectAsync(string? projectPath, bool preserveCurrentProject = false)
+    private async Task OpenProjectAsync(string? projectPath, bool preserveCurrentProject = false, bool discardConfirmed = false)
     {
+        var previousTitle = Title;
+        var browserCleared = false;
         StartupErrorHost.Visibility = Visibility.Collapsed;
         try
         {
@@ -189,10 +192,19 @@ public partial class MainWindow : Window
                 return;
             }
 
+            // ファイル選択のキャンセル・入力エラーでは警告を維持する。
+            // 確認は WebView を隠す前に済ませ、空白ページへの遷移待ちに含めない。
+            SetLauncherControlsEnabled(false);
+            if (!await PrepareBrowserNavigationAsync(discardConfirmed))
+                return;
+            if (_closeRequested)
+                return;
+
             ShowLoadingState(fullProjectPath);
 
             // 古い画面の監視・通信を終了してから、サーバーの世代を切り替える。
             await ClearBrowserAsync();
+            browserCleared = true;
             if (_closeRequested)
                 return;
 
@@ -231,16 +243,51 @@ public partial class MainWindow : Window
             {
                 return;
             }
-            BrowserHost.Visibility = Visibility.Collapsed;
+            var canRestoreBrowser = false;
+            if (!browserCleared && Browser.CoreWebView2 is { } browser && IsCurrentAppPage(browser.Source))
+            {
+                // 遷移失敗時に、元の画面と下書きへ戻れるようにする。
+                try
+                {
+                    browser.Stop();
+                    canRestoreBrowser = await browser.ExecuteScriptAsync(
+                        "window.ProjectSession?.cancelDesktopNavigation()") == "true";
+                }
+                catch
+                {
+                    // WebView 自体が使えない場合も、元の切り替えエラーを表示する。
+                }
+            }
+            BrowserHost.Visibility = canRestoreBrowser ? Visibility.Visible : Visibility.Collapsed;
             LoadingHost.Visibility = Visibility.Collapsed;
-            StartupErrorHost.Visibility = Visibility.Visible;
+            StartupErrorHost.Visibility = canRestoreBrowser ? Visibility.Collapsed : Visibility.Visible;
             Title = "CREC Desktop";
             MessageBox.Show(this, ex.Message, "CREC Desktop", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {
             HideLoadingState();
+            if (!browserCleared && _webServerHost.IsRunning)
+            {
+                PublishCheckBox.IsChecked = _currentPublishToNetwork;
+                Title = previousTitle;
+            }
         }
+    }
+
+    /// <summary>元の画面で破棄を確認し、承認後の離脱警告と定期確認を止める。</summary>
+    /// <param name="discardConfirmed">ファイル選択前に破棄を承認済みか</param>
+    /// <returns>画面を閉じてよい場合は true。未初期化・アプリ外の画面では確認不要。</returns>
+    private async Task<bool> PrepareBrowserNavigationAsync(bool discardConfirmed)
+    {
+        var browser = Browser.CoreWebView2;
+        if (browser is null || !IsCurrentAppPage(browser.Source))
+            return true;
+
+        var confirmed = discardConfirmed ? "true" : "false";
+        var result = await browser.ExecuteScriptAsync(
+            $"window.ProjectSession?.prepareDesktopNavigation({confirmed}) ?? true");
+        return result == "true";
     }
 
     /// <summary>空白ページへの遷移完了を待ち、切り替え前の画面を終了する。</summary>
