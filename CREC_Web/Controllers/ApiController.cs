@@ -747,14 +747,7 @@ public class FilesController : ControllerBase
             Response.Headers["Cache-Control"] = "public, max-age=3600";
 
             // Range 対応を有効化（動画/大きな画像で有用）
-            return PhysicalFile(
-                filePath,
-                contentType,
-                fileDownloadName: null,
-                lastModified: null,
-                entityTag: null,
-                enableRangeProcessing: true
-            );
+            return PhysicalFile(filePath, contentType, enableRangeProcessing: true);
         }
         catch (Exception ex)
         {

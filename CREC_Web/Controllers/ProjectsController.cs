@@ -1,4 +1,5 @@
 using CREC_Web.Services;
+using CREC_Web.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CREC_Web.Controllers;
@@ -18,7 +19,7 @@ public sealed class ProjectsController(ProjectRuntime runtime, ProjectCatalogSer
     public IActionResult Status()
     {
         var state = runtime.Current;
-        return Ok(new { state.Revision, state.Name });
+        return Ok(new ProjectInfo(state.Revision, state.Name, state.HasProject));
     }
 
     /// <summary>Projects 内の候補と、選択できない場合の理由を取得する。</summary>

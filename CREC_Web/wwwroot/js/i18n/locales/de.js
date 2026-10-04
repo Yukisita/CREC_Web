@@ -239,6 +239,20 @@ registerTranslations('de', {
     'tag2-label': 'Tag2-Beschriftung',
     'tag3-label': 'Tag3-Beschriftung',
     'edit-project-success': 'Projekteinstellungen erfolgreich gespeichert',
-    'edit-project-error': 'Fehler beim Speichern der Projekteinstellungen'
+    'edit-project-error': 'Fehler beim Speichern der Projekteinstellungen',
+    'chat-title': 'KI-Assistent',
+    'chat-placeholder': 'Nachricht eingeben...',
+    'chat-welcome': 'Hallo! Ich bin der Support-Assistent von CREC Web. Bei Fragen zur Verwendung oder Wünschen nach bestimmten Aktionen helfe ich gerne weiter.',
+    'chat-thinking': 'Denke nach...',
+    'chat-error': 'Ein Fehler ist aufgetreten. Bitte erneut versuchen.',
+    'chat-error-empty-response': 'Die Antwort war leer. Bitte erneut versuchen.',
+    'chat-error-network': 'Der KI-Server ist nicht erreichbar. Bitte Netzwerkverbindung prüfen.',
+    'chat-error-server': 'Auf dem KI-Server ist ein Fehler aufgetreten. Bitte später erneut versuchen.',
+    'chat-error-timeout': 'Die KI-Antwort hat zu lange gedauert. Bitte erneut versuchen.',
+    "chat-invalid-actions": "Der Aktionsplan war ungültig. Es wurden keine Aktionen ausgeführt. Bitte prüfen Sie Ihre Anfrage.",
+    "chat-deletion-blocked": "Die KI kann Sammlungen nicht löschen. Bitte verwenden Sie die Schaltfläche auf der Seite.",
+    "chat-operation-failed": "Der Vorgang ist fehlgeschlagen. Weitere Aktionen wurden gestoppt.",
+    "chat-operation-completed": "Der Vorgang wurde abgeschlossen.",
+    "chat-actions-planned": "Ich führe den gewünschten Vorgang aus."
 });
 

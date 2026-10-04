@@ -1,0 +1,29 @@
+<!-- AI Chat Toggle Button -->
+<button type="button" class="chat-toggle-btn" id="chatToggleBtn" aria-label="AI Chat">
+    <i class="bi bi-chat-dots-fill"></i>
+</button>
+
+<!-- AI Chat Panel -->
+<div class="chat-panel" id="chatPanel" role="dialog" aria-label="AI Chat">
+    <div class="chat-panel-header">
+        <img src="/images/LlmIcon.png" alt="AI" class="chat-header-icon" />
+        <h6 data-lang="chat-title"></h6>
+        <button type="button" class="chat-header-btn" id="chatClearBtn" aria-label="Clear history">
+            <i class="bi bi-trash3-fill"></i>
+        </button>
+        <button type="button" class="chat-header-btn" id="chatCloseBtn" aria-label="Close chat">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+    <div class="chat-messages" id="chatMessages" role="log" aria-live="polite">
+        <!-- Messages are appended by chat.js -->
+    </div>
+    <div class="chat-panel-footer">
+        <textarea class="chat-input" id="chatInput" rows="1"
+                  data-lang-placeholder="chat-placeholder"
+                  aria-label="Chat input"></textarea>
+        <button type="button" class="chat-send-btn" id="chatSendBtn" aria-label="Send message">
+            <i class="bi bi-send-fill"></i>
+        </button>
+    </div>
+</div>

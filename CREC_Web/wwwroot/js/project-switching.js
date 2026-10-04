@@ -85,9 +85,9 @@ document.addEventListener('DOMContentLoaded', function initializeProjectPicker()
     }
 
     /** 前回の選択を破棄し、最新の候補を取得する。
-     * @returns {Promise<void>} 一覧の取得・描画の完了 */
+     * @returns {Promise<boolean>} 一覧の取得・描画に成功した場合は true */
     async function loadProjects() {
-        if (isLoading) return;
+        if (isLoading) return false;
         isLoading = true;
         resetSelection();
         candidateList.replaceChildren();
@@ -96,10 +96,15 @@ document.addEventListener('DOMContentLoaded', function initializeProjectPicker()
             const response = await fetch('/api/projects');
             if (!response.ok) throw new Error('projects-list-failed');
             const result = await response.json();
-            if (result.errorCode) showStatus(result.errorCode);
-            else renderProjects(result.projects);
+            if (result.errorCode) {
+                showStatus(result.errorCode);
+                return false;
+            }
+            renderProjects(result.projects);
+            return true;
         } catch {
             showStatus(ProjectSession.isStale() ? 'projects-stale' : 'projects-list-failed');
+            return false;
         } finally {
             isLoading = false;
         }
@@ -141,12 +146,15 @@ document.addEventListener('DOMContentLoaded', function initializeProjectPicker()
     /** 選択画面を開き、候補を取得する。
      * @returns {void} */
     document.querySelectorAll('[data-project-open]').forEach(button => {
-        button.addEventListener('click', () => {
+        button.chatAction = async () => {
             modal.show();
-            loadProjects();
-        });
+            return await loadProjects();
+        };
+        button.addEventListener('click', button.chatAction);
     });
-    document.getElementById('refreshProjectsBtn').addEventListener('click', loadProjects);
+    const refreshButton = document.getElementById('refreshProjectsBtn');
+    refreshButton.chatAction = loadProjects;
+    refreshButton.addEventListener('click', loadProjects);
     document.getElementById('cancelProjectSelectionBtn').addEventListener('click', resetSelection);
 
     /** 切り替え結果が確定するまで画面を閉じない。

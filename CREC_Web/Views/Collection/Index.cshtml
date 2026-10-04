@@ -414,8 +414,8 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"></button>
-                <button type="button" class="btn btn-primary" id="saveInventoryOperation"></button>
+                <button type="button" class="btn btn-secondary" id="inventoryOperationCancel" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn btn-primary" id="inventoryOperationSave"></button>
             </div>
         </div>
     </div>
@@ -444,8 +444,8 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"></button>
-                <button type="button" class="btn btn-primary" id="saveInventoryManagementSettings"></button>
+                <button type="button" class="btn btn-secondary" id="inventoryManagementSettingsCancel" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn btn-primary" id="inventoryManagementSettingsSave"></button>
             </div>
         </div>
     </div>
@@ -529,6 +529,17 @@
                 }
                 const collection = await response.json();
                 currentCollection = collection;
+
+                // チャットAIがコレクションページのコンテキストを参照できるようにwindowに公開
+                window.currentPageCollection = {
+                    id: collection.indexData.systemData.id,
+                    name: collection.indexData.values.name,
+                    url: `/Collection/${encodeURIComponent(collection.indexData.systemData.id)}`,
+                    inventory: collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : undefined,
+                    managementCode: collection.indexData.values.managementCode || undefined,
+                    category: collection.indexData.values.category || undefined,
+                    location: collection.indexData.values.location || undefined
+                };
 
 				// コレクションの詳細を表示(左パネル)
                 displayCollectionDetails(collection);
@@ -1222,7 +1233,7 @@
             // 保存ボタンのイベントリスナ
             const saveButton = document.getElementById('saveIndexEdit');
             saveButton.onclick = null;
-            saveButton.onclick = async () => {
+            saveButton.chatAction = saveButton.onclick = async () => {
                 const name = document.getElementById('editName').value;
                 const managementCode = document.getElementById('editManagementCode').value;
                 const registrationDateInput = document.getElementById('editRegistrationDate').value;
@@ -1235,7 +1246,7 @@
                 // バリデーション: 名前は必須
                 if (!name || name.trim() === '') {
                     alert(t('name-required'));
-                    return;
+                    return false;
                 }
                 
                 // 日付をUTC ISO文字列に変換
@@ -1244,7 +1255,7 @@
                     const date = new Date(registrationDateInput);
                     if (isNaN(date.getTime())) {
                         alert(t('invalid-date'));
-                        return;
+                        return false;
                     }
                     registrationDate = date.toISOString();
                 }
@@ -1272,13 +1283,16 @@
                         ProjectSession.saved(document.getElementById('editIndexModal'));
                         modal.hide();
                         // ページをリロードして最新の情報を表示
-                        loadCollectionDetails();
+                        await loadCollectionDetails();
+                        return true;
                     } else {
                         alert(t('edit-error'));
+                        return false;
                     }
                 } catch (error) {
                     console.error('Error saving index:', error);
                     alert(t('edit-error'));
+                    return false;
                 }
             };
         }
@@ -1300,7 +1314,9 @@
                     <div class="detail-section" style="flex: 1.5;">
                         <h6>
                             <p style="font-size: 1.5rem; font-weight: 600; margin: 0;">${t('inventory')}</p>
-                            <p style="font-size: 1.5rem; font-weight: 600; margin: 0;">${collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : t('not-set')}</p>
+                            <p style="font-size: 1.5rem; font-weight: 600; margin: 0;"
+                               data-chat-label="current inventory count"
+                               data-chat-value="${collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : ''}">${collection.collectionCurrentInventory !== null ? collection.collectionCurrentInventory : t('not-set')}</p>
                         </h6>
                         <button id="inventoryOperationBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
                             <i class="bi bi-pencil-square"></i> ${t('inventory-operation')}
@@ -1310,7 +1326,9 @@
                     <div class="detail-section" style="flex: 1;">
                         <h6>
                             <p style="font-size: 1.5rem; font-weight: 600;">${t('inventory-status')}
-                            <p><span class="badge ${inventoryBadgeClass}">${inventoryStatusText}</span></p>
+                            <p><span class="badge ${inventoryBadgeClass}"
+                                     data-chat-label="inventory status"
+                                     data-chat-value="${inventoryStatusText}">${inventoryStatusText}</span></p>
                         </h6>
                         <button id="inventoryManagementSettingsBtn" class="btn btn-sm btn-primary ms-2" style="font-size: 0.8em;">
                             <i class="bi bi-pencil-square"></i> ${t('inventory-management-settings')}
@@ -1427,7 +1445,7 @@
             
             // ボタンのテキスト設定
             document.querySelector('#inventoryOperationModal .btn-secondary').textContent = t('cancel');
-            document.getElementById('saveInventoryOperation').textContent = t('save');
+            document.getElementById('inventoryOperationSave').textContent = t('save');
             
             // フォームをリセット
             document.getElementById('operationQuantity').value = '';
@@ -1436,7 +1454,8 @@
             modal.show();
             
             // 保存ボタンのイベントリスナ
-            document.getElementById('saveInventoryOperation').onclick = async () => {
+            const saveButton = document.getElementById('inventoryOperationSave');
+            saveButton.chatAction = saveButton.onclick = async () => {
                 const type = parseInt(document.getElementById('operationType').value);
                 const quantity = parseInt(document.getElementById('operationQuantity').value);
                 const comment = document.getElementById('operationComment').value;
@@ -1444,22 +1463,22 @@
                 // バリデーション
                 if (isNaN(quantity)) {
                     alert(t('invalid-number'));
-                    return;
+                    return false;
                 }
                 
                 if (!Number.isSafeInteger(quantity)) {
                     alert(t('quantity-validation-overflow'));
-                    return;
+                    return false;
                 }
                 
                 if (type === 0 && quantity <= 0) {
                     alert(t('quantity-validation-entry'));
-                    return;
+                    return false;
                 }
                 
                 if (type === 1 && quantity >= 0) {
                     alert(t('quantity-validation-exit'));
-                    return;
+                    return false;
                 }
                 
                 try {
@@ -1480,13 +1499,16 @@
                         ProjectSession.saved(document.getElementById('inventoryOperationModal'));
                         modal.hide();
                         // ページをリロードして最新の在庫を表示
-                        loadCollectionDetails();
+                        await loadCollectionDetails();
+                        return true;
                     } else {
                         alert(t('operation-error'));
+                        return false;
                     }
                 } catch (error) {
                     console.error('Error saving inventory operation:', error);
                     alert(t('operation-error'));
+                    return false;
                 }
             };
         }
@@ -1504,7 +1526,7 @@
             
             // ボタンのテキスト設定
             document.querySelector('#inventoryManagementSettingsModal .btn-secondary').textContent = t('cancel');
-            document.getElementById('saveInventoryManagementSettings').textContent = t('save');
+            document.getElementById('inventoryManagementSettingsSave').textContent = t('save');
             
             // 現在の設定値を表示
             document.getElementById('safetyStock').value = collection.inventoryData?.setting?.safetyStock ?? '';
@@ -1514,7 +1536,8 @@
             modal.show();
             
             // 保存ボタンのイベントリスナ
-            document.getElementById('saveInventoryManagementSettings').onclick = async () => {
+            const saveButton = document.getElementById('inventoryManagementSettingsSave');
+            saveButton.chatAction = saveButton.onclick = async () => {
                 const safetyStock = document.getElementById('safetyStock').value;
                 const reorderPoint = document.getElementById('reorderPoint').value;
                 const maximumLevel = document.getElementById('maximumLevel').value;
@@ -1529,14 +1552,14 @@
                     (reorderPointValue !== null && isNaN(reorderPointValue)) ||
                     (maximumLevelValue !== null && isNaN(maximumLevelValue))) {
                     alert(t('invalid-number'));
-                    return;
+                    return false;
                 }
                 
                 if ((safetyStockValue !== null && !Number.isSafeInteger(safetyStockValue)) ||
                     (reorderPointValue !== null && !Number.isSafeInteger(reorderPointValue)) ||
                     (maximumLevelValue !== null && !Number.isSafeInteger(maximumLevelValue))) {
                     alert(t('safe-integer-overflow'));
-                    return;
+                    return false;
                 }
                 
                 try {
@@ -1557,13 +1580,16 @@
                         ProjectSession.saved(document.getElementById('inventoryManagementSettingsModal'));
                         modal.hide();
                         // ページをリロードして最新の在庫状況を表示
-                        loadCollectionDetails();
+                        await loadCollectionDetails();
+                        return true;
                     } else {
                         alert(t('operation-error'));
+                        return false;
                     }
                 } catch (error) {
                     console.error('Error saving inventory settings:', error);
                     alert(t('operation-error'));
+                    return false;
                 }
             };
         }
@@ -1587,7 +1613,7 @@
         });
 
         // ページ読み込み時の処理
-        document.addEventListener('DOMContentLoaded', async () => {
+        async function initializeCollectionPage() {
 			// タイトルを読み込み中として設定
             document.getElementById('collectionTitle').textContent = t('loading');
             document.getElementById('historyTitle').textContent = t('loading');
@@ -1628,6 +1654,10 @@
                 history.replaceState(null, '', url.toString());
                 openEditIndexModal(currentCollection);
             }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            window.crecPageReady = initializeCollectionPage();
         });
     </script>
 }

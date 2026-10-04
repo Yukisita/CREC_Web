@@ -377,9 +377,11 @@
 
                 displaySearchResults(result);
                 updatePagination(result);
+                return true;
             } catch (error) {
                 console.error('Error searching collections:', error);
                 showError(t('error-loading') + ': ' + error.message);
+                return false;
             } finally {
                 showLoading(false);
             }
@@ -715,6 +717,8 @@
         function createCollectionCard(collection) {
             const colDiv = document.createElement('div');
             colDiv.className = 'col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2 mb-4';
+            colDiv.dataset.collectionId = collection.indexData?.systemData?.id || '';
+            colDiv.dataset.collectionName = collection.indexData?.values?.name || '';
 
             const inventoryStatusText = getInventoryStatusText(
                 collection.collectionInventoryStatus,
@@ -822,11 +826,15 @@
 
                 const collection = await response.json();
                 displayCollectionOverviewPanel(collection);
+                return true;
             } catch (error) {
                 console.error('Error loading collection overview:', error);
                 alert(t('error-loading') + ': ' + error.message);
+                return false;
             }
         }
+        // Expose to chat.js (AI chat panel openCollectionByName / showCollectionPanel actions)
+        window.showCollectionOverview = showCollectionOverview;
 
         /**
          * コレクションの概要パネルに情報を表示する
@@ -1489,6 +1497,8 @@
                 cancelBtn.onclick = closeInventoryOperationModal;
             }
 
+            document.getElementById('inventoryOperationSave').chatAction = saveInventoryOperation;
+
             // フォーム送信ハンドラ
             form.onsubmit = async (e) => {
                 e.preventDefault();
@@ -1532,7 +1542,7 @@
             if (saveButton) {
                 saveButton.disabled = true;
             } else {
-                return;
+                return false;
             }
 
             const operationType = document.getElementById('operationType');
@@ -1543,7 +1553,7 @@
 
             if (!operationType || !operationQuantity || !currentInventoryCollectionId) {
                 saveButton.disabled = false;
-                return;
+                return false;
             }
 
             const type = parseInt(operationType.value);
@@ -1555,20 +1565,20 @@
                 operationQuantity.classList.add('is-invalid');
                 validationMessage.textContent = t('quantity-validation-overflow');
                 saveButton.disabled = false;
-                return;
+                return false;
             }
             // バリデーション: 入庫は正の数、出庫は負の数
             if (type === 0 && quantity <= 0) {
                 operationQuantity.classList.add('is-invalid');
                 validationMessage.textContent = t('quantity-validation-entry');
                 saveButton.disabled = false;
-                return;
+                return false;
             }
             if (type === 1 && quantity >= 0) {
                 operationQuantity.classList.add('is-invalid');
                 validationMessage.textContent = t('quantity-validation-exit');
                 saveButton.disabled = false;
-                return;
+                return false;
             }
 
             try {
@@ -1599,10 +1609,12 @@
 
                 // 成功したらモーダルを閉じる
                 closeInventoryOperationModal();
+                return true;
             } catch (error) {
                 console.error('Error saving inventory operation:', error);
                 errorElement.textContent = t('operation-error') + ': ' + error.message;
                 errorElement.style.display = 'block';
+                return false;
             } finally {
                 saveButton.disabled = false;
             }
@@ -1685,6 +1697,8 @@
             if (cancelBtn) {
                 cancelBtn.onclick = closeInventoryManagementSettingsModal;
             }
+
+            document.getElementById('inventoryManagementSettingsSave').chatAction = saveInventoryManagementSettings;
 
             // フォーム送信ハンドラ
             form.onsubmit = async (e) => {
@@ -1840,7 +1854,7 @@
             if (saveButton) {
                 saveButton.disabled = true;
             } else {
-                return;
+                return false;
             }
 
             const safetyStockElement = document.getElementById('safetyStock');
@@ -1853,7 +1867,7 @@
 
             if (!currentInventoryCollectionId) {
                 saveButton.disabled = false;
-                return;
+                return false;
             }
             const safetyStock = safetyStockElement && safetyStockElement.value ? parseInt(safetyStockElement.value) : null;
             const reorderPoint = reorderPointElement && reorderPointElement.value ? parseInt(reorderPointElement.value) : null;
@@ -1911,7 +1925,7 @@
             }
             if (!isValid) {
                 saveButton.disabled = false;
-                return;
+                return false;
             }
 
             try {
@@ -1938,6 +1952,7 @@
 
                 // 成功したらモーダルを閉じる
                 closeInventoryManagementSettingsModal();
+                return true;
             }
             catch (error) {
                 console.error('Error saving inventory management settings:', error);
@@ -1945,6 +1960,7 @@
                     errorElement.textContent = error.message;
                     errorElement.style.display = 'block';
                 }
+                return false;
             } finally {
                 saveButton.disabled = false;
             }

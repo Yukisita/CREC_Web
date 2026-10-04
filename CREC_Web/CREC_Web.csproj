@@ -4,8 +4,13 @@
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     <CopyToPublishDirectory>Always</CopyToPublishDirectory>
   </Content>
+  <Content Include="Prompts\ChatSystem.txt">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+  </Content>
 </ItemGroup>
 <ItemGroup>
+  <PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.2.0" />
   <PackageReference Include="SkiaSharp" Version="3.119.2" />
 </ItemGroup>
   <PropertyGroup>

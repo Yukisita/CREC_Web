@@ -264,7 +264,6 @@ public class CrecDataService
                 _logger.LogDebug($"Found thumbnail: {systemDataThumbnail}");
             }
 
-            var files = Directory.GetFiles(directoryPath);
             var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" };
 
             // picturesフォルダから画像を読み込む

@@ -116,7 +116,7 @@ function getCurrentCollectionId() {
 
 // DOMContentLoaded イベントで初期化
 document.addEventListener('DOMContentLoaded', function () {
-    initializeApp();
+    window.crecAppReady = initializeApp();
 });
 
 // UI 言語の更新
@@ -138,6 +138,15 @@ function updateUILanguage() {
 
         if (translation) {
             element.textContent = translation;
+        }
+    });
+
+    // Update placeholder for elements with data-lang-placeholder attribute
+    document.querySelectorAll('[data-lang-placeholder]').forEach(element => {
+        const key = element.getAttribute('data-lang-placeholder');
+        const translation = translations[lang]?.[key];
+        if (translation !== undefined) {
+            element.placeholder = translation;
         }
     });
 }
@@ -229,7 +238,8 @@ async function initializeApp() {
 }
 
 // API からプロジェクト設定を読み込む
-async function loadProjectSettings() {
+async function loadProjectSettings(forceReload = false) {
+    if (forceReload) projectSettingsLoadPromise = null;
     if (projectSettingsLoadPromise) {
         return projectSettingsLoadPromise;
     }
@@ -237,6 +247,7 @@ async function loadProjectSettings() {
     projectSettingsLoadPromise = (async () => {
         try {
             const response = await fetch('/api/ProjectSettings');
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             if (response.ok) {
                 const settings = await response.json();
                 projectSettings = {
@@ -263,6 +274,7 @@ async function loadProjectSettings() {
                 });
             }
         } catch (error) {
+            if (forceReload) throw error;
             console.warn('Could not load project settings, using defaults:', error);
             // 既に初期化されたデフォルト値を保持
         }

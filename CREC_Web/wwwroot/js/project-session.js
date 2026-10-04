@@ -20,9 +20,11 @@
     /** 入力を残して再読み込みを案内する。
      * @returns {void} */
     function markStale() {
+        if (hasProjectChanged) return;
         hasProjectChanged = true;
         const notice = document.getElementById('projectChangedNotice');
         if (notice) notice.hidden = false;
+        document.dispatchEvent(new Event('crec-project-stale'));
     }
 
     /** 未保存入力とアップロードの破棄を確認する。
@@ -120,7 +122,7 @@
      * @returns {void} */
     function trackEdit(event) {
         const input = event.target;
-        if (input.closest('#projectSwitchModal, .search-filters')) return;
+        if (input.closest('#projectSwitchModal, #chatPanel, .search-filters')) return;
         const isEditable = event.type === 'input'
             ? input.matches('input, textarea, select') && !input.readOnly
             : input.matches('select, input[type="file"], input[type="checkbox"]');
