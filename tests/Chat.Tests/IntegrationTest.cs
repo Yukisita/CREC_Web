@@ -8,14 +8,35 @@ using CREC_Web.Services;
 using CREC_Web.Services.Chat;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 internal static class IntegrationTest
 {
-    // The Python harness starts the real MCP server with a deterministic LLM endpoint.
-    public static async Task<int> RunAsync(string mcpUrl)
+    // Both listeners are local and all project files are temporary.
+    public static async Task<int> RunAsync()
     {
+        var backendBuilder = WebApplication.CreateBuilder();
+        backendBuilder.WebHost.UseUrls("http://127.0.0.1:0");
+        backendBuilder.Logging.ClearProviders();
+        await using var backend = backendBuilder.Build();
+        backend.MapPost("/v1/chat/completions", (JsonElement payload) =>
+        {
+            if (payload.GetProperty("response_format").GetProperty("type").GetString() != "json_schema")
+                return Results.BadRequest();
+            var messages = payload.GetProperty("messages");
+            var instruction = messages[messages.GetArrayLength() - 1].GetProperty("content").GetString()!.Split("\n\nUser request:\n").Last();
+            var content = instruction switch
+            {
+                "plan" => """{"text":"I will search.","actions":[{"type":"fillInput","id":"searchText","value":"カメラ"},{"type":"clickButton","id":"searchButton"}]}""",
+                "invalid-plan" => """{"text":"I will save.","actions":[{"type":"fillInput","id":"unknown","value":"bad"},{"type":"clickButton","id":"saveIndexEdit"}]}""",
+                "delete" => """{"text":"Delete.","actions":[{"type":"clickButton","id":"deleteCollectionBtn"}]}""",
+                _ => """{"text":"This is a collection manager.","actions":[]}"""
+            };
+            return Results.Json(new { choices = new[] { new { finish_reason = "stop", message = new { role = "assistant", content } } } });
+        });
+        await backend.StartAsync();
         var directory = Directory.CreateTempSubdirectory("crec-chat-projects-");
         try
         {
@@ -27,25 +48,26 @@ internal static class IntegrationTest
                 await File.WriteAllTextAsync(Path.Combine(directory.FullName, name + ".crec"),
                     JsonSerializer.Serialize(new { projectSettings = new { projectName = name, projectLocation = data }, labelSettings = labels }));
             }
-            return await RunHostAsync(mcpUrl, directory.FullName);
+            return await RunHostAsync(backend.Urls.Single() + "/v1/", directory.FullName);
         }
         finally
         {
             Directory.Delete(directory.FullName, recursive: true);
+            await backend.StopAsync();
         }
     }
 
-    private static async Task<int> RunHostAsync(string mcpUrl, string projectsRoot)
+    private static async Task<int> RunHostAsync(string llmUrl, string projectsRoot)
     {
-        var builder = WebApplication.CreateBuilder();
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions { ContentRootPath = Path.GetFullPath("CREC_Web") });
         builder.Configuration["CrecFilePath"] = null;
         builder.Configuration["ProjectDataPath"] = null;
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Logging.ClearProviders();
         builder.Services.AddControllers().AddApplicationPart(typeof(ChatController).Assembly);
-        builder.Services.Configure<McpClientOptions>(options => { options.Url = mcpUrl; options.TimeoutSeconds = 10; });
-        builder.Services.AddHttpClient(McpChatClient.HttpClientName, client => client.Timeout = Timeout.InfiniteTimeSpan);
-        builder.Services.AddSingleton<IMcpChatClient, McpChatClient>();
+        builder.Services.Configure<ChatOptions>(options => { options.BaseUrl = llmUrl; options.Model = "test-model"; options.TimeoutSeconds = 10; });
+        builder.Services.AddHttpClient(ChatService.HttpClientName, client => client.Timeout = Timeout.InfiniteTimeSpan);
+        builder.Services.AddSingleton<IChatService, ChatService>();
         builder.Services.AddSingleton<ProjectSettingsService>();
         builder.Services.AddSingleton<CrecDataService>();
         builder.Services.AddSingleton(new ProjectCatalogService(projectsRoot));
@@ -85,7 +107,7 @@ internal static class IntegrationTest
                     throw new Exception($"Invalid integration response for {message}.");
                 if (message == "plan" && reply.Actions[0].GetProperty("value").GetString() != "カメラ")
                     throw new Exception("Unicode action value was lost in transit.");
-                Console.WriteLine($"PASS Web API -> MCP -> LLM -> structured response: {message}");
+                Console.WriteLine($"PASS Web API -> LLM -> validated response: {message}");
             }
             using var invalid = await client.PostAsJsonAsync("/api/Chat", new ChatRequest());
             if (invalid.StatusCode != HttpStatusCode.BadRequest) throw new Exception("Empty message was accepted.");

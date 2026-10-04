@@ -3,9 +3,8 @@ CREC Web - AI Chat Support
 Copyright (c) [2025 - 2026] [S.Yukisita]
 This software is released under the MIT License.
 
-Chat requests are handled by the CREC Web server (/api/Chat), which forwards
-them to the Python MCP server's process_chat tool.  The MCP server calls the
-configured LLM backend and returns a validated AI response.
+The CREC Web server (/api/Chat) calls the configured LLM backend directly
+and returns display text with a validated browser operation plan.
 */
 
 const CHAT_HISTORY_MAX           = 20;   // Maximum messages to keep in context
@@ -108,8 +107,7 @@ function renderChatMarkdown(text) {
 }
 
 /**
- * Send a chat message to the C# backend (/api/Chat), which forwards it to
- * the Python MCP server's process_chat tool.
+ * Send a chat message and page data to the C# backend (/api/Chat).
  * @param {string} userText - User's message
  * @returns {Promise<{error: boolean, text?: string, message?: string}>}
  */

@@ -12,7 +12,7 @@ namespace CREC_Web.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ChatController(IMcpChatClient chatClient, ILogger<ChatController> logger) : ControllerBase
+public class ChatController(IChatService chatService, ILogger<ChatController> logger) : ControllerBase
 {
     [HttpPost]
     public async Task<IActionResult> Chat([FromBody] ChatRequest request, CancellationToken cancellationToken)
@@ -22,7 +22,7 @@ public class ChatController(IMcpChatClient chatClient, ILogger<ChatController> l
 
         try
         {
-            var response = await chatClient.ProcessChatAsync(request, cancellationToken);
+            var response = await chatService.ProcessChatAsync(request, cancellationToken);
             return response == null ? Ok(new { error = "empty_response" }) : Ok(response);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -31,17 +31,17 @@ public class ChatController(IMcpChatClient chatClient, ILogger<ChatController> l
         }
         catch (OperationCanceledException ex)
         {
-            logger.LogWarning(ex, "MCP chat request timed out");
+            logger.LogWarning(ex, "AI chat request timed out");
             return StatusCode(504, new { error = "timeout" });
         }
         catch (HttpRequestException ex)
         {
-            logger.LogWarning(ex, "Failed to connect to MCP server");
-            return StatusCode(503, new { error = "server_unavailable" });
+            logger.LogWarning(ex, "AI backend request failed");
+            return StatusCode(ex.StatusCode.HasValue ? 502 : 503, new { error = "server_unavailable" });
         }
-        catch (McpException ex)
+        catch (ChatException ex)
         {
-            logger.LogWarning(ex, "Invalid MCP chat response");
+            logger.LogWarning(ex, "Invalid AI chat response");
             return StatusCode(502, new { error = "invalid_response" });
         }
     }

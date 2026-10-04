@@ -1,351 +1,139 @@
 # CREC Web AI 操作リファレンス
 
-AIチャットウィジェットが実行できる操作の完全リファレンスです。  
-サーバ側のシステムプロンプトは `CREC_MCPServer/prompts/system_prompt.txt` で管理されています。詳細な操作リファレンスはこのドキュメントを参照してください。
+チャットは `ChatService` がLLMへ直接問い合わせ、`ChatActionPolicy` が検証した操作計画をブラウザで実行します。
+接続設定と設計は [AIチャット](../../docs/ai-chat.md)、プロンプトは `ChatSystem.txt` を参照してください。
 
----
+## 応答形式
+
+モデルは `text` と `actions` を持つJSONを返します。
+
+```json
+{
+  "text": "カメラを検索します。",
+  "actions": [{ "type": "search", "text": "カメラ" }]
+}
+```
+
+Web APIはこれにサーバーが設定する `warning` を付けます。表示文は操作として解釈しません。
+以下のワークフローのJSON配列は `actions` の内容です。
 
 ## アクション一覧
 
-### `search` — キーワード検索
+| type | 引数 | 動作 |
+| --- | --- | --- |
+| `search` | `text` | ホームページで検索。キーワードは翻訳しない |
+| `openCollectionByName` | `name` | 表示中の名前に一致するコレクションの概要を開く |
+| `navigateToCollectionByName` | `name` | 表示中のコレクションの詳細へ移動 |
+| `showCollectionPanel` | `id` | IDで概要を開く。ホーム以外では詳細へ移動 |
+| `showAdminPanel` | なし | 管理パネルを開く |
+| `createNewCollection` | なし | 作成後に詳細へ移動し、編集モーダルを開く |
+| `navigateHome` | なし | ホームへ移動 |
+| `navigate` | `path` | 同一オリジンのパスへ移動。外部URLは禁止 |
+| `clickButton` | `id` | 許可されたボタンを実行 |
+| `fillInput` | `id`, `value` | 許可された入力欄へ文字列または数値を設定 |
+| `switchLanguage` | `lang` | `ja` / `en` / `de` に表示言語を変更 |
 
-ホームページでコレクションを検索します。  
-**注意:** ホームページ上でのみ有効です。他のページにいる場合は先に `navigate` で移動してください。
+名前の照合は完全一致、大文字・小文字を無視した完全一致、部分一致の順です。
+名前は表示中の検索結果で照合します。目的のコレクションがなければ先に検索してください。
+操作には `type` と上記の引数だけを含め、任意の追加プロパティは許可しません。
 
-```json
-{"type": "search", "text": "検索キーワード"}
-```
+## 許可されたボタン
 
----
+| ID | 動作 |
+| --- | --- |
+| `searchButton`, `clearFiltersButton` | 検索、フィルター解除 |
+| `toggleAdvancedFiltersButton` | 詳細フィルターの開閉 |
+| `gridViewBtn`, `tableViewBtn` | 表示形式の変更 |
+| `adminPanelToggle` | 管理パネルの開閉 |
+| `addNewCollectionBtn` | 新規作成（`createNewCollection` を優先） |
+| `editProjectBtn` | 設定画面（同じ画面で続けるには `navigate` を使用） |
+| `editIndexBtn`, `saveIndexEdit` | 詳細ページのコレクション編集、保存 |
+| `inventoryOperationBtn`, `inventoryOperationSave`, `inventoryOperationCancel` | 在庫操作の開始、保存、取消 |
+| `inventoryManagementSettingsBtn`, `inventoryManagementSettingsSave`, `inventoryManagementSettingsCancel` | 在庫設定の開始、保存、取消 |
+| `projectEditSaveBtn` | プロジェクト設定を保存 |
+| `openProjectBtn` | プロジェクト選択画面を開く。Desktopではファイル選択 |
+| `refreshProjectsBtn`, `cancelProjectSelectionBtn` | Webのプロジェクト候補再取得、選択解除 |
 
-### `openCollectionByName` — 名前でコレクション概要を開く
+`deleteCollectionBtn` は禁止します。`confirmProjectSwitchBtn` は許可しません。
+プロジェクトの選択と確定は画面で行います。
+非表示、無効、閉じたパネル・モーダル内のボタンは実行できません。
 
-表示中のコレクションから名前を照合し、ホームページでは概要サイドパネルを開きます。ホームページ以外では同一ウィンドウの詳細ページへ移動します。
+## 許可された入力欄
 
-```json
-{"type": "openCollectionByName", "name": "コレクション名"}
-```
+| ID | 値 |
+| --- | --- |
+| `searchText` | 検索語 |
+| `searchField`, `searchMethod`, `inventoryStatusFilter` | 現在の選択肢の値 |
+| `operationType` | `0`=入庫、`1`=出庫、`2`=棚卸し |
+| `operationQuantity` | 入庫は正、出庫は負、棚卸しは絶対数量 |
+| `operationComment` | 在庫操作のコメント |
+| `safetyStock`, `reorderPoint`, `maximumLevel` | 安全在庫、発注点、最大在庫 |
+| `editName`, `editManagementCode`, `editRegistrationDate`, `editCategory` | 名前、管理コード、登録日、カテゴリ |
+| `editFirstTag`, `editSecondTag`, `editThirdTag`, `editLocation` | タグ、場所 |
+| `editProjectName` | プロジェクト名 |
+| `editCollectionNameLabel`, `editUUIDLabel`, `editManagementCodeLabel`, `editCategoryLabel` | 項目の表示名 |
+| `editTag1Label`, `editTag2Label`, `editTag3Label` | タグ項目の表示名 |
 
-名前の照合は、完全一致、大文字・小文字を無視した完全一致、部分一致の順に行われます。
-
----
-
-### `navigateToCollectionByName` — 名前でコレクション詳細へ移動
-
-表示中のコレクションから名前を照合し、同一ウィンドウの詳細ページへ移動します。
-
-```json
-{"type": "navigateToCollectionByName", "name": "コレクション名"}
-```
-
----
-
-### `showCollectionPanel` — コレクション詳細パネルを開く
-
-指定 ID のコレクション詳細をホームページのサイドパネルで開きます。  
-ホームページ以外では同一ウィンドウの詳細ページへ移動します。
-
-```json
-{"type": "showCollectionPanel", "id": "コレクションID"}
-```
-
-> **使い分けの目安:** ID が分かっている場合は `showCollectionPanel`、名前が分かっている場合は `openCollectionByName` を使用します。明示的に詳細ページへ移動する場合は `navigateToCollectionByName` を使用してください。
-
----
-
-### `showAdminPanel` — 管理パネルを表示
-
-管理パネル（コレクション追加・削除・設定）を表示します。
-
-```json
-{"type": "showAdminPanel"}
-```
-
----
-
-### `createNewCollection` — 新規コレクションを作成
-
-新しいコレクションをサーバ側で作成し、そのまま **同一ウィンドウ内** でコレクション詳細ページに遷移してインデックス編集モーダルを自動表示します。
-
-```json
-{"type": "createNewCollection"}
-```
-
-> **注意:** 引数は不要です。作成後のページ遷移前に追加のアクションが必要な場合（例: フィールドへの入力）は、`createNewCollection` の後ろにそのアクションを続けてください。ページ遷移後に自動的に実行されます。
-
----
-
-### `navigate` — ページ移動
-
-同一サーバー内の任意のパスへ移動します。  
-すでに同じページにいる場合はリロードせず、後続アクションをその場で実行します。
-
-```json
-{"type": "navigate", "path": "/パス"}
-```
-
-| パス | 移動先 |
-|------|--------|
-| `/` | ホーム（コレクション一覧） |
-| `/ProjectEdit` | プロジェクト設定 |
-
-> **ページ遷移をまたぐアクション列:** `navigate` または `createNewCollection` の後ろに続くアクションは、ページ遷移後の新しいページで自動的に実行されます。例えば `navigate` でホームに移動してから `search` を実行する場合、2 つのアクションを順番に並べるだけで機能します（詳細はワークフロー例を参照）。
-
----
-
-### `navigateHome` — ホームへ移動
-
-同一ウィンドウでホーム（コレクション一覧）へ移動します。ホームへ戻る指示には、`navigate` よりこちらを優先します。
-
-```json
-{"type": "navigateHome"}
-```
-
----
-
-### `switchLanguage` — 表示言語を切り替える
-
-表示言語を日本語、英語、ドイツ語のいずれかへ切り替えます。
-
-```json
-{"type": "switchLanguage", "lang": "ja"}
-```
-
-`lang` に指定できる値は `ja`、`en`、`de` のみです。
-
----
-
-### `clickButton` — ボタンをクリック
-
-指定 ID のボタンをクリックします。使用可能な ID は以下の通りです。
-
-```json
-{"type": "clickButton", "id": "ボタンID"}
-```
-
-| ID | 説明 | 有効ページ |
-|----|------|-----------|
-| `addNewCollectionBtn` | 新規コレクション作成 | 管理パネルが開いているとき |
-| `editProjectBtn` | プロジェクト設定を開く | 全ページ |
-| `adminPanelToggle` | 管理パネルを開閉 | 全ページ |
-| `searchButton` | 検索実行 | ホームページ |
-| `clearFiltersButton` | フィルタクリア | ホームページ |
-| `inventoryOperationBtn` | 在庫操作モーダルを開く | コレクション詳細パネルが開いているとき |
-| `inventoryManagementSettingsBtn` | 在庫管理設定モーダルを開く | コレクション詳細パネルが開いているとき |
-| `inventoryOperationSave` | 在庫操作を保存 | 在庫操作モーダルが開いているとき |
-| `inventoryOperationCancel` | 在庫操作をキャンセル | 在庫操作モーダルが開いているとき |
-| `inventoryManagementSettingsSave` | 在庫管理設定を保存 | 在庫管理設定モーダルが開いているとき |
-| `inventoryManagementSettingsCancel` | 在庫管理設定をキャンセル | 在庫管理設定モーダルが開いているとき |
-| `editIndexBtn` | インデックス編集モーダルを開く | コレクション詳細ページのみ |
-| `projectEditSaveBtn` | プロジェクト設定を保存 | プロジェクト設定ページ |
-| `saveIndexEdit` | インデックス編集内容を保存 | インデックス編集モーダルが開いているとき |
-| `toggleAdvancedFiltersButton` | 詳細フィルタを開閉 | ホームページ |
-| `gridViewBtn` | グリッド表示へ切り替え | ホームページ |
-| `tableViewBtn` | テーブル表示へ切り替え | ホームページ |
-| `openProjectBtn` | プロジェクト選択画面を開く | 管理パネル（Desktopではファイル選択） |
-| `refreshProjectsBtn` | プロジェクト候補を再取得 | Webのプロジェクト選択画面 |
-| `cancelProjectSelectionBtn` | 切替候補の選択を解除 | Webのプロジェクト選択画面 |
-
-`deleteCollectionBtn` はハードコードされた禁止対象であり、環境変数のホワイトリストへ追加してもAIから実行できません。
-
----
-
-### `fillInput` — フィールドに入力
-
-指定 ID のフォームフィールドに値を入力します。
-
-```json
-{"type": "fillInput", "id": "フィールドID", "value": "入力値"}
-```
-
-| ID | 説明 | 入力値 |
-|----|------|--------|
-| `searchText` | 検索キーワード | テキスト |
-| `operationType` | 在庫操作タイプ | `0` = 入庫 / `1` = 出庫 / `2` = 棚卸し |
-| `operationQuantity` | 在庫操作数量 | 入庫は正の数（例: `5`）、出庫は負の数（例: `-3`）、棚卸しは絶対量（例: `100`） |
-| `operationComment` | 在庫操作コメント | テキスト |
-| `safetyStock` | 安全在庫数 | 数値 |
-| `reorderPoint` | 発注点 | 数値 |
-| `maximumLevel` | 最大在庫数 | 数値 |
-| `searchField` | 検索対象フィールド | 選択肢の値 |
-| `searchMethod` | 検索方法 | 選択肢の値 |
-| `inventoryStatusFilter` | 在庫状態フィルタ | 選択肢の値 |
-| `editName` | コレクション名 | テキスト |
-| `editManagementCode` | 管理コード | テキスト |
-| `editRegistrationDate` | 登録日 | 日付 |
-| `editCategory` | カテゴリ | テキスト |
-| `editFirstTag` | タグ1 | テキスト |
-| `editSecondTag` | タグ2 | テキスト |
-| `editThirdTag` | タグ3 | テキスト |
-| `editLocation` | 場所 | テキスト |
-| `editProjectName` | プロジェクト名 | テキスト |
-| `editCollectionNameLabel` | コレクション名ラベル | テキスト |
-| `editUUIDLabel` | UUIDラベル | テキスト |
-| `editManagementCodeLabel` | 管理コードラベル | テキスト |
-| `editCategoryLabel` | カテゴリラベル | テキスト |
-| `editTag1Label` | タグ1ラベル | テキスト |
-| `editTag2Label` | タグ2ラベル | テキスト |
-| `editTag3Label` | タグ3ラベル | テキスト |
-
----
-
-## ページコンテキスト — 表示中コレクション一覧
-
-ホームページで検索結果が表示されている場合、`{{context}}` の先頭に以下の形式でコレクション一覧が自動挿入されます。
-
-```
-[visible collections (N)]
-{"name":"コレクション名A","id":"ID-A"}
-{"name":"コレクション名B","id":"ID-B"}
-...
-```
-
-この情報を使って、「表示中の最初のコレクションを開いて」などの指示に対して、正確な ID を使った `showCollectionPanel`、または名前を使った `openCollectionByName` / `navigateToCollectionByName` アクションを実行してください。
-
----
+値を入力後、ブラウザの入力検証を通過することを確認します。
+読み取り専用欄への書き込み、不正な選択肢、非有限数は拒否します。
+入力イベントを発行するため、既存の画面と未保存入力の管理に反映されます。
 
 ## ワークフロー例
 
-複数のアクションは **上から順に実行し、非同期処理の完了を待って** 次へ進みます。不正な操作が含まれる計画は全体を拒否し、実行中の失敗では後続操作を停止します。
-モーダルが開くのを待ってから入力・保存するため、必ず以下の順序を守ってください。
+### 別画面から検索
 
----
-
-### 在庫入庫（例: 5個入庫、コメント「補充」）
-
-**ユーザー発言例:** 「在庫を5個追加して、コメントは補充で」
-
-```
-<action>{"type":"clickButton","id":"inventoryOperationBtn"}</action>
-<action>{"type":"fillInput","id":"operationType","value":"0"}</action>
-<action>{"type":"fillInput","id":"operationQuantity","value":"5"}</action>
-<action>{"type":"fillInput","id":"operationComment","value":"補充"}</action>
-<action>{"type":"clickButton","id":"inventoryOperationSave"}</action>
+```json
+[{"type":"navigateHome"},{"type":"search","text":"カメラ"}]
 ```
 
-**手順の説明:**
-1. `inventoryOperationBtn` → 在庫操作モーダルを開く
-2. `operationType = 0` → 入庫を選択
-3. `operationQuantity = 5` → 数量を入力
-4. `operationComment = 補充` → コメントを入力
-5. `inventoryOperationSave` → 保存
+### コレクション名を変更
 
----
+詳細ページで編集モーダルが閉じている場合:
 
-### 在庫出庫（例: 3個出庫）— 出庫は必ず負の数量
-
-**ユーザー発言例:** 「在庫を3個出庫して」
-
-```
-<action>{"type":"clickButton","id":"inventoryOperationBtn"}</action>
-<action>{"type":"fillInput","id":"operationType","value":"1"}</action>
-<action>{"type":"fillInput","id":"operationQuantity","value":"-3"}</action>
-<action>{"type":"clickButton","id":"inventoryOperationSave"}</action>
+```json
+[
+  {"type":"clickButton","id":"editIndexBtn"},
+  {"type":"fillInput","id":"editName","value":"新しいカメラ"},
+  {"type":"clickButton","id":"saveIndexEdit"}
+]
 ```
 
-> **注意:** 出庫（type=1）の数量は必ず**負の数**で指定してください（例: `-3`）。正の数を指定するとバリデーションエラーになります。
+モーダルが既に開いている場合は、開始操作を省略します。
+新規作成なら `createNewCollection` に続けて入力と保存を指定できます。
 
----
+### 3個を出庫
 
-### 新規コレクション作成
-
-**ユーザー発言例:** 「新しいコレクションを作成して」
-
-```
-<action>{"type":"createNewCollection"}</action>
-```
-
-> `createNewCollection` アクション 1 つで、コレクションを API 経由で作成し、コレクション詳細ページへ遷移してインデックス編集モーダルを自動表示します。
-
----
-
-### 表示中のコレクション詳細を開く
-
-**ユーザー発言例:** 「表示中の最初のコレクションの詳細を開いて」
-
-コンテキストに含まれる `[visible collections]` リストから ID を取得して使用します。
-
-```
-<action>{"type":"showCollectionPanel","id":"<コンテキストから取得したID>"}</action>
+```json
+[
+  {"type":"clickButton","id":"inventoryOperationBtn"},
+  {"type":"fillInput","id":"operationType","value":"1"},
+  {"type":"fillInput","id":"operationQuantity","value":"-3"},
+  {"type":"clickButton","id":"inventoryOperationSave"}
+]
 ```
 
----
+### プロジェクト選択画面を開く
 
-### キーワード検索
-
-**ユーザー発言例:** 「カメラで検索して」
-
-ホームページにいる場合:
-```
-<action>{"type":"search","text":"カメラ"}</action>
+```json
+[{"type":"showAdminPanel"},{"type":"clickButton","id":"openProjectBtn"}]
 ```
 
-他のページにいる場合（ホームページへ移動してから検索）:
-```
-<action>{"type":"navigate","path":"/"}</action>
-<action>{"type":"search","text":"カメラ"}</action>
-```
+## 実行と継続
 
----
+計画は32操作までで、開始前に全体を検証します。一つでも不正なら全体を拒否します。
+実行時は各操作前に400msのUI遷移待ちを置き、非同期処理の完了も待ちます。
+失敗したら後続操作を停止します。実行済みの変更を自動で巻き戻すことはありません。
 
-### 在庫管理設定の変更（例: 安全在庫を10に変更）
+ページ遷移後は初期化を待って再開します。保留操作はプロジェクト世代・遷移先を照合し、5分で失効します。
+同じページへの移動ではリロードを挟まず続行します。
+履歴は20件を保持し、操作結果を追記します。プロジェクト切替やサーバー再起動では破棄します。
+未選択・古い画面での送信を無効にし、API側でも共通ミドルウェアで世代を検証します。
 
-**ユーザー発言例:** 「安全在庫を10に設定して」
+## 操作の追加
 
-```
-<action>{"type":"clickButton","id":"inventoryManagementSettingsBtn"}</action>
-<action>{"type":"fillInput","id":"safetyStock","value":"10"}</action>
-<action>{"type":"clickButton","id":"inventoryManagementSettingsSave"}</action>
-```
+`ChatActionPolicy` の操作定義と許可一覧、ブラウザの `CHAT_ACTION_FIELDS` と実行処理を更新します。
+C#の定義からLLMへ渡すJSON Schemaも更新されます。
+`tests/chat-action-contract.json` の共通例、`ChatSystem.txt`、このリファレンスも更新してください。
 
----
-
-## プロジェクト切り替えとチャット
-
-チャットで「プロジェクトを切り替えて」と指示すると管理パネルから選択画面を開きます。
-切り替え先の選択と確認は画面で行います。`confirmProjectSwitchBtn` は既定の許可対象に含めません。
-未選択状態ではチャット送信を無効にし、プロジェクト選択を案内します。
-
-履歴と保留操作は `ProjectSession.revision` に結び付けます。通常のページ移動では維持し、
-プロジェクト切り替えやサーバー再起動で世代が変わった場合は破棄します。
-別画面での切り替えを検出した場合も、応答待ちを中止し、後続操作を停止します。
-チャット API も Develop の共通ミドルウェアで世代を検証します。
-
-## カスタマイズ方法
-
-### ボタン・フィールドの追加
-
-新しい操作を AI に許可するには、以下の箇所を変更してください:
-
-1. **MCPサーバープロセスの環境変数** — `SAFE_BUTTON_IDS` または `SAFE_INPUT_IDS` に新しい ID を追加
-2. **このドキュメント** — 上記のテーブルとワークフロー例を更新
-
-`server.py` は `.env` ファイルを自動では読み込みません。シェル、サービス定義、または起動構成で環境変数を設定してからMCPサーバーを再起動してください。`SAFE_BUTTON_IDS` / `SAFE_INPUT_IDS` を指定すると既定リスト全体を上書きするため、引き続き許可する既存IDも含める必要があります。
-
-MCP サーバは環境変数のホワイトリストにない ID が含まれる操作計画を全体として拒否します。非同期の保存処理はボタンの `chatAction` に公開し、成功時に `true`、失敗時に `false` を返してください。追加手順と契約テストは `tests/README.md` を参照してください。
-
-### システムプロンプトの編集
-
-`CREC_MCPServer/prompts/system_prompt.txt` を直接編集することで、再コンパイルなしにプロンプトを変更できます。
-ファイルはサーバ起動時にキャッシュされるため、変更後はサーバを再起動してください。
-
----
-
-## 技術仕様
-
-| 項目 | 内容 |
-|------|------|
-| アクション実行 | 非同期処理を順次待機。UI遷移のため各操作前に400ms待機 |
-| ページ遷移後の再開 | ページ初期化完了後に再開。プロジェクト世代・遷移先を照合し、5分で失効 |
-| 会話履歴保持 | `sessionStorage`（同じプロジェクト世代のページ遷移で維持） |
-| 最大履歴件数 | 20件（`CHAT_HISTORY_MAX` 定数） |
-| 操作検証 | MCP サーバの `ActionPolicy.parse_response` とブラウザの `validateChatActions` |
-| プロンプトキャッシュ | MCP サーバプロセス内メモリ（サーバ再起動でリセット） |
-| MCP トランスポート | Streamable HTTP (`POST /mcp`) |
-| MCP セッション | 初期化後は再利用。期限切れの404応答時のみ再初期化・1回再試行 |
-| Web API応答 | `{text, actions, warning}`。表示文中のタグは実行しない |
-| 実行結果 | 成功・失敗を会話履歴へ追記。実行済みの変更は自動で巻き戻さない |
-
----
-
-*このドキュメントは `Prompts/CREC_Web_AI_Operations.md` として管理されており、GitHub Wiki にそのまま掲載できます。*
+非同期処理はボタンの `chatAction` に既存ハンドラーを公開し、成功時 `true`、失敗時 `false` を返します。
+テスト手順は [tests/README.md](../../tests/README.md) を参照してください。

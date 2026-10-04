@@ -112,18 +112,23 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSingleton(projectSettingsService);
 
-builder.Services.AddOptions<McpClientOptions>()
-    .Bind(builder.Configuration.GetSection(McpClientOptions.SectionName))
-    .Validate(options => Uri.TryCreate(options.Url, UriKind.Absolute, out var uri)
+builder.Services.AddOptions<ChatOptions>()
+    .Bind(builder.Configuration.GetSection(ChatOptions.SectionName))
+    .Validate(options => Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out var uri)
         && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
-        && string.IsNullOrEmpty(uri.Query) && string.IsNullOrEmpty(uri.Fragment),
-        "McpServer:Url must be an HTTP(S) base URL without a query or fragment.")
+        && string.IsNullOrEmpty(uri.UserInfo) && string.IsNullOrEmpty(uri.Query) && string.IsNullOrEmpty(uri.Fragment),
+        "AiChat:BaseUrl must be an HTTP(S) API base URL without credentials, query or fragment.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.Model), "AiChat:Model is required.")
     .Validate(options => options.TimeoutSeconds > 0 && options.TimeoutSeconds <= 3600,
-        "McpServer:TimeoutSeconds must be between 1 and 3600.")
+        "AiChat:TimeoutSeconds must be between 1 and 3600.")
+    .Validate(options => options.MaxContextCharacters > 0 && options.MaxContextCharacters <= 40000,
+        "AiChat:MaxContextCharacters must be between 1 and 40000.")
+    .Validate(options => options.MaxHistoryTurns >= 0 && options.MaxHistoryTurns <= 50,
+        "AiChat:MaxHistoryTurns must be between 0 and 50.")
     .ValidateOnStart();
-builder.Services.AddHttpClient(McpChatClient.HttpClientName,
+builder.Services.AddHttpClient(ChatService.HttpClientName,
     client => client.Timeout = Timeout.InfiniteTimeSpan);
-builder.Services.AddSingleton<IMcpChatClient, McpChatClient>();
+builder.Services.AddSingleton<IChatService, ChatService>();
 
 // Add CREC data service
 builder.Services.AddSingleton<CrecDataService>();
