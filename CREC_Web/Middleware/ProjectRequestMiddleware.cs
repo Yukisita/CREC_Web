@@ -1,4 +1,5 @@
 using CREC_Web.Services;
+using CREC_Web.Services.AiTools;
 
 namespace CREC_Web.Middleware;
 
@@ -12,6 +13,13 @@ public sealed class ProjectRequestMiddleware(RequestDelegate next)
     /// <returns>ファイル送信を含む応答の完了を待つタスク</returns>
     public async Task InvokeAsync(HttpContext context, ProjectRuntime runtime)
     {
+        // MCPの探索は未選択でも利用できる。データ取得はツールごとに世代と受付を検証する。
+        if (context.GetEndpoint()?.Metadata.GetMetadata<CrecMcpEndpoint>() is not null)
+        {
+            await next(context);
+            return;
+        }
+
         var request = context.Request;// HttpRequest はスレッドセーフではないため、ローカル変数にコピーする。
         var normalizedPath = request.Path.Value?.TrimEnd('/') ?? "";// パスの末尾のスラッシュを無視する。
         var isManagementRequest = request.Path.StartsWithSegments("/api/projects", StringComparison.OrdinalIgnoreCase);// 管理操作の要求かどうか

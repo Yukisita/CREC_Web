@@ -10,15 +10,14 @@ namespace CREC_Web.Controllers;
 [ApiController]
 [Route("api/projects")]
 public sealed class ProjectsController(ProjectRuntime runtime, ProjectCatalogService catalog,
-    ILogger<ProjectsController> logger) : ControllerBase
+    ILogger<ProjectsController> logger, CollectionQueryService queries) : ControllerBase
 {
     /// <summary>現在の世代と名前を返す。</summary>
     /// <returns>世代とプロジェクト名を含む HTTP 200 応答。実パスは公開しない。</returns>
     [HttpGet("status")]
     public IActionResult Status()
     {
-        var state = runtime.Current;
-        return Ok(new { state.Revision, state.Name });
+        return Ok(queries.GetProject());
     }
 
     /// <summary>Projects 内の候補と、選択できない場合の理由を取得する。</summary>

@@ -1,1 +1,6 @@
-return args is ["--integration"] ? await IntegrationTest.RunAsync() : await ChatTests.RunAsync();
+return args switch
+{
+    ["--integration"] => await IntegrationTest.RunAsync(),
+    ["--ai-tools"] => await AiToolsIntegrationTest.RunAsync(),
+    _ => await ChatTests.RunAsync()
+};

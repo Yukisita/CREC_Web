@@ -13,7 +13,8 @@ This document contains the licenses for all third-party software and libraries, 
 5. [Three.js](#threejs)
 6. [SkiaSharp](#skiasharp)
 7. [Microsoft.Web.WebView2](#microsoftwebwebview2)
-8. [QR Code](#qr-code)
+8. [Model Context Protocol C# SDK](#model-context-protocol-c-sdk)
+9. [QR Code](#qr-code)
 
 ---
 
@@ -415,6 +416,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ---
 
+## Model Context Protocol C# SDK
+
+**Packages:** ModelContextProtocol.AspNetCore, ModelContextProtocol, ModelContextProtocol.Core<br>
+**Version:** 2.2.0<br>
+**Source:** https://github.com/modelcontextprotocol/csharp-sdk<br>
+**License:** Apache License 2.0<br>
+**Copyright:** © Model Context Protocol a Series of LF Projects, LLC.
+
+The Apache License 2.0 terms reproduced in the [jsQR section](#jsqr) also apply to these packages.
+The SDK's Microsoft.Extensions dependencies are licensed under the MIT License by Microsoft.
+
+---
+
 ## QR Code
 
 ```
@@ -429,7 +443,7 @@ QR Code is a registered trademark of DENSO WAVE INCORPORATED in Japan and in oth
 All third-party libraries used in this project are licensed under permissive licenses:
 
 - **MIT License**: Bootstrap, Bootstrap Icons, .NET Runtime, Three.js, SkiaSharp
-- **Apache License 2.0**: jsQR
+- **Apache License 2.0**: jsQR, Model Context Protocol C# SDK
 - **Microsoft WebView2 License**: Microsoft.Web.WebView2
 
 These licenses allow for commercial and private use, modification, and distribution, provided that the original copyright notices and license terms are retained.
@@ -442,3 +456,4 @@ For the most up-to-date license information, please refer to the respective proj
 - Three.js: https://github.com/mrdoob/three.js
 - SkiaSharp: https://github.com/mono/SkiaSharp
 - Microsoft.Web.WebView2: https://aka.ms/webview
+- Model Context Protocol C# SDK: https://github.com/modelcontextprotocol/csharp-sdk

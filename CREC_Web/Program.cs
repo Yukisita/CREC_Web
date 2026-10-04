@@ -8,6 +8,7 @@ using System.Net;
 using CREC_Web.Middleware;
 using CREC_Web.Services;
 using CREC_Web.Services.Chat;
+using CREC_Web.Services.AiTools;
 using Microsoft.Extensions.FileProviders;
 
 Console.WriteLine("Starting CREC Web Server...");
@@ -135,6 +136,7 @@ builder.Services.AddSingleton<CrecDataService>();
 builder.Services.AddSingleton<DataFileManagerService>();
 builder.Services.AddSingleton<ProjectCatalogService>();
 builder.Services.AddSingleton<ProjectRuntime>();
+builder.Services.AddCrecMcp();
 
 // Add CORS for browser access
 builder.Services.AddCors(options =>
@@ -252,6 +254,7 @@ if (Directory.Exists(webRootPath))
 }
 
 app.UseRouting();
+app.MapCrecMcp();
 app.UseMiddleware<ProjectRequestMiddleware>();
 app.UseCors();
 

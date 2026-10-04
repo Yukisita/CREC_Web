@@ -1,11 +1,12 @@
-# AI chat tests
+# AI chat and tool tests
 
 Run from the repository root:
 
 ```powershell
 dotnet run --project tests/Chat.Tests
-node --test tests/chat-actions.test.cjs
+node --test tests/chat-actions.test.cjs tests/webmcp.test.cjs
 dotnet run --project tests/Chat.Tests -- --integration
+dotnet run --project tests/Chat.Tests -- --ai-tools
 ```
 
 The C# console tests use the application's existing dependencies and a fake HTTP
@@ -25,6 +26,13 @@ for the LLM. It checks valid/rejected plans, Unicode values, project selection a
 switching, and stale requests. It uses temporary project files and closes both
 listeners and removes those files on completion. It needs neither Python nor an
 installed model and never modifies real collection data.
+
+The `--ai-tools` integration test uses the official MCP client against the real
+MCP endpoint. It checks discovery, structured results, shared Web API results,
+input limits, project isolation, and local Host/Origin restrictions. The WebMCP
+Node tests execute the page script with browser API stubs and check registration,
+input validation, revision binding, cancellation, and back/forward cache restore.
+These tests use disposable data and do not contact an AI provider.
 
 These tests do not measure real-model instruction understanding. Test the chosen
 model's operation plans separately against a disposable project before relying
@@ -49,4 +57,5 @@ minutes and are consumed once. A stale notification cancels the request and
 removes the old conversation/plan. The current storage format discards older
 history without a project revision.
 
-For architecture and configuration, see [AI chat](../docs/ai-chat.md).
+For architecture and configuration, see [AI chat](../docs/ai-chat.md) and
+[MCP / WebMCP](../docs/ai-tools.md).
