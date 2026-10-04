@@ -31,10 +31,5 @@ _ReSharper*/
 .idea/
 #Nuget packages folder
 packages/
-# Python
-__pycache__/
-*.pyc
-*.pyo
-.venv/
 .env
 

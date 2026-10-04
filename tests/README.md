@@ -28,17 +28,20 @@ listeners and removes those files on completion. It needs neither Python nor an
 installed model and never modifies real collection data.
 
 The `--ai-tools` integration test uses the official MCP client against the real
-MCP endpoint. It checks discovery, structured results, shared Web API results,
-input limits, project isolation, and local Host/Origin restrictions. The WebMCP
-Node tests execute the page script with browser API stubs and check registration,
-input validation, revision binding, cancellation, and back/forward cache restore.
+MCP endpoint. It checks all nine tools and compares their schemas and results to
+the WebMCP API. Coverage includes advanced search, project settings and candidates,
+inventory precision and history pagination, all attachment areas, UTF-8 chunks,
+binary content, changed files, path/link isolation, stale requests and Host/Origin
+restrictions. It checks that reads do not change any fixture files or directories.
+The WebMCP Node tests execute the page script with browser API stubs and check
+catalog discovery, revision binding, cancellation, and back/forward cache restore.
 These tests use disposable data and do not contact an AI provider.
 
 These tests do not measure real-model instruction understanding. Test the chosen
 model's operation plans separately against a disposable project before relying
 on it for regular editing.
 
-## Adding an operation
+## Adding an app chat operation
 
 1. Update `ChatActionPolicy` and its allowed IDs. The same operation definitions
    generate the JSON Schema sent to the model. Update the browser's
@@ -59,3 +62,8 @@ history without a project revision.
 
 For architecture and configuration, see [AI chat](../docs/ai-chat.md) and
 [MCP / WebMCP](../docs/ai-tools.md).
+
+For a new external read tool, add its business operation to `CrecReadService` and
+its public definition to `CrecMcpTools`. WebMCP consumes the same catalog without
+a second JavaScript definition. Extend the integration test with real fixture data
+and verify the MCP and Web results agree and leave the data unchanged.

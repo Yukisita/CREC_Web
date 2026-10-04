@@ -23,6 +23,7 @@ public sealed class ProjectRequestMiddleware(RequestDelegate next)
         var request = context.Request;// HttpRequest はスレッドセーフではないため、ローカル変数にコピーする。
         var normalizedPath = request.Path.Value?.TrimEnd('/') ?? "";// パスの末尾のスラッシュを無視する。
         var isManagementRequest = request.Path.StartsWithSegments("/api/projects", StringComparison.OrdinalIgnoreCase);// 管理操作の要求かどうか
+        var isAiReadRequest = request.Path.StartsWithSegments("/api/ai-tools", StringComparison.OrdinalIgnoreCase);
         var isStatusRequest = normalizedPath.Equals("/api/projects/status", StringComparison.OrdinalIgnoreCase);// 状態確認の要求かどうか
         var isSwitchRequest = normalizedPath.Equals("/api/projects/switch", StringComparison.OrdinalIgnoreCase);// 切り替え要求かどうか
         var isMutation = !HttpMethods.IsGet(request.Method) && !HttpMethods.IsHead(request.Method) && !HttpMethods.IsOptions(request.Method);// 変更を伴う要求かどうか
@@ -31,7 +32,7 @@ public sealed class ProjectRequestMiddleware(RequestDelegate next)
         // 別プロジェクトの応答がキャッシュから混ざるのを防ぐ。
         context.Response.Headers.CacheControl = "no-store";
         // 同一オリジンとカスタムヘッダーで、外部サイトからの管理操作を拒否する。
-        if (isManagementRequest && !isStatusRequest && (!IsSameOrigin(request) || !hasRequiredHeader))
+        if ((isManagementRequest && !isStatusRequest || isAiReadRequest) && (!IsSameOrigin(request) || !hasRequiredHeader))
         {
             await WriteErrorAsync(context, StatusCodes.Status403Forbidden, "projects-origin-denied");
             return;
@@ -55,8 +56,8 @@ public sealed class ProjectRequestMiddleware(RequestDelegate next)
         var isHomePage = HttpMethods.IsGet(request.Method)
             && string.Equals(request.RouteValues["controller"]?.ToString(), "Home", StringComparison.OrdinalIgnoreCase)
             && string.Equals(request.RouteValues["action"]?.ToString(), "Index", StringComparison.OrdinalIgnoreCase);
-        using var requestLease = runtime.TryEnter(revision, isMutation, out var error,
-            requireProject: !isHomePage && !isManagementRequest);
+        using var requestLease = runtime.TryEnter(revision, isMutation || isAiReadRequest, out var error,
+            requireProject: !isHomePage && !isManagementRequest && !isAiReadRequest);
         if (requestLease is null)
         {
             // 未選択のまま詳細画面などを開いた場合は、プロジェクト選択へ案内する。

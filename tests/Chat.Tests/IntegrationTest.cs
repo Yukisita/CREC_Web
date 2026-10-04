@@ -72,7 +72,6 @@ internal static class IntegrationTest
         builder.Services.AddSingleton<CrecDataService>();
         builder.Services.AddSingleton(new ProjectCatalogService(projectsRoot));
         builder.Services.AddSingleton<ProjectRuntime>();
-        builder.Services.AddSingleton<CollectionQueryService>();
         await using var app = builder.Build();
         app.UseRouting();
         app.UseMiddleware<ProjectRequestMiddleware>();

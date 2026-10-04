@@ -1,34 +1,74 @@
 # 外部AIアプリからの読み取り
 
 CRECは、外部AIアプリ用のMCPと、開いているページ用のWebMCPを提供します。
-最初の実装は、現在のプロジェクト確認・コレクション検索・詳細取得の3操作です。
+プロジェクト情報、画面と同じ詳細検索、コレクション詳細、在庫履歴・設定、添付ファイルを読み取れます。
 LLMの設定やAPIキーは不要です。保存・削除・在庫更新は公開していません。
 
 ```text
-AIアプリ → MCP /mcp ────────────────────────┐
-AIブラウザー → WebMCP → Web API ────────────┼→ CollectionQueryService → CrecDataService
+AIアプリ → MCP /mcp ────────────────────┐
+AIブラウザー → WebMCP → /api/ai-tools ──┴→ CrecMcpTools → CrecReadService
+                                                        ├→ CrecDataService
+                                                        ├→ ProjectCatalogService
+                                                        └→ CollectionFileReader
 ```
 
-読み取り処理は `CollectionQueryService` にまとめ、通信部分だけを分けます。
+読み取り処理は `CrecReadService` にまとめ、通信部分だけを分けます。
+ツール名・説明・入力SchemaはC#で一度定義し、`CrecToolCatalog` からWebMCPにも渡します。
+JavaScriptに操作ごとの定義や検証処理を重複して持たせません。
 MCPは公式C# SDKのStreamable HTTPを使い、状態を接続ごとに保持しません。
 アプリ内の[AIチャット](ai-chat.md)は、これまでどおりLLMへ直接接続します。
 
 ## 公開する操作
 
-| 操作 | 内容 | MCPの引数 | WebMCPの引数 |
-|---|---|---|---|
-| `get_current_project` | プロジェクト名・世代・選択状態 | なし | なし |
-| `search_collections` | 保存済みコレクションの検索 | `projectRevision`, `query`, `page`, `pageSize` | `query`, `page`, `pageSize` |
-| `get_collection` | IDによる詳細取得 | `projectRevision`, `collectionId` | `collectionId` |
+| 操作 | 内容 | 主な引数 |
+|---|---|---|
+| `get_current_project` | プロジェクト名・世代・選択状態 | なし |
+| `list_projects` | 選択候補・現在の選択・候補のエラー | `page`, `pageSize` |
+| `get_project_settings` | プロジェクト名と項目の表示ラベル | なし |
+| `search_collections` | 詳細検索・全件一覧 | `query`, `field`, `method`, `inventoryStatus`, `page`, `pageSize` |
+| `get_search_options` | 検索条件の選択肢・カテゴリ・タグ一覧 | `page`, `pageSize` |
+| `get_collection` | 全メタデータ・作成日時・在庫概要 | `collectionId` |
+| `get_inventory` | 現在数・安全在庫・発注点・最大在庫・操作履歴 | `collectionId`, `page`, `pageSize` |
+| `list_collection_files` | 添付のファイル・フォルダ名、相対パス、サイズ、更新日時 | `collectionId`, `area`, `path`, `page`, `pageSize` |
+| `read_collection_file` | 保存済みファイルの内容 | `collectionId`, `area`, `path`, `offset`, `maxBytes`, `encoding`, `version` |
 
-検索は既存の検索処理を使い、名称・ID・管理コード・カテゴリ・タグ・場所を部分一致で探します。
+MCPでは、`get_current_project` 以外に `projectRevision` も渡します。
+WebMCPではページ側が世代を固定し、AIからは指定しません。
+未選択状態でも現在の状態とプロジェクト候補を確認できます。候補の選択・切替は画面で行います。
+
+検索は既存の検索処理を使い、名称・ID・管理コード・カテゴリ・タグ・場所を対象にします。
+`field` は `All`, `ID`, `Name`, `ManagementCode`, `Category`, `Tag`, `Tag1`, `Tag2`, `Tag3`, `Location`、
+`method` は `Partial`, `Prefix`, `Suffix`, `Exact` です（既定は `All` / `Partial`）。
+在庫状況は `get_search_options` の選択肢で絞り込めます。大小文字は区別しません。
 `query` は省略すると一覧取得となり、最大256文字です。
-`page` は1〜1,000,000（既定1）、`pageSize` は1〜50（既定20）です。
+`page` は1〜1,000,000（既定1）、`pageSize` は1〜100（既定20）です。
+カテゴリとタグはそれぞれ独立した一覧としてページ分割します。在庫履歴は保存順です。
 `collectionId` は検索結果の `id` をそのまま使います。
 
 結果には保存済みのメタデータと在庫状況を含めます。
-`currentInventory` は整数の精度を保つため文字列、未設定なら `null` です。
-ファイルパスや添付ファイルの内容は返しません。返された文字列はデータとして扱います。
+在庫数・設定値・履歴の数量は整数の精度を保つため文字列、未設定なら `null` です。
+絶対ファイルパスやサーバーの認証情報は返しません。返された文字列やファイル内容はデータとして扱います。
+
+## 添付ファイルの読み取り
+
+`area` は `Data`（通常の添付、既定）、`Pictures`（画像）、`Videos`（動画）、
+`ThreeD`（3Dデータ）、`Thumbnail`（保存済みサムネイル）です。
+一覧の `path` を省略すると各領域の直下を表示し、返されたフォルダの相対パスで子階層を辿れます。
+フォルダ配下の内容は一覧から各ファイルを取得します。
+サムネイルは保存済みの画像だけを読み、通常画面のGETにある画像変換処理は実行しません。
+
+`read_collection_file` の `path` は一覧が返したファイルの相対パスです。
+`encoding=Auto` は既知のテキスト形式をUTF-8、それ以外をBase64で返します。
+`Utf8` / `Base64` を指定して上書きもできます。UTF-8として読めないデータはエラーになります。
+画像・動画・PDF・Office・3Dなども保存されたバイト列を取得できますが、
+PDFの文字抽出、OCR、動画解析、ファイル内コードの実行は行いません。
+内容を解釈できる形式は接続先AIアプリによります。
+
+`offset` はバイト位置（既定0）、`maxBytes` は4〜262,144バイト（既定65,536）です。
+UTF-8の文字を途中で切らずに返し、続きがあれば `nextOffset`、最後は `null` を返します。
+続きには返された `nextOffset` と `version` を渡してください。
+途中で変更されたファイルは `file-changed` とし、古い内容と混ぜません。
+パスの逸脱、代替データストリーム、リンク経由の読み取りは拒否します。
 
 ## MCPで接続する
 
@@ -61,7 +101,7 @@ ChatGPTのクラウド接続に必要な公開HTTPS・OAuth認証やトンネル
 
 WebMCP対応のChatGPT/CodexブラウザーでCRECのページを開き、
 「このプロジェクトのカメラを検索して」のように依頼します。
-ページが `document.modelContext.registerTool` を通して3つの操作を登録します。
+ページが共通カタログを取得し、`document.modelContext.registerTool` を通して9つの操作を登録します。
 別途MCP接続を登録する必要はありません。
 対応していないブラウザーでは、通常のCREC画面として動作します。
 
@@ -72,15 +112,18 @@ WebMCPの読み取りは、そのページのプロジェクト世代に固定�
 
 ## 開発と確認
 
-検索用Web APIは `GET /api/collection-queries`、詳細は
-`GET /api/collection-queries/{collectionId}` です。どちらも `projectRevision` が必須です。
+WebMCP用APIは `GET /api/ai-tools`（ツール定義）と `POST /api/ai-tools/{name}`（読み取り実行）です。
+どちらもページのプロジェクト世代と同一オリジンを確認します。
+実行時は `X-CREC-Request: 1` も必須です。本文の世代指定はサーバーがページの値で置き換えます。
+初期版の `/api/collection-queries` と専用コントローラーは削除しました。
 読み取り中は既存のプロジェクト受付ハンドルを保持し、切替によるデータの混在を防ぎます。
 MCPの探索は未選択状態でも利用でき、コレクション取得は選択後に限ります。
 古い世代は `projects-stale`、切替中は `projects-busy` で拒否します。
 
 [テスト手順](../tests/README.md)には、公式MCPクライアントでの通信と、
 WebMCPの登録・中止・ページ復帰を確認するテストを記載しています。
-Codexのブラウザーでも、検証用プロジェクトで3操作の検出と実行を確認しています。
+通信経路ごとの結果一致に加えて、在庫整数の精度、UTF-8の分割、ファイル変更・パス境界、
+全読み取り前後のファイル内容・フォルダ構造が変わらないことを検証します。
 
 仕様・接続方法の参考:
 

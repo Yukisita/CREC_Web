@@ -9,10 +9,13 @@ public static class CrecMcpHosting
 {
     public static IServiceCollection AddCrecMcp(this IServiceCollection services)
     {
-        services.AddSingleton<CollectionQueryService>();
+        services.AddSingleton<CrecReadService>();
+        services.AddSingleton<CollectionFileReader>();
+        services.AddSingleton<CrecMcpTools>();
+        services.AddSingleton<CrecToolCatalog>();
         services.AddMcpServer()
             .WithHttpTransport(options => options.SessionMode = HttpServerSessionMode.Stateless)
-            .WithTools<CrecMcpTools>();
+            .WithTools<CrecMcpTools>(CrecToolCatalog.JsonOptions);
         return services;
     }
 
