@@ -20,7 +20,7 @@ registerTranslations('ja', {
     'projects-refresh': '一覧を更新',
     'projects-reload': '新しいプロジェクトを表示',
     'projects-confirm-impact': '選択したプロジェクトを開きます。このサーバーに接続しているすべてのブラウザ・タブ・デスクトップ画面に影響します。続行しますか？',
-    'projects-discard': '未保存の入力や処理中のアップロードがあります。入力を破棄して、新しいプロジェクトの画面へ移動しますか？',
+    'projects-discard': '未保存の入力や処理中のアップロードがあります。入力を破棄して、この画面を離れますか？',
     'projects-switching': '実行中の保存・アップロードなどの完了を待って、プロジェクトを切り替えています…',
     'projects-already-current': 'このプロジェクトはすでに開いています。',
     'projects-missing': 'サーバーの Projects フォルダが存在しません。現在のプロジェクトを維持します。',

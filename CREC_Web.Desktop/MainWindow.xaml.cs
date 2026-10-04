@@ -25,6 +25,7 @@ public partial class MainWindow : Window
     private readonly string? _startupProjectPath;// コマンドライン引数から取得した起動時の .crec ファイルパス
     private string? _currentProjectPath;// 現在開いているプロジェクトのパス
     private bool _browserInitialized;// WebView2 の初期化が完了したかどうかを示すフラグ
+    private bool _isConfirmingClose;// 終了確認の多重表示を防ぐ
     private bool _closeRequested;// ウィンドウの閉じる操作が要求されたかどうかを示すフラグ
     private bool _closeConfirmed;// ウィンドウの閉じる操作が確認されたかどうかを示すフラグ
     private bool _currentPublishToNetwork;// 現在の公開設定がネットワーク公開かどうかを示すフラグ
@@ -77,15 +78,14 @@ public partial class MainWindow : Window
         }
 
         e.Cancel = true;
-        if (_closeRequested)
+        if (_closeRequested || _isConfirmingClose)
         {
             return;
         }
 
-        _closeRequested = true;
-        IsEnabled = false;
-        // WPF の閉じる処理は一度止め、非同期でサーバー停止を終えてから最終的にCloseする
-        _ = ShutdownAndCloseAsync();
+        _isConfirmingClose = true;
+        // WPF の閉じる処理が戻ってから確認し、承認後にサーバー停止と最終 Close を行う。
+        _ = Dispatcher.InvokeAsync(ShutdownAndCloseAsync);
     }
 
     /// <summary>
@@ -432,13 +432,18 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Web サーバーを停止し、ウィンドウを閉じる非同期メソッド
+    /// 下書きの破棄を確認し、承認後に Web サーバーを停止してウィンドウを閉じる
     /// </summary>
     /// <returns>サーバー停止と画面終了を待つタスク</returns>
     private async Task ShutdownAndCloseAsync()
     {
         try
         {
+            if (!await PrepareBrowserNavigationAsync(discardConfirmed: false))
+                return;
+
+            _closeRequested = true;
+            IsEnabled = false;
             Browser.Source = new Uri("about:blank");
             BrowserHost.Visibility = Visibility.Collapsed;
             LoadingHost.Visibility = Visibility.Collapsed;
@@ -448,15 +453,19 @@ public partial class MainWindow : Window
         {
             MessageBox.Show(
                 this,
-                $"サーバーの停止中にエラーが発生しました。\n{ex.Message}",
+                $"アプリの終了中にエラーが発生しました。\n{ex.Message}",
                 "CREC Desktop",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
         }
         finally
         {
-            _closeConfirmed = true;
-            Close();
+            _isConfirmingClose = false;
+            if (_closeRequested)
+            {
+                _closeConfirmed = true;
+                Close();
+            }
         }
     }
 

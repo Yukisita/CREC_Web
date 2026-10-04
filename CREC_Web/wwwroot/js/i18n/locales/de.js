@@ -20,7 +20,7 @@ registerTranslations('de', {
     'projects-refresh': 'Liste aktualisieren',
     'projects-reload': 'Neues Projekt anzeigen',
     'projects-confirm-impact': 'Das ausgewählte Projekt öffnen? Dies betrifft alle mit diesem Server verbundenen Browser, Tabs und Desktopfenster.',
-    'projects-discard': 'Es gibt ungespeicherte Eingaben oder einen laufenden Upload. Eingaben verwerfen und zum neuen Projekt wechseln?',
+    'projects-discard': 'Es gibt ungespeicherte Eingaben oder einen laufenden Upload. Eingaben verwerfen und diese Ansicht verlassen?',
     'projects-switching': 'Vor dem Projektwechsel wird auf laufende Speicherungen, Uploads und andere Anfragen gewartet…',
     'projects-already-current': 'Dieses Projekt ist bereits geöffnet.',
     'projects-missing': 'Der Ordner Projects auf dem Server fehlt. Das aktuelle Projekt bleibt geöffnet.',

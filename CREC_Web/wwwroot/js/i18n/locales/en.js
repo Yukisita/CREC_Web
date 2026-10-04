@@ -20,7 +20,7 @@ registerTranslations('en', {
     'projects-refresh': 'Refresh list',
     'projects-reload': 'Show the new project',
     'projects-confirm-impact': 'Open the selected project? This affects every browser, tab, and desktop window connected to this server.',
-    'projects-discard': 'You have unsaved input or an upload in progress. Discard your input and move to the new project?',
+    'projects-discard': 'You have unsaved input or an upload in progress. Discard your input and leave this screen?',
     'projects-switching': 'Waiting for active saves, uploads, and other requests before switching projects…',
     'projects-already-current': 'This project is already open.',
     'projects-missing': 'The server’s Projects folder does not exist. The current project is unchanged.',
