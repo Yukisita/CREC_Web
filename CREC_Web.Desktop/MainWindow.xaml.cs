@@ -474,11 +474,6 @@ public partial class MainWindow : Window
         ApplyLoadingMessage(projectName);
         BrowserHost.Visibility = Visibility.Collapsed;
         LoadingHost.Visibility = Visibility.Visible;
-
-        if (!_closeRequested)
-        {
-            SetLauncherControlsEnabled(false);
-        }
     }
 
     /// <summary>
