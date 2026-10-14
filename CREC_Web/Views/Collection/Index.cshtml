@@ -555,17 +555,17 @@
         function generateIndexDataHtml(collection) {
             return `
                 <div class="detail-section">
-                    <h6>${projectSettings.uuidName}</h6>
+                    <h6>${escapeHtml(projectSettings.uuidName)}</h6>
                     <p>${escapeHtml(collection.indexData.systemData.id)}</p>
                 </div>
 
                 <div class="detail-section">
-                    <h6>${projectSettings.managementCodeName}</h6>
+                    <h6>${escapeHtml(projectSettings.managementCodeName)}</h6>
                     <p>${escapeHtml(collection.indexData.values.managementCode)}</p>
                 </div>
                     
                 <div class="detail-section">
-                    <h6>${projectSettings.categoryName}</h6>
+                    <h6>${escapeHtml(projectSettings.categoryName)}</h6>
                     <p>${escapeHtml(collection.indexData.values.category)}</p>
                 </div>
                     

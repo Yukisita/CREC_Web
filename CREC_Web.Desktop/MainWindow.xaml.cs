@@ -25,6 +25,7 @@ public partial class MainWindow : Window
     private readonly string? _startupProjectPath;// コマンドライン引数から取得した起動時の .crec ファイルパス
     private string? _currentProjectPath;// 現在開いているプロジェクトのパス
     private bool _browserInitialized;// WebView2 の初期化が完了したかどうかを示すフラグ
+    private bool _isConfirmingClose;// 終了確認の多重表示を防ぐ
     private bool _closeRequested;// ウィンドウの閉じる操作が要求されたかどうかを示すフラグ
     private bool _closeConfirmed;// ウィンドウの閉じる操作が確認されたかどうかを示すフラグ
     private bool _currentPublishToNetwork;// 現在の公開設定がネットワーク公開かどうかを示すフラグ
@@ -77,15 +78,14 @@ public partial class MainWindow : Window
         }
 
         e.Cancel = true;
-        if (_closeRequested)
+        if (_closeRequested || _isConfirmingClose)
         {
             return;
         }
 
-        _closeRequested = true;
-        IsEnabled = false;
-        // WPF の閉じる処理は一度止め、非同期でサーバー停止を終えてから最終的にCloseする
-        _ = ShutdownAndCloseAsync();
+        _isConfirmingClose = true;
+        // WPF の閉じる処理が戻ってから確認し、承認後にサーバー停止と最終 Close を行う。
+        _ = Dispatcher.InvokeAsync(ShutdownAndCloseAsync);
     }
 
     /// <summary>
@@ -115,7 +115,7 @@ public partial class MainWindow : Window
 
         if (dialog.ShowDialog(this) == true)
         {
-            await OpenProjectAsync(dialog.FileName);
+            await OpenProjectAsync(dialog.FileName, discardConfirmed: true);
         }
     }
 
@@ -168,9 +168,12 @@ public partial class MainWindow : Window
     /// </summary>
     /// <param name="projectPath">起動する .crec のパス。未選択なら null</param>
     /// <param name="preserveCurrentProject">停止直前のプロジェクトを引き継ぐか</param>
+    /// <param name="discardConfirmed">ファイル選択前に未保存入力の破棄を承認済みか</param>
     /// <returns>起動・画面表示の完了</returns>
-    private async Task OpenProjectAsync(string? projectPath, bool preserveCurrentProject = false)
+    private async Task OpenProjectAsync(string? projectPath, bool preserveCurrentProject = false, bool discardConfirmed = false)
     {
+        var previousTitle = Title;
+        var browserCleared = false;
         StartupErrorHost.Visibility = Visibility.Collapsed;
         try
         {
@@ -189,10 +192,19 @@ public partial class MainWindow : Window
                 return;
             }
 
+            // ファイル選択のキャンセル・入力エラーでは警告を維持する。
+            // 確認は WebView を隠す前に済ませ、空白ページへの遷移待ちに含めない。
+            SetLauncherControlsEnabled(false);
+            if (!await PrepareBrowserNavigationAsync(discardConfirmed))
+                return;
+            if (_closeRequested)
+                return;
+
             ShowLoadingState(fullProjectPath);
 
             // 古い画面の監視・通信を終了してから、サーバーの世代を切り替える。
             await ClearBrowserAsync();
+            browserCleared = true;
             if (_closeRequested)
                 return;
 
@@ -231,16 +243,51 @@ public partial class MainWindow : Window
             {
                 return;
             }
-            BrowserHost.Visibility = Visibility.Collapsed;
+            var canRestoreBrowser = false;
+            if (!browserCleared && Browser.CoreWebView2 is { } browser && IsCurrentAppPage(browser.Source))
+            {
+                // 遷移失敗時に、元の画面と下書きへ戻れるようにする。
+                try
+                {
+                    browser.Stop();
+                    canRestoreBrowser = await browser.ExecuteScriptAsync(
+                        "window.ProjectSession?.cancelDesktopNavigation()") == "true";
+                }
+                catch
+                {
+                    // WebView 自体が使えない場合も、元の切り替えエラーを表示する。
+                }
+            }
+            BrowserHost.Visibility = canRestoreBrowser ? Visibility.Visible : Visibility.Collapsed;
             LoadingHost.Visibility = Visibility.Collapsed;
-            StartupErrorHost.Visibility = Visibility.Visible;
+            StartupErrorHost.Visibility = canRestoreBrowser ? Visibility.Collapsed : Visibility.Visible;
             Title = "CREC Desktop";
             MessageBox.Show(this, ex.Message, "CREC Desktop", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {
             HideLoadingState();
+            if (!browserCleared && _webServerHost.IsRunning)
+            {
+                PublishCheckBox.IsChecked = _currentPublishToNetwork;
+                Title = previousTitle;
+            }
         }
+    }
+
+    /// <summary>元の画面で破棄を確認し、承認後の離脱警告と定期確認を止める。</summary>
+    /// <param name="discardConfirmed">ファイル選択前に破棄を承認済みか</param>
+    /// <returns>画面を閉じてよい場合は true。未初期化・アプリ外の画面では確認不要。</returns>
+    private async Task<bool> PrepareBrowserNavigationAsync(bool discardConfirmed)
+    {
+        var browser = Browser.CoreWebView2;
+        if (browser is null || !IsCurrentAppPage(browser.Source))
+            return true;
+
+        var confirmed = discardConfirmed ? "true" : "false";
+        var result = await browser.ExecuteScriptAsync(
+            $"window.ProjectSession?.prepareDesktopNavigation({confirmed}) ?? true");
+        return result == "true";
     }
 
     /// <summary>空白ページへの遷移完了を待ち、切り替え前の画面を終了する。</summary>
@@ -385,13 +432,18 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Web サーバーを停止し、ウィンドウを閉じる非同期メソッド
+    /// 下書きの破棄を確認し、承認後に Web サーバーを停止してウィンドウを閉じる
     /// </summary>
     /// <returns>サーバー停止と画面終了を待つタスク</returns>
     private async Task ShutdownAndCloseAsync()
     {
         try
         {
+            if (!await PrepareBrowserNavigationAsync(discardConfirmed: false))
+                return;
+
+            _closeRequested = true;
+            IsEnabled = false;
             Browser.Source = new Uri("about:blank");
             BrowserHost.Visibility = Visibility.Collapsed;
             LoadingHost.Visibility = Visibility.Collapsed;
@@ -401,15 +453,19 @@ public partial class MainWindow : Window
         {
             MessageBox.Show(
                 this,
-                $"サーバーの停止中にエラーが発生しました。\n{ex.Message}",
+                $"アプリの終了中にエラーが発生しました。\n{ex.Message}",
                 "CREC Desktop",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
         }
         finally
         {
-            _closeConfirmed = true;
-            Close();
+            _isConfirmingClose = false;
+            if (_closeRequested)
+            {
+                _closeConfirmed = true;
+                Close();
+            }
         }
     }
 
@@ -427,11 +483,6 @@ public partial class MainWindow : Window
         ApplyLoadingMessage(projectName);
         BrowserHost.Visibility = Visibility.Collapsed;
         LoadingHost.Visibility = Visibility.Visible;
-
-        if (!_closeRequested)
-        {
-            SetLauncherControlsEnabled(false);
-        }
     }
 
     /// <summary>

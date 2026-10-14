@@ -180,6 +180,12 @@ async function initializeApp() {
             { id: 'deleteCollectionBtn', event: 'click', handler: deleteCollection },// コレクション削除のイベントリスナ
         ]);
 
+        document.querySelectorAll('[data-project-create]').forEach(button => {
+            button.addEventListener('click', () => {
+                if (ProjectSession.confirmDiscard()) window.location.assign('/ProjectEdit/Create');
+            });
+        });
+
         // 未選択のホーム画面では言語と選択操作だけを初期化する。
         if (!ProjectSession.hasProject) {
             buildLanguageDropdown();

@@ -10,7 +10,10 @@
     const dirtyInputs = new Set();// 保存した編集欄だけを確認対象から外す。
     let hasProjectChanged = false;
     let hasStartedNavigation = false;// 遷移後は定期確認を止める。
+    let hasStartedDesktopNavigation = false;// ファイル選択後、ホストが画面を閉じる間だけ警告を止める。
     let activeUploadCount = 0;// アップロード中も破棄確認を行う。
+    const draftForm = document.querySelector('#projectEditForm[data-new-project="true"]');
+    let hasUnsavedDraft = !!draftForm;
 
     /** 翻訳文を取得する。
      * @param {string} key 翻訳キー
@@ -33,7 +36,8 @@
             if (!input.isConnected || (input.type === 'file' && input.files.length === 0))
                 dirtyInputs.delete(input);
         }
-        return (dirtyInputs.size === 0 && activeUploadCount === 0) || window.confirm(message('projects-discard'));
+        return (!hasUnsavedDraft && dirtyInputs.size === 0 && activeUploadCount === 0)
+            || window.confirm(message(hasUnsavedDraft ? 'projects-create-discard' : 'projects-discard'));
     }
 
     /** 保存・破棄済みの入力を確認対象から外す。
@@ -49,13 +53,31 @@
      * @returns {void} */
     function navigateAfterSwitch() {
         hasStartedNavigation = true;
-        window.location.assign('/');
+        hasUnsavedDraft = false;
+        if (draftForm) window.location.replace('/');
+        else window.location.assign('/');
     }
 
     /** 破棄を確認して再読み込みする。
      * @returns {void} */
     function reload() {
         if (confirmDiscard()) navigateAfterSwitch();
+    }
+
+    /** デスクトップで画面を閉じる前に、破棄確認と離脱警告の解除を行う。
+     * @param {boolean} discardConfirmed ファイル選択前に破棄を承認済みか
+     * @returns {boolean} 画面を閉じてよい場合は true */
+    function prepareDesktopNavigation(discardConfirmed) {
+        if (!discardConfirmed && !confirmDiscard()) return false;
+        hasStartedDesktopNavigation = true;
+        return true;
+    }
+
+    /** 画面を閉じられなかった場合、下書きの警告と定期確認を再開する。
+     * @returns {boolean} 再開できた場合は true */
+    function cancelDesktopNavigation() {
+        hasStartedDesktopNavigation = false;
+        return true;
     }
 
     /** このアプリの API か確認する。
@@ -130,7 +152,7 @@
     /** 別画面での切り替えを検出する。
      * @returns {Promise<void>} 確認完了 */
     async function checkProject() {
-        if (hasProjectChanged || hasStartedNavigation) return;
+        if (hasProjectChanged || hasStartedNavigation || hasStartedDesktopNavigation) return;
         try {
             const response = await originalFetch('/api/projects/status', { cache: 'no-store' });
             if (response.ok && (await response.json()).revision !== revision) markStale();
@@ -141,6 +163,7 @@
 
     window.ProjectSession = Object.freeze({
         revision, hasProject, url, markStale, confirmDiscard, reload, saved, navigateAfterSwitch,
+        prepareDesktopNavigation, cancelDesktopNavigation,
         /** 画面の世代が古いか返す。
          * @returns {boolean} 切り替え検出済みなら true */
         isStale() { return hasProjectChanged; },
@@ -169,5 +192,15 @@
         window.setInterval(checkProject, 2000);
     });
     window.addEventListener('pageshow', checkProject);
+    // ブラウザバック・再読み込み・タブを閉じる操作にはブラウザー標準の警告を使う。
+    window.addEventListener('beforeunload', event => {
+        if (!hasUnsavedDraft || hasStartedDesktopNavigation) return;
+        event.preventDefault();
+        event.returnValue = '';
+    });
+    window.addEventListener('pageshow', event => {
+        // 戻る・進むで破棄済みの下書きを復元しない。
+        if (draftForm && event.persisted) navigateAfterSwitch();
+    });
     window.addEventListener('focus', checkProject);
 })();

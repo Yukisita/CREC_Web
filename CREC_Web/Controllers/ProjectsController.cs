@@ -26,6 +26,32 @@ public sealed class ProjectsController(ProjectRuntime runtime, ProjectCatalogSer
     [HttpGet]
     public IActionResult List() => Ok(catalog.List(runtime.Current.FilePath));
 
+    /// <summary>新規プロジェクトを保存し、ポート・公開設定を維持して開く。</summary>
+    [HttpPost("create")]
+    public async Task<IActionResult> Create([FromBody] CreateProjectRequest request)
+    {
+        try
+        {
+            var result = await runtime.CreateAsync(request.Settings, request.Revision, HttpContext.RequestAborted);
+            var payload = new { code = result.Code, revision = result.State.Revision, name = result.State.Name };
+            return result.Code switch
+            {
+                "projects-created" => Ok(payload),
+                "projects-busy" or "projects-stale" => Conflict(payload),
+                _ => BadRequest(payload)
+            };
+        }
+        catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
+        {
+            return new EmptyResult();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Project creation failed; previous project retained");
+            return StatusCode(500, new { code = "projects-create-failed" });
+        }
+    }
+
     /// <summary>指定した候補へ切り替える。</summary>
     /// <param name="request">候補の識別子と操作元の世代</param>
     /// <returns>成功は200、世代不一致・競合は409、候補不正は400、予期しない失敗は500の応答</returns>
@@ -61,3 +87,6 @@ public sealed class ProjectsController(ProjectRuntime runtime, ProjectCatalogSer
 /// <param name="Id">候補一覧で発行された識別子</param>
 /// <param name="Revision">操作元の画面が保持する世代</param>
 public sealed record SwitchProjectRequest(string Id, string Revision);
+
+/// <summary>新規作成要求。任意の保存先は受け付けない。</summary>
+public sealed record CreateProjectRequest(UpdateProjectSettingsRequest Settings, string Revision);

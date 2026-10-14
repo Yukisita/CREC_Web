@@ -48,6 +48,42 @@ public sealed class ProjectCatalogService
     /// <param name="projectsRoot">.crec の配置フォルダ</param>
     public ProjectCatalogService(string projectsRoot) => ProjectsRoot = Path.GetFullPath(projectsRoot);
 
+    /// <summary>Projects 内に空のプロジェクトを保存して開く。失敗時は作成物を取り除く。</summary>
+    /// <param name="request">名前と表示ラベル。保存先はサーバーが決定する。</param>
+    /// <param name="activate">検証したプロジェクトを適用する処理</param>
+    public void Create(UpdateProjectSettingsRequest request, Action<ValidatedProject> activate)
+    {
+        if (string.IsNullOrWhiteSpace(request.ProjectName))
+            throw new ProjectAccessException("projects-name-required");
+
+        // 表示名をパスに使わず、同名のプロジェクトも独立して保存する。
+        var directory = Path.Combine(ProjectsRoot, Guid.NewGuid().ToString("N"));
+        var filePath = Path.Combine(directory, "project.crec");
+        var dataPath = Path.Combine(directory, "data");
+        EnsureSafePath(directory);
+        if (Directory.Exists(directory) || File.Exists(directory))
+            throw new IOException("The project destination already exists.");
+
+        Directory.CreateDirectory(directory);
+        try
+        {
+            EnsureSafePath(dataPath);
+            Directory.CreateDirectory(dataPath);
+            ProjectSettingsService.WriteNewProject(filePath, dataPath, request);
+            activate(Validate(filePath));
+        }
+        catch
+        {
+            // 自身が作成したファイルと空ディレクトリだけを削除する。
+            EnsureSafePath(filePath);
+            EnsureSafePath(dataPath);
+            File.Delete(filePath);
+            if (Directory.Exists(dataPath)) Directory.Delete(dataPath);
+            Directory.Delete(directory);
+            throw;
+        }
+    }
+
     /// <summary>候補を検証し、一覧と識別子を更新する。</summary>
     /// <param name="currentPath">現在の .crec のパス</param>
     /// <returns>保存場所順の一覧。失敗時は理由と空の一覧</returns>

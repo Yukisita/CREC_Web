@@ -48,6 +48,46 @@ public class ProjectSettingsService
         _configuration = configuration;
     }
 
+    /// <summary>既存の設定と同じ形式で、新規プロジェクトファイルを作成する。</summary>
+    /// <param name="filePath">新規 .crec の保存先</param>
+    /// <param name="dataPath">新規データフォルダの絶対パス</param>
+    /// <param name="request">名前と表示ラベル</param>
+    public static void WriteNewProject(string filePath, string dataPath, UpdateProjectSettingsRequest request)
+    {
+        var labels = new JsonObject();
+        var defaults = new ProjectSettings();
+        var values = new (string Key, string? Value, string Default)[]
+        {
+            ("objectName", request.CollectionNameLabel, defaults.CollectionNameLabel),
+            ("id", request.UUIDLabel, defaults.UUIDLabel),
+            ("mc", request.ManagementCodeLabel, defaults.ManagementCodeLabel),
+            ("category", request.CategoryLabel, defaults.CategoryLabel),
+            ("tag1", request.FirstTagLabel, defaults.FirstTagLabel),
+            ("tag2", request.SecondTagLabel, defaults.SecondTagLabel),
+            ("tag3", request.ThirdTagLabel, defaults.ThirdTagLabel)
+        };
+        foreach (var (key, value, defaultValue) in values)
+            labels[key] = new JsonObject
+            {
+                ["displayName"] = string.IsNullOrWhiteSpace(value) ? defaultValue : value,
+                ["enabled"] = true
+            };
+
+        var root = new JsonObject
+        {
+            ["projectSettings"] = new JsonObject
+            {
+                ["projectName"] = request.ProjectName!.Trim(),
+                ["projectLocation"] = dataPath
+            },
+            ["labelSettings"] = labels
+        };
+        // 同名ファイルが存在する場合は上書きしない。
+        using var stream = new FileStream(filePath, FileMode.CreateNew, FileAccess.Write);
+        using var writer = new StreamWriter(stream, new UTF8Encoding(false));
+        writer.Write(root.ToJsonString(_jsonOptions));
+    }
+
     /// <summary>
     /// JSON形式のプロジェクトファイルを読み込む。
     /// </summary>
