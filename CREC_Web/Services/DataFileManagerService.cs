@@ -14,6 +14,9 @@ namespace CREC_Web.Services;
 /// </summary>
 public sealed class DataFileManagerService
 {
+    /// <summary>データファイルのアップロード上限（8 GB、既存のサイズ表示と同じ1024進）。</summary>
+    public const long MaxUploadFileSizeBytes = 8L * 1024 * 1024 * 1024;
+
     private const long MaxArchiveUncompressedSizeBytes = 1024L * 1024 * 1024;
     private const int MaxArchiveEntryCount = 10_000;
     private const int MaxArchiveDepth = 32;
@@ -213,12 +216,20 @@ public sealed class DataFileManagerService
     public async Task<DataFileEntry> UploadFileAsync(
         string collectionId,
         string? directoryPath,
-        IFormFile file,
+        IFormFile? file,
         CancellationToken cancellationToken)
     {
         if (file is null || file.Length == 0)
         {
             throw new DataFileManagerException(400, "A non-empty file is required.");
+        }
+
+        if (file.Length > MaxUploadFileSizeBytes)
+        {
+            throw new DataFileManagerException(
+                413,
+                "The file size exceeds the 8 GB limit.",
+                "upload_size_limit_exceeded");
         }
 
         var fileName = Path.GetFileName(file.FileName);

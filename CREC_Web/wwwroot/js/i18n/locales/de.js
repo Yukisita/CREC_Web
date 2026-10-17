@@ -77,6 +77,7 @@ registerTranslations('de', {
     'data-delete-success': 'Element wurde gelöscht',
     'data-upload-success': 'Datei wurde hinzugefügt',
     'data-upload-error': 'Datei konnte nicht hinzugefügt werden',
+    'data-upload-too-large': 'Die Dateigröße überschreitet das Limit von 8 GB',
     'data-download': 'Datei herunterladen',
     'data-download-folder': 'Ordner als ZIP herunterladen',
     'data-rename': 'Umbenennen',

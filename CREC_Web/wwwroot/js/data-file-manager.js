@@ -8,6 +8,9 @@ This software is released under the MIT License.
  * コレクションの data フォルダをブラウザ上で操作するUIを管理します。
  */
 class DataFileManager {
+    // DataFileManagerService.MaxUploadFileSizeBytes と同じ上限。
+    static maxUploadFileSizeBytes = 8 * 1024 * 1024 * 1024;
+
     /**
      * @param {HTMLElement} container ファイル管理UIを描画するコンテナ。
      * @param {string} collectionId 操作対象のコレクションID。
@@ -253,6 +256,9 @@ class DataFileManager {
      * @returns {Promise<void>}
      */
     async uploadFile(file) {
+        if (file.size > DataFileManager.maxUploadFileSizeBytes) {
+            throw new Error(t('data-upload-too-large'));
+        }
         const formData = new FormData();
         formData.append('file', file);
         this.setLoading(true);
@@ -263,6 +269,9 @@ class DataFileManager {
                 { method: 'POST', body: formData });
             await this.loadDirectory(this.currentPath);
             this.showSuccess(t('data-upload-success'));
+        } catch (error) {
+            if (error.status === 413) error.message = t('data-upload-too-large');
+            throw error;
         } finally {
             this.setLoading(false);
         }
