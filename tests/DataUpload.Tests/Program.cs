@@ -30,7 +30,13 @@ try
     var service = app.Services.GetRequiredService<DataFileManagerService>();
 
     // 論理サイズだけを持つファイルで境界値を検証し、数GBのディスク使用を避ける。
-    foreach (var size in new[] { (long)(4.8 * 1024 * 1024 * 1024), 8L * 1024 * 1024 * 1024 })
+    foreach (var size in new[]
+    {
+        (long)(4.8 * 1024 * 1024 * 1024),
+        8L * 1024 * 1024 * 1024 + 1,
+        16L * 1024 * 1024 * 1024 - 1,
+        16L * 1024 * 1024 * 1024
+    })
     {
         var file = new ProbeFormFile(size);
         try
@@ -44,7 +50,7 @@ try
             "An interrupted copy removes the incomplete file");
     }
 
-    var oversizedFile = new ProbeFormFile(8L * 1024 * 1024 * 1024 + 1);
+    var oversizedFile = new ProbeFormFile(16L * 1024 * 1024 * 1024 + 1);
     try
     {
         await service.UploadFileAsync("collection", null, oversizedFile, default);
@@ -53,7 +59,7 @@ try
     catch (DataFileManagerException exception)
     {
         Check(exception.StatusCode == 413 && exception.ErrorCode == "upload_size_limit_exceeded",
-            "A file one byte over 8 GB is rejected with the size error");
+            "A file one byte over 16 GB is rejected with the size error");
     }
     Check(!oversizedFile.CopyStarted, "Oversized files are rejected before copying");
 
@@ -80,7 +86,7 @@ try
     using (var response = await client.PostAsync(uploadUrl, form))
         Check(response.StatusCode == HttpStatusCode.BadRequest, "An invalid filename remains a bad request");
 
-    var largeLength = 8L * 1024 * 1024 * 1024 + 2 * 1024 * 1024;
+    var largeLength = 16L * 1024 * 1024 * 1024 + 2 * 1024 * 1024;
     await CheckRawRequestAsync($"Content-Length: {largeLength}\r\n", "", 413,
         "An oversized Content-Length is rejected without sending the file");
 

@@ -153,7 +153,7 @@ public sealed class CollectionDataFilesController : ControllerBase
             if (Request.ContentLength > MaxUploadRequestSizeBytes)
             {
                 return Problem(statusCode: StatusCodes.Status413PayloadTooLarge,
-                    title: "The file size exceeds the 8 GB limit.");
+                    title: "The file size exceeds the 16 GB limit.");
             }
 
             // モデルバインド時の400に変換される前に、受信サイズ超過をここで扱う。
@@ -182,7 +182,7 @@ public sealed class CollectionDataFilesController : ControllerBase
         {
             return Problem(statusCode: exception.StatusCode,
                 title: exception.StatusCode == StatusCodes.Status413PayloadTooLarge
-                    ? "The file size exceeds the 8 GB limit."
+                    ? "The file size exceeds the 16 GB limit."
                     : "Invalid upload request.");
         }
         catch (InvalidDataException)

@@ -14,8 +14,8 @@ namespace CREC_Web.Services;
 /// </summary>
 public sealed class DataFileManagerService
 {
-    /// <summary>データファイルのアップロード上限（8 GB、既存のサイズ表示と同じ1024進）。</summary>
-    public const long MaxUploadFileSizeBytes = 8L * 1024 * 1024 * 1024;
+    /// <summary>データファイルのアップロード上限（16 GB、既存のサイズ表示と同じ1024進）。</summary>
+    public const long MaxUploadFileSizeBytes = 16L * 1024 * 1024 * 1024;
 
     private const long MaxArchiveUncompressedSizeBytes = 1024L * 1024 * 1024;
     private const int MaxArchiveEntryCount = 10_000;
@@ -228,7 +228,7 @@ public sealed class DataFileManagerService
         {
             throw new DataFileManagerException(
                 413,
-                "The file size exceeds the 8 GB limit.",
+                "The file size exceeds the 16 GB limit.",
                 "upload_size_limit_exceeded");
         }
 

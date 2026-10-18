@@ -9,7 +9,7 @@ This software is released under the MIT License.
  */
 class DataFileManager {
     // DataFileManagerService.MaxUploadFileSizeBytes と同じ上限。
-    static maxUploadFileSizeBytes = 8 * 1024 * 1024 * 1024;
+    static maxUploadFileSizeBytes = 16 * 1024 * 1024 * 1024;
 
     /**
      * @param {HTMLElement} container ファイル管理UIを描画するコンテナ。
