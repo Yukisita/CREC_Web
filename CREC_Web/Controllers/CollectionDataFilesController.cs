@@ -5,6 +5,7 @@ This software is released under the MIT License.
 */
 
 using CREC_Web.Extensions;
+using CREC_Web.Filters;
 using CREC_Web.Models;
 using CREC_Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -18,7 +19,8 @@ namespace CREC_Web.Controllers;
 [Route("api/collections/{collectionId}/data")]
 public sealed class CollectionDataFilesController : ControllerBase
 {
-    private const long MaxDataFileSizeBytes = 1024L * 1024 * 1024;
+    // ファイル本体の上限に multipart のヘッダーと境界文字列の余裕を加える。
+    private const long MaxUploadRequestSizeBytes = DataFileManagerService.MaxUploadFileSizeBytes + 1024 * 1024;
 
     private readonly DataFileManagerService _dataFileManager;
     private readonly CrecDataService _crecDataService;
@@ -136,22 +138,38 @@ public sealed class CollectionDataFilesController : ControllerBase
     /// </summary>
     /// <param name="collectionId">対象コレクションのID。</param>
     /// <param name="path">data フォルダを基準としたアップロード先の相対パス。</param>
-    /// <param name="file">アップロードするファイル。</param>
     /// <returns>アップロードしたファイルの情報。</returns>
     [HttpPost("files")]
-    [RequestSizeLimit(MaxDataFileSizeBytes)]
-    [RequestFormLimits(MultipartBodyLengthLimit = MaxDataFileSizeBytes)]
+    [Consumes("multipart/form-data")]
+    [DisableFormValueModelBinding]
+    [RequestSizeLimit(MaxUploadRequestSizeBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = MaxUploadRequestSizeBytes)]
     public async Task<ActionResult<DataFileEntry>> UploadFile(
         string collectionId,
-        [FromQuery] string? path,
-        IFormFile file)
+        [FromQuery] string? path)
     {
         try
         {
+            if (Request.ContentLength > MaxUploadRequestSizeBytes)
+            {
+                return Problem(statusCode: StatusCodes.Status413PayloadTooLarge,
+                    title: "The file size exceeds the 16 GB limit.");
+            }
+
+            // モデルバインド時の400に変換される前に、受信サイズ超過をここで扱う。
+            IFormCollection form;
+            try
+            {
+                form = await Request.ReadFormAsync(HttpContext.RequestAborted);
+            }
+            catch (IOException exception) when (exception is not BadHttpRequestException)
+            {
+                return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid upload request.");
+            }
             var entry = await _dataFileManager.UploadFileAsync(
                 collectionId,
                 path,
-                file,
+                form.Files.GetFile("file"),
                 HttpContext.RequestAborted);
             ClearCollectionCache();
             return StatusCode(StatusCodes.Status201Created, entry);
@@ -159,6 +177,17 @@ public sealed class CollectionDataFilesController : ControllerBase
         catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
         {
             return new EmptyResult();
+        }
+        catch (BadHttpRequestException exception)
+        {
+            return Problem(statusCode: exception.StatusCode,
+                title: exception.StatusCode == StatusCodes.Status413PayloadTooLarge
+                    ? "The file size exceeds the 16 GB limit."
+                    : "Invalid upload request.");
+        }
+        catch (InvalidDataException)
+        {
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid upload request.");
         }
         catch (Exception exception)
         {

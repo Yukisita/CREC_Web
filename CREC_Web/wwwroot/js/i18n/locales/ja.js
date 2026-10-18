@@ -77,6 +77,7 @@ registerTranslations('ja', {
     'data-delete-success': '削除しました',
     'data-upload-success': 'ファイルを追加しました',
     'data-upload-error': 'ファイルの追加に失敗しました',
+    'data-upload-too-large': 'ファイルサイズが上限の16GBを超えています',
     'data-download': 'ファイルをダウンロード',
     'data-download-folder': 'フォルダをZIPでダウンロード',
     'data-rename': '名前変更',
